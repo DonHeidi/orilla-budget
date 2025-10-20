@@ -61,14 +61,23 @@ function RootComponent() {
 }
 
 function RootDocument({ children, theme }: ReadOnly<{ children: ReactNode; theme: string }>) {
-  // If theme is 'system', we need to add the appropriate class based on prefers-color-scheme
-  // But we can't check that on the server, so we'll use a data attribute and handle it with CSS
-  const themeClass = theme === 'system' ? 'system' : theme
-
   return (
-    <html className={themeClass} data-theme={theme}>
+    <html data-theme={theme}>
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const theme = '${theme}';
+                const resolvedTheme = theme === 'system'
+                  ? window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+                  : theme;
+                document.documentElement.classList.add(resolvedTheme);
+              })();
+            `,
+          }}
+        />
       </head>
       <body
         data-gramm="false"
