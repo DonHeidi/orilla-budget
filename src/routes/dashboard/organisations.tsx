@@ -62,7 +62,7 @@ const createAccountFn = createServerFn({ method: 'POST' })
   })
 
 // Route definition
-export const Route = createFileRoute('/admin/organisations')({
+export const Route = createFileRoute('/dashboard/organisations')({
   component: OrganisationsPage,
   loader: () => getAllDataFn(),
 })
@@ -222,7 +222,7 @@ function OrganisationsPage() {
           data={organisationsWithDetails}
           getRowId={(row) => row.id}
           onRowClick={(row) => {
-            navigate({ to: '/admin/organisations/$id', params: { id: row.original.id } })
+            navigate({ to: '/dashboard/organisations/$id', params: { id: row.original.id } })
           }}
         />
       ) : (

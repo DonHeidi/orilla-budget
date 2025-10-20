@@ -145,7 +145,7 @@ const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
   }
 )
 
-export const Route = createFileRoute('/admin')({
+export const Route = createFileRoute('/dashboard')({
   component: AdminDashboard,
   loader: () => getAllDataFn(),
 })
@@ -168,7 +168,7 @@ function AdminDashboard() {
                   <SidebarMenuItem>
                     <div className="flex items-center justify-between w-full">
                       <SidebarMenuButton asChild className="flex-1">
-                        <Link to="/admin/time-entries">
+                        <Link to="/dashboard/time-entries">
                           <Clock className="mr-2 h-4 w-4" />
                           <span>Time Entries</span>
                         </Link>
@@ -197,7 +197,7 @@ function AdminDashboard() {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <Link to="/admin/organisations">
+                      <Link to="/dashboard/organisations">
                         <Users className="mr-2 h-4 w-4" />
                         <span>Organisations & Accounts</span>
                       </Link>
@@ -205,7 +205,7 @@ function AdminDashboard() {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <Link to="/admin">
+                      <Link to="/dashboard">
                         <FolderKanban className="mr-2 h-4 w-4" />
                         <span>Projects</span>
                       </Link>

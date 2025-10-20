@@ -13,7 +13,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 
-const parentRouteApi = getRouteApi('/admin/time-entries')
+const parentRouteApi = getRouteApi('/dashboard/time-entries')
 
 // Helper functions
 function hoursToTime(hours: number): string {
@@ -55,7 +55,7 @@ const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
 )
 
 // Route definition - no loader needed, uses parent data
-export const Route = createFileRoute('/admin/time-entries/$id')({
+export const Route = createFileRoute('/dashboard/time-entries/$id')({
   component: TimeEntryDetailPage,
 })
 
@@ -78,7 +78,7 @@ function TimeEntryDetailPage() {
     return (
       <Sheet open={true} onOpenChange={(open) => {
         if (!open) {
-          navigate({ to: '/admin/time-entries' })
+          navigate({ to: '/dashboard/time-entries' })
         }
       }}>
         <SheetContent className="w-full sm:max-w-[600px]">
@@ -90,7 +90,7 @@ function TimeEntryDetailPage() {
             <p className="text-gray-500">The requested time entry could not be found.</p>
           </div>
           <div className="flex gap-3 justify-end pt-6 border-t">
-            <Button variant="outline" onClick={() => navigate({ to: '/admin/time-entries' })}>
+            <Button variant="outline" onClick={() => navigate({ to: '/dashboard/time-entries' })}>
               Back to List
             </Button>
           </div>
@@ -130,7 +130,7 @@ function TimeEntryDetailPage() {
   return (
     <Sheet open={true} onOpenChange={(open) => {
       if (!open) {
-        navigate({ to: '/admin/time-entries' })
+        navigate({ to: '/dashboard/time-entries' })
       }
     }}>
       <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
@@ -346,7 +346,7 @@ function TimeEntryDetailPage() {
         </div>
 
         <div className="flex gap-3 justify-end pt-6 border-t">
-          <Button variant="outline" onClick={() => navigate({ to: '/admin/time-entries' })}>
+          <Button variant="outline" onClick={() => navigate({ to: '/dashboard/time-entries' })}>
             Close
           </Button>
         </div>

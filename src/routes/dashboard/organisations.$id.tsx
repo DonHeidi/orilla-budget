@@ -13,7 +13,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 
-const parentRouteApi = getRouteApi('/admin/organisations')
+const parentRouteApi = getRouteApi('/dashboard/organisations')
 
 // Helper functions
 function formatDateTime(isoString: string): string {
@@ -49,7 +49,7 @@ const updateOrganisationFn = createServerFn({ method: 'POST' }).handler(
 )
 
 // Route definition - no loader needed, uses parent data
-export const Route = createFileRoute('/admin/organisations/$id')({
+export const Route = createFileRoute('/dashboard/organisations/$id')({
   component: OrganisationDetailPage,
 })
 
@@ -71,7 +71,7 @@ function OrganisationDetailPage() {
     return (
       <Sheet open={true} onOpenChange={(open) => {
         if (!open) {
-          navigate({ to: '/admin/organisations' })
+          navigate({ to: '/dashboard/organisations' })
         }
       }}>
         <SheetContent className="w-full sm:max-w-[600px]">
@@ -83,7 +83,7 @@ function OrganisationDetailPage() {
             <p className="text-gray-500">The requested organisation could not be found.</p>
           </div>
           <div className="flex gap-3 justify-end pt-6 border-t">
-            <Button variant="outline" onClick={() => navigate({ to: '/admin/organisations' })}>
+            <Button variant="outline" onClick={() => navigate({ to: '/dashboard/organisations' })}>
               Back to List
             </Button>
           </div>
@@ -134,7 +134,7 @@ function OrganisationDetailPage() {
   return (
     <Sheet open={true} onOpenChange={(open) => {
       if (!open) {
-        navigate({ to: '/admin/organisations' })
+        navigate({ to: '/dashboard/organisations' })
       }
     }}>
       <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
@@ -280,7 +280,7 @@ function OrganisationDetailPage() {
         </div>
 
         <div className="flex gap-3 justify-end pt-6 border-t">
-          <Button variant="outline" onClick={() => navigate({ to: '/admin/organisations' })}>
+          <Button variant="outline" onClick={() => navigate({ to: '/dashboard/organisations' })}>
             Close
           </Button>
         </div>

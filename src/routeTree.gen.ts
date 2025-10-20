@@ -10,22 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PortalRouteImport } from './routes/portal'
-import { Route as AdminRouteImport } from './routes/admin'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as AdminTimeEntriesRouteImport } from './routes/admin/time-entries'
-import { Route as AdminOrganisationsRouteImport } from './routes/admin/organisations'
-import { Route as AdminTimeEntriesIdRouteImport } from './routes/admin/time-entries.$id'
-import { Route as AdminOrganisationsIdRouteImport } from './routes/admin/organisations.$id'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardTimeEntriesRouteImport } from './routes/dashboard/time-entries'
+import { Route as DashboardOrganisationsRouteImport } from './routes/dashboard/organisations'
+import { Route as DashboardTimeEntriesIdRouteImport } from './routes/dashboard/time-entries.$id'
+import { Route as DashboardOrganisationsIdRouteImport } from './routes/dashboard/organisations.$id'
 
 const PortalRoute = PortalRouteImport.update({
   id: '/portal',
   path: '/portal',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -33,97 +33,98 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminRoute,
+  getParentRoute: () => DashboardRoute,
 } as any)
-const AdminTimeEntriesRoute = AdminTimeEntriesRouteImport.update({
+const DashboardTimeEntriesRoute = DashboardTimeEntriesRouteImport.update({
   id: '/time-entries',
   path: '/time-entries',
-  getParentRoute: () => AdminRoute,
+  getParentRoute: () => DashboardRoute,
 } as any)
-const AdminOrganisationsRoute = AdminOrganisationsRouteImport.update({
+const DashboardOrganisationsRoute = DashboardOrganisationsRouteImport.update({
   id: '/organisations',
   path: '/organisations',
-  getParentRoute: () => AdminRoute,
+  getParentRoute: () => DashboardRoute,
 } as any)
-const AdminTimeEntriesIdRoute = AdminTimeEntriesIdRouteImport.update({
+const DashboardTimeEntriesIdRoute = DashboardTimeEntriesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => AdminTimeEntriesRoute,
+  getParentRoute: () => DashboardTimeEntriesRoute,
 } as any)
-const AdminOrganisationsIdRoute = AdminOrganisationsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AdminOrganisationsRoute,
-} as any)
+const DashboardOrganisationsIdRoute =
+  DashboardOrganisationsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => DashboardOrganisationsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRouteWithChildren
+  '/dashboard': typeof DashboardRouteWithChildren
   '/portal': typeof PortalRoute
-  '/admin/organisations': typeof AdminOrganisationsRouteWithChildren
-  '/admin/time-entries': typeof AdminTimeEntriesRouteWithChildren
-  '/admin/': typeof AdminIndexRoute
-  '/admin/organisations/$id': typeof AdminOrganisationsIdRoute
-  '/admin/time-entries/$id': typeof AdminTimeEntriesIdRoute
+  '/dashboard/organisations': typeof DashboardOrganisationsRouteWithChildren
+  '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
+  '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/organisations/$id': typeof DashboardOrganisationsIdRoute
+  '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/portal': typeof PortalRoute
-  '/admin/organisations': typeof AdminOrganisationsRouteWithChildren
-  '/admin/time-entries': typeof AdminTimeEntriesRouteWithChildren
-  '/admin': typeof AdminIndexRoute
-  '/admin/organisations/$id': typeof AdminOrganisationsIdRoute
-  '/admin/time-entries/$id': typeof AdminTimeEntriesIdRoute
+  '/dashboard/organisations': typeof DashboardOrganisationsRouteWithChildren
+  '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
+  '/dashboard': typeof DashboardIndexRoute
+  '/dashboard/organisations/$id': typeof DashboardOrganisationsIdRoute
+  '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRouteWithChildren
+  '/dashboard': typeof DashboardRouteWithChildren
   '/portal': typeof PortalRoute
-  '/admin/organisations': typeof AdminOrganisationsRouteWithChildren
-  '/admin/time-entries': typeof AdminTimeEntriesRouteWithChildren
-  '/admin/': typeof AdminIndexRoute
-  '/admin/organisations/$id': typeof AdminOrganisationsIdRoute
-  '/admin/time-entries/$id': typeof AdminTimeEntriesIdRoute
+  '/dashboard/organisations': typeof DashboardOrganisationsRouteWithChildren
+  '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
+  '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/organisations/$id': typeof DashboardOrganisationsIdRoute
+  '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/admin'
+    | '/dashboard'
     | '/portal'
-    | '/admin/organisations'
-    | '/admin/time-entries'
-    | '/admin/'
-    | '/admin/organisations/$id'
-    | '/admin/time-entries/$id'
+    | '/dashboard/organisations'
+    | '/dashboard/time-entries'
+    | '/dashboard/'
+    | '/dashboard/organisations/$id'
+    | '/dashboard/time-entries/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/portal'
-    | '/admin/organisations'
-    | '/admin/time-entries'
-    | '/admin'
-    | '/admin/organisations/$id'
-    | '/admin/time-entries/$id'
+    | '/dashboard/organisations'
+    | '/dashboard/time-entries'
+    | '/dashboard'
+    | '/dashboard/organisations/$id'
+    | '/dashboard/time-entries/$id'
   id:
     | '__root__'
     | '/'
-    | '/admin'
+    | '/dashboard'
     | '/portal'
-    | '/admin/organisations'
-    | '/admin/time-entries'
-    | '/admin/'
-    | '/admin/organisations/$id'
-    | '/admin/time-entries/$id'
+    | '/dashboard/organisations'
+    | '/dashboard/time-entries'
+    | '/dashboard/'
+    | '/dashboard/organisations/$id'
+    | '/dashboard/time-entries/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRouteWithChildren
+  DashboardRoute: typeof DashboardRouteWithChildren
   PortalRoute: typeof PortalRoute
 }
 
@@ -136,11 +137,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -150,83 +151,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/': {
-      id: '/admin/'
+    '/dashboard/': {
+      id: '/dashboard/'
       path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRoute
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRoute
     }
-    '/admin/time-entries': {
-      id: '/admin/time-entries'
+    '/dashboard/time-entries': {
+      id: '/dashboard/time-entries'
       path: '/time-entries'
-      fullPath: '/admin/time-entries'
-      preLoaderRoute: typeof AdminTimeEntriesRouteImport
-      parentRoute: typeof AdminRoute
+      fullPath: '/dashboard/time-entries'
+      preLoaderRoute: typeof DashboardTimeEntriesRouteImport
+      parentRoute: typeof DashboardRoute
     }
-    '/admin/organisations': {
-      id: '/admin/organisations'
+    '/dashboard/organisations': {
+      id: '/dashboard/organisations'
       path: '/organisations'
-      fullPath: '/admin/organisations'
-      preLoaderRoute: typeof AdminOrganisationsRouteImport
-      parentRoute: typeof AdminRoute
+      fullPath: '/dashboard/organisations'
+      preLoaderRoute: typeof DashboardOrganisationsRouteImport
+      parentRoute: typeof DashboardRoute
     }
-    '/admin/time-entries/$id': {
-      id: '/admin/time-entries/$id'
+    '/dashboard/time-entries/$id': {
+      id: '/dashboard/time-entries/$id'
       path: '/$id'
-      fullPath: '/admin/time-entries/$id'
-      preLoaderRoute: typeof AdminTimeEntriesIdRouteImport
-      parentRoute: typeof AdminTimeEntriesRoute
+      fullPath: '/dashboard/time-entries/$id'
+      preLoaderRoute: typeof DashboardTimeEntriesIdRouteImport
+      parentRoute: typeof DashboardTimeEntriesRoute
     }
-    '/admin/organisations/$id': {
-      id: '/admin/organisations/$id'
+    '/dashboard/organisations/$id': {
+      id: '/dashboard/organisations/$id'
       path: '/$id'
-      fullPath: '/admin/organisations/$id'
-      preLoaderRoute: typeof AdminOrganisationsIdRouteImport
-      parentRoute: typeof AdminOrganisationsRoute
+      fullPath: '/dashboard/organisations/$id'
+      preLoaderRoute: typeof DashboardOrganisationsIdRouteImport
+      parentRoute: typeof DashboardOrganisationsRoute
     }
   }
 }
 
-interface AdminOrganisationsRouteChildren {
-  AdminOrganisationsIdRoute: typeof AdminOrganisationsIdRoute
+interface DashboardOrganisationsRouteChildren {
+  DashboardOrganisationsIdRoute: typeof DashboardOrganisationsIdRoute
 }
 
-const AdminOrganisationsRouteChildren: AdminOrganisationsRouteChildren = {
-  AdminOrganisationsIdRoute: AdminOrganisationsIdRoute,
+const DashboardOrganisationsRouteChildren: DashboardOrganisationsRouteChildren =
+  {
+    DashboardOrganisationsIdRoute: DashboardOrganisationsIdRoute,
+  }
+
+const DashboardOrganisationsRouteWithChildren =
+  DashboardOrganisationsRoute._addFileChildren(
+    DashboardOrganisationsRouteChildren,
+  )
+
+interface DashboardTimeEntriesRouteChildren {
+  DashboardTimeEntriesIdRoute: typeof DashboardTimeEntriesIdRoute
 }
 
-const AdminOrganisationsRouteWithChildren =
-  AdminOrganisationsRoute._addFileChildren(AdminOrganisationsRouteChildren)
-
-interface AdminTimeEntriesRouteChildren {
-  AdminTimeEntriesIdRoute: typeof AdminTimeEntriesIdRoute
+const DashboardTimeEntriesRouteChildren: DashboardTimeEntriesRouteChildren = {
+  DashboardTimeEntriesIdRoute: DashboardTimeEntriesIdRoute,
 }
 
-const AdminTimeEntriesRouteChildren: AdminTimeEntriesRouteChildren = {
-  AdminTimeEntriesIdRoute: AdminTimeEntriesIdRoute,
+const DashboardTimeEntriesRouteWithChildren =
+  DashboardTimeEntriesRoute._addFileChildren(DashboardTimeEntriesRouteChildren)
+
+interface DashboardRouteChildren {
+  DashboardOrganisationsRoute: typeof DashboardOrganisationsRouteWithChildren
+  DashboardTimeEntriesRoute: typeof DashboardTimeEntriesRouteWithChildren
+  DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
-const AdminTimeEntriesRouteWithChildren =
-  AdminTimeEntriesRoute._addFileChildren(AdminTimeEntriesRouteChildren)
-
-interface AdminRouteChildren {
-  AdminOrganisationsRoute: typeof AdminOrganisationsRouteWithChildren
-  AdminTimeEntriesRoute: typeof AdminTimeEntriesRouteWithChildren
-  AdminIndexRoute: typeof AdminIndexRoute
+const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardOrganisationsRoute: DashboardOrganisationsRouteWithChildren,
+  DashboardTimeEntriesRoute: DashboardTimeEntriesRouteWithChildren,
+  DashboardIndexRoute: DashboardIndexRoute,
 }
 
-const AdminRouteChildren: AdminRouteChildren = {
-  AdminOrganisationsRoute: AdminOrganisationsRouteWithChildren,
-  AdminTimeEntriesRoute: AdminTimeEntriesRouteWithChildren,
-  AdminIndexRoute: AdminIndexRoute,
-}
-
-const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRouteWithChildren,
+  DashboardRoute: DashboardRouteWithChildren,
   PortalRoute: PortalRoute,
 }
 export const routeTree = rootRouteImport

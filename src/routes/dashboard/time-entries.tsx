@@ -94,7 +94,7 @@ const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
 )
 
 // Route definition
-export const Route = createFileRoute('/admin/time-entries')({
+export const Route = createFileRoute('/dashboard/time-entries')({
   component: TimeEntriesPage,
   loader: () => getAllDataFn(),
 })
@@ -194,7 +194,7 @@ function TimeEntriesPage() {
         data={timeEntriesWithDetails}
         getRowId={(row) => row.id}
         onRowDoubleClick={(row) => {
-          navigate({ to: '/admin/time-entries/$id', params: { id: row.original.id } })
+          navigate({ to: '/dashboard/time-entries/$id', params: { id: row.original.id } })
         }}
       />
 

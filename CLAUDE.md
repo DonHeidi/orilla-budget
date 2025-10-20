@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Orilla Budget is a time tracking and budget management application built with TanStack Start (React), Bun, Drizzle ORM, and SQLite. The app provides both an admin interface for managing organisations, projects, and time entries, as well as a client portal for viewing budget information.
 
+**Note**: The admin interface uses the `/dashboard` route (not `/admin`). All administrative pages are under `/dashboard/*`.
+
 ## Commands
 
 ### Development
@@ -28,13 +30,13 @@ bun run db:studio    # Open Drizzle Studio for database visualization
 ### Commit Convention
 This project follows **Conventional Commits** with the **Angular preset**.
 
+**Note**: Keep commit messages concise. Do not include Claude Code attribution footers or Co-Authored-By tags.
+
 #### Format
 ```
 <type>(<scope>): <subject>
 
 <body>
-
-<footer>
 ```
 
 #### Types
@@ -53,7 +55,7 @@ This project follows **Conventional Commits** with the **Angular preset**.
 fix(theme): prevent flash of unstyled content on page load
 
 # New feature
-feat(admin): add bulk delete for time entries
+feat(dashboard): add bulk delete for time entries
 
 # Performance improvement
 perf(db): add index on project queries
@@ -89,7 +91,7 @@ Repository pattern for data access:
 File-based routing with TanStack Start:
 - `__root.tsx`: Root layout with theme provider and HTML structure
 - `index.tsx`: Landing/home page
-- `admin.tsx`: Full admin interface with sidebar navigation for managing all entities
+- `dashboard.tsx`: Full admin interface with sidebar navigation for managing all entities
 - `portal.tsx`: Client portal with access code authentication
 
 #### Types and Schemas
@@ -105,7 +107,7 @@ Routes use `createServerFn()` from TanStack Start to define server-side logic th
 All database access goes through repository modules that encapsulate Drizzle ORM queries. Repositories provide standard CRUD operations and domain-specific queries.
 
 #### Dual Interface Architecture
-- **Admin (`/admin`)**: Full CRUD interface with sidebar navigation organized by organisations, projects, and accounts
+- **Dashboard (`/dashboard`)**: Full CRUD interface with sidebar navigation organized by organisations, projects, and accounts
 - **Portal (`/portal`)**: Read-only client view authenticated via access codes
 
 #### Theme System

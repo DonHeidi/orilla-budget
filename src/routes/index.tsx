@@ -15,7 +15,7 @@ function Home() {
 
         <div className="grid md:grid-cols-2 gap-4">
           <Link
-            to="/admin"
+            to="/dashboard"
             className="block p-8 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border-2 border-transparent hover:border-blue-500"
           >
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">Admin Dashboard</h2>
