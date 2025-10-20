@@ -151,6 +151,7 @@ export const Route = createFileRoute('/admin')({
 function AdminDashboard() {
   const data = Route.useLoaderData()
   const [timeEntryDialogOpen, setTimeEntryDialogOpen] = useState(false)
+  const [timeEntriesExpanded, setTimeEntriesExpanded] = useState(true)
   const { theme, setTheme } = useTheme()
 
   return (
@@ -163,12 +164,34 @@ function AdminDashboard() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link to="/admin/time-entries">
-                        <Clock className="mr-2 h-4 w-4" />
-                        <span>Time Entries</span>
-                      </Link>
-                    </SidebarMenuButton>
+                    <div className="flex items-center justify-between w-full">
+                      <SidebarMenuButton asChild className="flex-1">
+                        <Link to="/admin/time-entries">
+                          <Clock className="mr-2 h-4 w-4" />
+                          <span>Time Entries</span>
+                        </Link>
+                      </SidebarMenuButton>
+                      <button
+                        onClick={() => setTimeEntriesExpanded(!timeEntriesExpanded)}
+                        className="p-1 hover:bg-sidebar-accent rounded mr-2"
+                      >
+                        {timeEntriesExpanded ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    {timeEntriesExpanded && (
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton onClick={() => setTimeEntryDialogOpen(true)}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            <span>Quick Entry</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    )}
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
