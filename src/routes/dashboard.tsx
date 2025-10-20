@@ -10,8 +10,7 @@ import { organisationRepository } from '@/server/repositories/organisation.repos
 import { accountRepository } from '@/server/repositories/account.repository'
 import { projectRepository } from '@/server/repositories/project.repository'
 import { timeEntryRepository } from '@/server/repositories/timeEntry.repository'
-import type { Organisation, Account, Project, TimeEntry } from '@/types'
-import { quickTimeEntrySchema, createTimeEntrySchema } from '@/schemas'
+import { quickTimeEntrySchema, createTimeEntrySchema, type Organisation, type Account, type Project, type TimeEntry } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import { useTheme } from '@/components/theme-provider'
 import {

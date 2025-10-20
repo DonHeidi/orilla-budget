@@ -1,6 +1,6 @@
 import { db, timeEntries } from '@/db'
 import { eq } from 'drizzle-orm'
-import type { TimeEntry } from '@/types'
+import type { TimeEntry } from '@/schemas'
 
 export const timeEntryRepository = {
   async findAll(): Promise<TimeEntry[]> {

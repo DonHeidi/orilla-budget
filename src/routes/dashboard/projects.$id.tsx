@@ -3,7 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { FolderKanban, Building2, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Project } from '@/types'
+import type { Project } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {

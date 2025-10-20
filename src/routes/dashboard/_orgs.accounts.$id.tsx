@@ -2,7 +2,7 @@ import { createFileRoute, getRouteApi, useNavigate, useRouter } from '@tanstack/
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { Users, Mail, Building2, Key } from 'lucide-react'
-import type { Account } from '@/types'
+import type { Account } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {

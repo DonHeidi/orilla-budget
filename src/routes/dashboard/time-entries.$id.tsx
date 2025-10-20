@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, useRouter, getRouteApi } from '@tanstack/
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { CheckCircle, XCircle } from 'lucide-react'
-import type { TimeEntry } from '@/types'
+import type { TimeEntry } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {

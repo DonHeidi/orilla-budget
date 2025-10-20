@@ -1,6 +1,6 @@
 import { db, projects } from '@/db'
 import { eq } from 'drizzle-orm'
-import type { Project } from '@/types'
+import type { Project } from '@/schemas'
 
 export const projectRepository = {
   async findAll(): Promise<Project[]> {

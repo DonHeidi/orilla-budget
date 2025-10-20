@@ -1,43 +1,17 @@
-export interface Organisation {
-  id: string
-  name: string // e.g., "Google"
-  contactName: string
-  contactEmail: string
-  totalBudgetHours: number
-  createdAt: string
-}
+// Re-export Zod-inferred types from schemas (single source of truth)
+export type {
+  Organisation,
+  CreateOrganisation,
+  Account,
+  CreateAccount,
+  Project,
+  CreateProject,
+  TimeEntry,
+  CreateTimeEntry,
+  QuickTimeEntry,
+} from '@/schemas'
 
-export interface Account {
-  id: string
-  organisationId: string
-  name: string // e.g., "Larry Page"
-  email: string
-  accessCode: string // Simple auth for client portal
-  createdAt: string
-}
-
-export interface Project {
-  id: string
-  organisationId: string
-  name: string
-  description: string
-  category: 'budget' | 'fixed'
-  budgetHours: number | null
-  createdAt: string
-}
-
-export interface TimeEntry {
-  id: string
-  projectId?: string
-  organisationId?: string
-  title: string
-  description: string
-  hours: number
-  date: string
-  approvedDate?: string
-  createdAt: string
-}
-
+// View models (no corresponding Zod schemas)
 export interface OrganisationBudgetView {
   organisation: Organisation
   projects: Array<{
