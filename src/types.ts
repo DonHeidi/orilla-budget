@@ -1,6 +1,8 @@
 export interface Organisation {
   id: string
   name: string // e.g., "Google"
+  contactName: string
+  contactEmail: string
   totalBudgetHours: number
   createdAt: string
 }

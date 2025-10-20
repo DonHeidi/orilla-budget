@@ -67,10 +67,12 @@ const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
 })
 
 const createOrganisationFn = createServerFn({ method: 'POST' }).handler(
-  async (data: { name: string; totalBudgetHours: number }) => {
+  async (data: { name: string; contactName: string; contactEmail: string; totalBudgetHours: number }) => {
     const organisation: Organisation = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       name: data.name,
+      contactName: data.contactName,
+      contactEmail: data.contactEmail,
       totalBudgetHours: data.totalBudgetHours,
       createdAt: new Date().toISOString(),
     }
@@ -195,7 +197,7 @@ function AdminDashboard() {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <Link to="/admin">
+                      <Link to="/admin/organisations">
                         <Users className="mr-2 h-4 w-4" />
                         <span>Organisations & Accounts</span>
                       </Link>
@@ -1228,6 +1230,9 @@ function OrganisationsTab({ data }: { data: any }) {
             return (
               <div key={organisation.id} className="bg-white p-6 rounded-lg shadow">
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">{organisation.name}</h3>
+                <p className="text-sm text-gray-600 mb-2">
+                  Contact: <span className="font-medium">{organisation.contactName}</span> ({organisation.contactEmail})
+                </p>
                 <p className="text-gray-600 mb-4">
                   Budget: {organisation.totalBudgetHours}h | Used: {totalHours.toFixed(2)}h | Remaining:{' '}
                   {(organisation.totalBudgetHours - totalHours).toFixed(2)}h
@@ -1258,6 +1263,8 @@ function OrganisationsTab({ data }: { data: any }) {
 function OrganisationForm() {
   const [formData, setFormData] = useState({
     name: '',
+    contactName: '',
+    contactEmail: '',
     totalBudgetHours: '',
   })
 
@@ -1266,6 +1273,8 @@ function OrganisationForm() {
 
     await createOrganisationFn({
       name: formData.name,
+      contactName: formData.contactName,
+      contactEmail: formData.contactEmail,
       totalBudgetHours: parseFloat(formData.totalBudgetHours),
     })
 
@@ -1298,6 +1307,30 @@ function OrganisationForm() {
             onChange={(e) => setFormData({ ...formData, totalBudgetHours: e.target.value })}
             required
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
+          <input
+            type="text"
+            value={formData.contactName}
+            onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="e.g., John Doe"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
+          <input
+            type="email"
+            value={formData.contactEmail}
+            onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="e.g., john@example.com"
           />
         </div>
       </div>

@@ -4,6 +4,8 @@ import { z } from 'zod'
 export const organisationSchema = z.object({
   id: z.string(),
   name: z.string().min(1, 'Organisation name is required'),
+  contactName: z.string().min(1, 'Contact name is required'),
+  contactEmail: z.string().email('Invalid email address'),
   totalBudgetHours: z.number().positive('Budget must be a positive number'),
   createdAt: z.string().datetime(),
 })

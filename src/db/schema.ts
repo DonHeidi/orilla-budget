@@ -3,6 +3,8 @@ import { sqliteTable, text, real, integer } from 'drizzle-orm/sqlite-core'
 export const organisations = sqliteTable('organisations', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
+  contactName: text('contact_name').notNull(),
+  contactEmail: text('contact_email').notNull(),
   totalBudgetHours: real('total_budget_hours').notNull(),
   createdAt: text('created_at').notNull(),
 })

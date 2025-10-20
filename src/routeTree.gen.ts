@@ -14,7 +14,9 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminTimeEntriesRouteImport } from './routes/admin/time-entries'
+import { Route as AdminOrganisationsRouteImport } from './routes/admin/organisations'
 import { Route as AdminTimeEntriesIdRouteImport } from './routes/admin/time-entries.$id'
+import { Route as AdminOrganisationsIdRouteImport } from './routes/admin/organisations.$id'
 
 const PortalRoute = PortalRouteImport.update({
   id: '/portal',
@@ -41,25 +43,39 @@ const AdminTimeEntriesRoute = AdminTimeEntriesRouteImport.update({
   path: '/time-entries',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminOrganisationsRoute = AdminOrganisationsRouteImport.update({
+  id: '/organisations',
+  path: '/organisations',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminTimeEntriesIdRoute = AdminTimeEntriesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => AdminTimeEntriesRoute,
+} as any)
+const AdminOrganisationsIdRoute = AdminOrganisationsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminOrganisationsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/portal': typeof PortalRoute
+  '/admin/organisations': typeof AdminOrganisationsRouteWithChildren
   '/admin/time-entries': typeof AdminTimeEntriesRouteWithChildren
   '/admin/': typeof AdminIndexRoute
+  '/admin/organisations/$id': typeof AdminOrganisationsIdRoute
   '/admin/time-entries/$id': typeof AdminTimeEntriesIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/portal': typeof PortalRoute
+  '/admin/organisations': typeof AdminOrganisationsRouteWithChildren
   '/admin/time-entries': typeof AdminTimeEntriesRouteWithChildren
   '/admin': typeof AdminIndexRoute
+  '/admin/organisations/$id': typeof AdminOrganisationsIdRoute
   '/admin/time-entries/$id': typeof AdminTimeEntriesIdRoute
 }
 export interface FileRoutesById {
@@ -67,8 +83,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/portal': typeof PortalRoute
+  '/admin/organisations': typeof AdminOrganisationsRouteWithChildren
   '/admin/time-entries': typeof AdminTimeEntriesRouteWithChildren
   '/admin/': typeof AdminIndexRoute
+  '/admin/organisations/$id': typeof AdminOrganisationsIdRoute
   '/admin/time-entries/$id': typeof AdminTimeEntriesIdRoute
 }
 export interface FileRouteTypes {
@@ -77,23 +95,29 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/portal'
+    | '/admin/organisations'
     | '/admin/time-entries'
     | '/admin/'
+    | '/admin/organisations/$id'
     | '/admin/time-entries/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/portal'
+    | '/admin/organisations'
     | '/admin/time-entries'
     | '/admin'
+    | '/admin/organisations/$id'
     | '/admin/time-entries/$id'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/portal'
+    | '/admin/organisations'
     | '/admin/time-entries'
     | '/admin/'
+    | '/admin/organisations/$id'
     | '/admin/time-entries/$id'
   fileRoutesById: FileRoutesById
 }
@@ -140,6 +164,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTimeEntriesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/organisations': {
+      id: '/admin/organisations'
+      path: '/organisations'
+      fullPath: '/admin/organisations'
+      preLoaderRoute: typeof AdminOrganisationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/time-entries/$id': {
       id: '/admin/time-entries/$id'
       path: '/$id'
@@ -147,8 +178,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTimeEntriesIdRouteImport
       parentRoute: typeof AdminTimeEntriesRoute
     }
+    '/admin/organisations/$id': {
+      id: '/admin/organisations/$id'
+      path: '/$id'
+      fullPath: '/admin/organisations/$id'
+      preLoaderRoute: typeof AdminOrganisationsIdRouteImport
+      parentRoute: typeof AdminOrganisationsRoute
+    }
   }
 }
+
+interface AdminOrganisationsRouteChildren {
+  AdminOrganisationsIdRoute: typeof AdminOrganisationsIdRoute
+}
+
+const AdminOrganisationsRouteChildren: AdminOrganisationsRouteChildren = {
+  AdminOrganisationsIdRoute: AdminOrganisationsIdRoute,
+}
+
+const AdminOrganisationsRouteWithChildren =
+  AdminOrganisationsRoute._addFileChildren(AdminOrganisationsRouteChildren)
 
 interface AdminTimeEntriesRouteChildren {
   AdminTimeEntriesIdRoute: typeof AdminTimeEntriesIdRoute
@@ -162,11 +211,13 @@ const AdminTimeEntriesRouteWithChildren =
   AdminTimeEntriesRoute._addFileChildren(AdminTimeEntriesRouteChildren)
 
 interface AdminRouteChildren {
+  AdminOrganisationsRoute: typeof AdminOrganisationsRouteWithChildren
   AdminTimeEntriesRoute: typeof AdminTimeEntriesRouteWithChildren
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminOrganisationsRoute: AdminOrganisationsRouteWithChildren,
   AdminTimeEntriesRoute: AdminTimeEntriesRouteWithChildren,
   AdminIndexRoute: AdminIndexRoute,
 }
