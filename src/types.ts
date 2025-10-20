@@ -21,7 +21,8 @@ export interface Project {
   organisationId: string
   name: string
   description: string
-  budgetHours: number
+  category: 'budget' | 'fixed'
+  budgetHours: number | null
   createdAt: string
 }
 

@@ -30,8 +30,18 @@ export const projectSchema = z.object({
   organisationId: z.string().optional(),
   name: z.string().min(1, 'Project name is required'),
   description: z.string().optional().default(''),
-  budgetHours: z.number().positive('Budget must be a positive number').optional(),
+  category: z.enum(['budget', 'fixed']).default('budget'),
+  budgetHours: z.number().positive('Budget must be a positive number').nullable().optional(),
   createdAt: z.string().datetime(),
+}).superRefine((data, ctx) => {
+  // Budget projects must have budgetHours
+  if (data.category === 'budget' && !data.budgetHours) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Budget is required for budget projects',
+      path: ['budgetHours'],
+    })
+  }
 })
 
 export const createProjectSchema = projectSchema.omit({ id: true, createdAt: true })

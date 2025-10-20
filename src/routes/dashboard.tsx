@@ -96,12 +96,13 @@ const createAccountFn = createServerFn({ method: 'POST' }).handler(
 )
 
 const createProjectFn = createServerFn({ method: 'POST' }).handler(
-  async (data: { organisationId: string; name: string; description: string; budgetHours: number }) => {
+  async (data: { organisationId: string; name: string; description: string; category: 'budget' | 'fixed'; budgetHours: number }) => {
     const project: Project = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       organisationId: data.organisationId,
       name: data.name,
       description: data.description,
+      category: data.category,
       budgetHours: data.budgetHours,
       createdAt: new Date().toISOString(),
     }
@@ -142,6 +143,29 @@ const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
     }
 
     return await timeEntryRepository.update(id, cleanUpdateData)
+  }
+)
+
+const updateProjectFn = createServerFn({ method: 'POST' }).handler(
+  async ({ data }: { data: Project }) => {
+    const { id, createdAt, ...updateData } = data
+
+    // Filter out undefined values
+    const cleanUpdateData = Object.fromEntries(
+      Object.entries(updateData).filter(([_, value]) => value !== undefined)
+    )
+
+    if (Object.keys(cleanUpdateData).length === 0) {
+      throw new Error('No fields to update')
+    }
+
+    return await projectRepository.update(id, cleanUpdateData)
+  }
+)
+
+const deleteProjectFn = createServerFn({ method: 'POST' }).handler(
+  async ({ id }: { id: string }) => {
+    return await projectRepository.delete(id)
   }
 )
 
@@ -205,7 +229,7 @@ function AdminDashboard() {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <Link to="/dashboard">
+                      <Link to="/dashboard/projects">
                         <FolderKanban className="mr-2 h-4 w-4" />
                         <span>Projects</span>
                       </Link>
@@ -1422,6 +1446,7 @@ type ProjectWithDetails = {
   id: string
   name: string
   description: string
+  category: 'budget' | 'fixed'
   budgetHours: number
   usedHours: number
   remainingHours: number
@@ -1429,6 +1454,8 @@ type ProjectWithDetails = {
 
 function ProjectsTab({ data }: { data: any }) {
   const [showForm, setShowForm] = useState(false)
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false)
 
   const columns: ColumnDef<ProjectWithDetails>[] = [
     {
@@ -1439,6 +1466,23 @@ function ProjectsTab({ data }: { data: any }) {
     {
       accessorKey: 'description',
       header: 'Description',
+    },
+    {
+      accessorKey: 'category',
+      header: 'Category',
+      cell: ({ getValue }) => {
+        const category = getValue() as 'budget' | 'fixed'
+        return (
+          <span className={cn(
+            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+            category === 'budget'
+              ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+              : "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+          )}>
+            {category === 'budget' ? 'Budget' : 'Fixed Price'}
+          </span>
+        )
+      },
     },
     {
       accessorKey: 'budgetHours',
@@ -1484,6 +1528,7 @@ function ProjectsTab({ data }: { data: any }) {
               id: project.id,
               name: project.name,
               description: project.description,
+              category: project.category,
               budgetHours: project.budgetHours,
               usedHours: totalHours,
               remainingHours: project.budgetHours - totalHours,
@@ -1497,97 +1542,417 @@ function ProjectsTab({ data }: { data: any }) {
                 columns={columns}
                 data={projectsWithDetails}
                 getRowId={(row) => row.id}
+                onRowDoubleClick={(row) => {
+                  const fullProject = data.projects.find((p: any) => p.id === row.original.id)
+                  if (fullProject) {
+                    setSelectedProject(fullProject)
+                    setDetailSheetOpen(true)
+                  }
+                }}
               />
             </div>
           )
         })}
       </div>
+
+      <ProjectDetailSheet
+        project={selectedProject}
+        organisations={data.organisations}
+        open={detailSheetOpen}
+        onOpenChange={setDetailSheetOpen}
+      />
     </div>
   )
 }
 
 function ProjectForm({ organisations }: { organisations: any[] }) {
-  const [formData, setFormData] = useState({
-    organisationId: '',
-    name: '',
-    description: '',
-    budgetHours: '',
+  const form = useForm({
+    defaultValues: {
+      organisationId: '',
+      name: '',
+      description: '',
+      category: 'budget' as 'budget' | 'fixed',
+      budgetHours: 0,
+    },
+    onSubmit: async ({ value }) => {
+      await createProjectFn({
+        organisationId: value.organisationId,
+        name: value.name,
+        description: value.description,
+        category: value.category,
+        budgetHours: value.budgetHours,
+      })
+      window.location.reload()
+    },
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        form.handleSubmit()
+      }}
+      className="bg-white dark:bg-gray-950 p-6 rounded-lg shadow mb-6"
+    >
+      <div className="grid md:grid-cols-2 gap-4">
+        <form.Field name="organisationId">
+          {(field) => (
+            <div>
+              <label htmlFor={field.name} className="block text-sm font-medium mb-1">
+                Organisation *
+              </label>
+              <select
+                id={field.name}
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              >
+                <option value="">Select an organisation</option>
+                {organisations.map((org: any) => (
+                  <option key={org.id} value={org.id}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
+              {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                <p className="text-sm text-red-500 mt-1">
+                  {field.state.meta.errors.map((err) =>
+                    typeof err === 'string' ? err : err.message || JSON.stringify(err)
+                  ).join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+        </form.Field>
 
-    await createProjectFn({
-      organisationId: formData.organisationId,
-      name: formData.name,
-      description: formData.description,
-      budgetHours: parseFloat(formData.budgetHours),
-    })
+        <form.Field name="name">
+          {(field) => (
+            <div>
+              <label htmlFor={field.name} className="block text-sm font-medium mb-1">
+                Project Name *
+              </label>
+              <Input
+                id={field.name}
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                placeholder="Enter project name"
+              />
+              {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                <p className="text-sm text-red-500 mt-1">
+                  {field.state.meta.errors.map((err) =>
+                    typeof err === 'string' ? err : err.message || JSON.stringify(err)
+                  ).join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+        </form.Field>
 
+        <form.Field name="description">
+          {(field) => (
+            <div className="md:col-span-2">
+              <label htmlFor={field.name} className="block text-sm font-medium mb-1">
+                Description *
+              </label>
+              <textarea
+                id={field.name}
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                placeholder="Enter project description"
+                rows={3}
+              />
+              {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                <p className="text-sm text-red-500 mt-1">
+                  {field.state.meta.errors.map((err) =>
+                    typeof err === 'string' ? err : err.message || JSON.stringify(err)
+                  ).join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field name="category">
+          {(field) => (
+            <div>
+              <label htmlFor={field.name} className="block text-sm font-medium mb-1">
+                Category *
+              </label>
+              <select
+                id={field.name}
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value as 'budget' | 'fixed')}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              >
+                <option value="budget">Budget (Time & Materials)</option>
+                <option value="fixed">Fixed Price</option>
+              </select>
+              {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                <p className="text-sm text-red-500 mt-1">
+                  {field.state.meta.errors.map((err) =>
+                    typeof err === 'string' ? err : err.message || JSON.stringify(err)
+                  ).join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field name="budgetHours">
+          {(field) => (
+            <div>
+              <label htmlFor={field.name} className="block text-sm font-medium mb-1">
+                Budget (hours) *
+              </label>
+              <Input
+                id={field.name}
+                type="number"
+                step="0.5"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
+              {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                <p className="text-sm text-red-500 mt-1">
+                  {field.state.meta.errors.map((err) =>
+                    typeof err === 'string' ? err : err.message || JSON.stringify(err)
+                  ).join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+        </form.Field>
+      </div>
+
+      <Button type="submit" className="mt-4">
+        Add Project
+      </Button>
+    </form>
+  )
+}
+
+function ProjectDetailSheet({
+  project,
+  organisations,
+  open,
+  onOpenChange,
+}: {
+  project: Project | null
+  organisations: any[]
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const [editingField, setEditingField] = useState<string | null>(null)
+  const [editedValues, setEditedValues] = useState<Partial<Project>>({})
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  if (!project) return null
+
+  const organisation = organisations.find((o: any) => o.id === project.organisationId)
+  const currentValues = { ...project, ...editedValues }
+
+  const handleFieldClick = (fieldName: string) => {
+    setEditingField(fieldName)
+  }
+
+  const handleFieldBlur = async () => {
+    if (Object.keys(editedValues).length > 0) {
+      const updatePayload = {
+        id: project.id,
+        createdAt: project.createdAt,
+        ...editedValues,
+      }
+      await updateProjectFn({ data: updatePayload as Project })
+      setEditedValues({})
+      window.location.reload()
+    }
+    setEditingField(null)
+  }
+
+  const handleFieldChange = (fieldName: string, value: any) => {
+    setEditedValues(prev => ({ ...prev, [fieldName]: value }))
+  }
+
+  const handleDelete = async () => {
+    await deleteProjectFn({ id: project.id })
+    setShowDeleteConfirm(false)
+    onOpenChange(false)
     window.location.reload()
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow mb-6">
-      <div className="grid md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Organisation</label>
-          <select
-            value={formData.organisationId}
-            onChange={(e) => setFormData({ ...formData, organisationId: e.target.value })}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
+        <SheetHeader className="space-y-3 pb-6 border-b">
+          <SheetTitle>Project Details</SheetTitle>
+          <SheetDescription>
+            View and edit project information
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-6 py-6">
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-gray-500">Organisation</label>
+              {editingField === 'organisationId' ? (
+                <select
+                  autoFocus
+                  value={currentValues.organisationId || ''}
+                  onChange={(e) => handleFieldChange('organisationId', e.target.value)}
+                  onBlur={handleFieldBlur}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
+                >
+                  {organisations.map((org: any) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p
+                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
+                  onClick={() => handleFieldClick('organisationId')}
+                >
+                  {organisation?.name || 'Unknown'}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Project Name</label>
+              {editingField === 'name' ? (
+                <Input
+                  autoFocus
+                  value={currentValues.name}
+                  onChange={(e) => handleFieldChange('name', e.target.value)}
+                  onBlur={handleFieldBlur}
+                  className="mt-1"
+                />
+              ) : (
+                <p
+                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
+                  onClick={() => handleFieldClick('name')}
+                >
+                  {currentValues.name}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Description</label>
+              {editingField === 'description' ? (
+                <textarea
+                  autoFocus
+                  value={currentValues.description}
+                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  onBlur={handleFieldBlur}
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1"
+                  rows={3}
+                />
+              ) : (
+                <p
+                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2 min-h-[1.5rem]"
+                  onClick={() => handleFieldClick('description')}
+                >
+                  {currentValues.description || 'Click to add description...'}
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">Category</label>
+                {editingField === 'category' ? (
+                  <select
+                    autoFocus
+                    value={currentValues.category}
+                    onChange={(e) => handleFieldChange('category', e.target.value as 'budget' | 'fixed')}
+                    onBlur={handleFieldBlur}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
+                  >
+                    <option value="budget">Budget (Time & Materials)</option>
+                    <option value="fixed">Fixed Price</option>
+                  </select>
+                ) : (
+                  <p
+                    className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
+                    onClick={() => handleFieldClick('category')}
+                  >
+                    <span className={cn(
+                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                      currentValues.category === 'budget'
+                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                        : "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                    )}>
+                      {currentValues.category === 'budget' ? 'Budget' : 'Fixed Price'}
+                    </span>
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-500">Budget (hours)</label>
+                {editingField === 'budgetHours' ? (
+                  <Input
+                    autoFocus
+                    type="number"
+                    step="0.5"
+                    value={currentValues.budgetHours}
+                    onChange={(e) => handleFieldChange('budgetHours', parseFloat(e.target.value))}
+                    onBlur={handleFieldBlur}
+                    className="mt-1"
+                  />
+                ) : (
+                  <p
+                    className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
+                    onClick={() => handleFieldClick('budgetHours')}
+                  >
+                    {currentValues.budgetHours}h
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Created</label>
+              <p className="text-base mt-1">{formatDateTime(project.createdAt)}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-3 justify-between pt-6 border-t">
+          <Button
+            variant="destructive"
+            onClick={() => setShowDeleteConfirm(true)}
           >
-            <option value="">Select an organisation</option>
-            {organisations.map((c: any) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+            Delete Project
+          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-          <textarea
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            rows={3}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Budget (hours)</label>
-          <input
-            type="number"
-            step="0.5"
-            value={formData.budgetHours}
-            onChange={(e) => setFormData({ ...formData, budgetHours: e.target.value })}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-      </div>
-
-      <button
-        type="submit"
-        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        Add Project
-      </button>
-    </form>
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md">
+              <h3 className="text-lg font-semibold mb-2">Delete Project</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Are you sure you want to delete this project? This action cannot be undone and will also delete all associated time entries.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={handleDelete}>
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
   )
 }

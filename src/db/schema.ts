@@ -23,7 +23,8 @@ export const projects = sqliteTable('projects', {
   organisationId: text('organisation_id').notNull().references(() => organisations.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   description: text('description').notNull(),
-  budgetHours: real('budget_hours').notNull(),
+  category: text('category', { enum: ['budget', 'fixed'] }).notNull().default('budget'),
+  budgetHours: real('budget_hours'),
   createdAt: text('created_at').notNull(),
 })
 
