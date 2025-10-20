@@ -1,8 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState, useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Clock, Users, FolderKanban, ChevronDown, Plus, Moon, Sun, Monitor } from 'lucide-react'
+import { Clock, Users, FolderKanban, ChevronDown, Plus, Moon, Sun, Monitor, CheckCircle, XCircle, ChevronUp } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { cn } from '@/lib/utils'
@@ -123,6 +123,26 @@ const createTimeEntryFn = createServerFn({ method: 'POST' })
     return await timeEntryRepository.create(timeEntry)
   })
 
+const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
+  async ({ data }: { data: TimeEntry }) => {
+    console.log('Update data received:', data)
+    const { id, createdAt, ...updateData } = data
+    console.log('After destructuring - id:', id, 'updateData:', updateData)
+
+    // Filter out undefined values
+    const cleanUpdateData = Object.fromEntries(
+      Object.entries(updateData).filter(([_, value]) => value !== undefined)
+    )
+    console.log('Clean update data:', cleanUpdateData)
+
+    if (Object.keys(cleanUpdateData).length === 0) {
+      throw new Error('No fields to update')
+    }
+
+    return await timeEntryRepository.update(id, cleanUpdateData)
+  }
+)
+
 export const Route = createFileRoute('/admin')({
   component: AdminDashboard,
   loader: () => getAllDataFn(),
@@ -130,9 +150,7 @@ export const Route = createFileRoute('/admin')({
 
 function AdminDashboard() {
   const data = Route.useLoaderData()
-  const [activeView, setActiveView] = useState<'time' | 'organisations' | 'projects'>('time')
   const [timeEntryDialogOpen, setTimeEntryDialogOpen] = useState(false)
-  const [timeMenuOpen, setTimeMenuOpen] = useState(true)
   const { theme, setTheme } = useTheme()
 
   return (
@@ -145,57 +163,27 @@ function AdminDashboard() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton
-                      type="button"
-                      onClick={() => {
-                        if (activeView !== 'time') {
-                          setActiveView('time')
-                          setTimeMenuOpen(true)
-                        } else {
-                          setTimeMenuOpen((prev) => !prev)
-                        }
-                      }}
-                      isActive={activeView === 'time'}
-                      data-state={timeMenuOpen ? 'open' : 'closed'}
-                      aria-expanded={timeMenuOpen}
-                      aria-controls="time-entry-submenu"
-                    >
-                      <Clock className="mr-2 h-4 w-4" />
-                      <span>Time Entries</span>
-                      <ChevronDown
-                        className={cn(
-                          'ml-auto h-4 w-4 transition-transform duration-200 ease-linear',
-                          timeMenuOpen && 'rotate-180'
-                        )}
-                      />
-                    </SidebarMenuButton>
-                    {timeMenuOpen && (
-                      <SidebarMenuSub id="time-entry-submenu">
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton onClick={() => setTimeEntryDialogOpen(true)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            <span>New Entry</span>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      </SidebarMenuSub>
-                    )}
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      onClick={() => setActiveView('organisations')}
-                      isActive={activeView === 'organisations'}
-                    >
-                      <Users className="mr-2 h-4 w-4" />
-                      <span>Organisations & Accounts</span>
+                    <SidebarMenuButton asChild>
+                      <Link to="/admin/time-entries">
+                        <Clock className="mr-2 h-4 w-4" />
+                        <span>Time Entries</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton
-                      onClick={() => setActiveView('projects')}
-                      isActive={activeView === 'projects'}
-                    >
-                      <FolderKanban className="mr-2 h-4 w-4" />
-                      <span>Projects</span>
+                    <SidebarMenuButton asChild>
+                      <Link to="/admin">
+                        <Users className="mr-2 h-4 w-4" />
+                        <span>Organisations & Accounts</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link to="/admin">
+                        <FolderKanban className="mr-2 h-4 w-4" />
+                        <span>Projects</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
@@ -248,10 +236,8 @@ function AdminDashboard() {
             <h1 className="text-lg font-semibold">Admin Dashboard</h1>
           </header>
 
-          <div className="flex flex-1 flex-col gap-4 p-4">
-            {activeView === 'time' && <TimeEntriesTab data={data} />}
-            {activeView === 'organisations' && <OrganisationsTab data={data} />}
-            {activeView === 'projects' && <ProjectsTab data={data} />}
+          <div className="flex flex-1 flex-col">
+            <Outlet />
           </div>
         </SidebarInset>
       </div>
@@ -272,9 +258,13 @@ type TimeEntryWithDetails = {
   projectName: string
   title: string
   hours: number
+  approvedDate?: string
 }
 
 function TimeEntriesTab({ data }: { data: any }) {
+  const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null)
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false)
+
   const timeEntriesWithDetails = useMemo(() => {
     return data.timeEntries.map((entry: any) => {
       const organisation = data.organisations.find((c: any) => c.id === entry.organisationId)
@@ -286,6 +276,7 @@ function TimeEntriesTab({ data }: { data: any }) {
         projectName: project?.name || '',
         title: entry.title,
         hours: entry.hours,
+        approvedDate: entry.approvedDate,
       }
     })
   }, [data])
@@ -315,6 +306,32 @@ function TimeEntriesTab({ data }: { data: any }) {
         return hoursToTime(hours)
       },
     },
+    {
+      id: 'approved-status',
+      accessorKey: 'approvedDate',
+      header: 'Approved',
+      cell: ({ getValue }) => {
+        const approvedDate = getValue() as string | undefined
+        return (
+          <div className="flex items-center justify-center">
+            {approvedDate ? (
+              <CheckCircle className="h-4 w-4 text-green-600" />
+            ) : (
+              <XCircle className="h-4 w-4 text-gray-300" />
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      id: 'approved-date',
+      accessorKey: 'approvedDate',
+      header: 'Approved Date',
+      cell: ({ getValue }) => {
+        const approvedDate = getValue() as string | undefined
+        return approvedDate ? formatDateTime(approvedDate) : '-'
+      },
+    },
   ]
 
   return (
@@ -324,7 +341,26 @@ function TimeEntriesTab({ data }: { data: any }) {
         <QuickTimeEntrySheet organisations={data.organisations} projects={data.projects} />
       </div>
 
-      <DataTable columns={columns} data={timeEntriesWithDetails} />
+      <DataTable
+        columns={columns}
+        data={timeEntriesWithDetails}
+        getRowId={(row) => row.id}
+        onRowDoubleClick={(row) => {
+          const fullEntry = data.timeEntries.find((e: any) => e.id === row.original.id)
+          if (fullEntry) {
+            setSelectedEntry(fullEntry)
+            setDetailSheetOpen(true)
+          }
+        }}
+      />
+
+      <TimeEntryDetailSheet
+        entry={selectedEntry}
+        organisations={data.organisations}
+        projects={data.projects}
+        open={detailSheetOpen}
+        onOpenChange={setDetailSheetOpen}
+      />
     </div>
   )
 }
@@ -340,6 +376,20 @@ function hoursToTime(hours: number): string {
   const h = Math.floor(hours)
   const m = Math.round((hours - h) * 60)
   return `${h}:${m.toString().padStart(2, '0')}`
+}
+
+// Helper function to format ISO date to human-friendly format
+function formatDateTime(isoString: string): string {
+  const date = new Date(isoString)
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }
+  return date.toLocaleString('en-US', options)
 }
 
 function QuickTimeEntryDialog({
@@ -845,6 +895,278 @@ function QuickTimeEntrySheet({ organisations, projects }: { organisations: any[]
   )
 }
 
+function TimeEntryDetailSheet({
+  entry,
+  organisations,
+  projects,
+  open,
+  onOpenChange,
+}: {
+  entry: TimeEntry | null
+  organisations: any[]
+  projects: any[]
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const [editingField, setEditingField] = useState<string | null>(null)
+  const [editedValues, setEditedValues] = useState<Partial<TimeEntry>>({})
+
+  if (!entry) return null
+
+  const organisation = organisations.find((o: any) => o.id === entry.organisationId)
+  const project = projects.find((p: any) => p.id === entry.projectId)
+
+  const currentValues = { ...entry, ...editedValues }
+
+  const handleFieldClick = (fieldName: string) => {
+    setEditingField(fieldName)
+  }
+
+  const handleFieldBlur = async () => {
+    if (Object.keys(editedValues).length > 0) {
+      // Save changes to server - send only the id and changed fields
+      const updatePayload = {
+        id: entry.id,
+        createdAt: entry.createdAt,
+        ...editedValues,
+      }
+      await updateTimeEntryFn({ data: updatePayload as TimeEntry })
+      // Reset edited values
+      setEditedValues({})
+      // Reload the page to show updated data
+      window.location.reload()
+    }
+    setEditingField(null)
+  }
+
+  const handleFieldChange = (fieldName: string, value: any) => {
+    setEditedValues(prev => ({ ...prev, [fieldName]: value }))
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
+        <SheetHeader className="space-y-3 pb-6 border-b">
+          <SheetTitle>Time Entry Details</SheetTitle>
+          <SheetDescription>
+            View detailed information about this time entry
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-6 py-6">
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-gray-500">Title</label>
+              {editingField === 'title' ? (
+                <Input
+                  autoFocus
+                  value={currentValues.title}
+                  onChange={(e) => handleFieldChange('title', e.target.value)}
+                  onBlur={handleFieldBlur}
+                  className="mt-1"
+                />
+              ) : (
+                <p
+                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
+                  onClick={() => handleFieldClick('title')}
+                >
+                  {currentValues.title}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Description</label>
+              {editingField === 'description' ? (
+                <textarea
+                  autoFocus
+                  value={currentValues.description}
+                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  onBlur={handleFieldBlur}
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1"
+                  rows={3}
+                />
+              ) : (
+                <p
+                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2 min-h-[1.5rem]"
+                  onClick={() => handleFieldClick('description')}
+                >
+                  {currentValues.description || 'Click to add description...'}
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">Date</label>
+                {editingField === 'date' ? (
+                  <Input
+                    autoFocus
+                    type="date"
+                    value={currentValues.date}
+                    onChange={(e) => handleFieldChange('date', e.target.value)}
+                    onBlur={handleFieldBlur}
+                    className="mt-1"
+                  />
+                ) : (
+                  <p
+                    className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
+                    onClick={() => handleFieldClick('date')}
+                  >
+                    {currentValues.date}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-500">Hours</label>
+                {editingField === 'hours' ? (
+                  <div className="flex gap-2 items-center mt-1">
+                    <Input
+                      autoFocus
+                      type="number"
+                      min="0"
+                      max="99"
+                      value={Math.floor(currentValues.hours)}
+                      onChange={(e) => {
+                        const hours = parseInt(e.target.value) || 0
+                        const minutes = Math.round((currentValues.hours % 1) * 60)
+                        handleFieldChange('hours', hours + minutes / 60)
+                      }}
+                      onBlur={handleFieldBlur}
+                      className="w-20"
+                    />
+                    <span className="text-sm">h</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="59"
+                      step="15"
+                      value={Math.round((currentValues.hours % 1) * 60)}
+                      onChange={(e) => {
+                        const hours = Math.floor(currentValues.hours)
+                        const minutes = parseInt(e.target.value) || 0
+                        handleFieldChange('hours', hours + minutes / 60)
+                      }}
+                      onBlur={handleFieldBlur}
+                      className="w-20"
+                    />
+                    <span className="text-sm">min</span>
+                  </div>
+                ) : (
+                  <p
+                    className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
+                    onClick={() => handleFieldClick('hours')}
+                  >
+                    {hoursToTime(currentValues.hours)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Organisation</label>
+              {editingField === 'organisationId' ? (
+                <select
+                  autoFocus
+                  value={currentValues.organisationId || ''}
+                  onChange={(e) => {
+                    handleFieldChange('organisationId', e.target.value || undefined)
+                    handleFieldChange('projectId', undefined)
+                  }}
+                  onBlur={handleFieldBlur}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
+                >
+                  <option value="">None</option>
+                  {organisations.map((org: any) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p
+                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
+                  onClick={() => handleFieldClick('organisationId')}
+                >
+                  {organisation?.name || 'Click to select organisation...'}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Project</label>
+              {editingField === 'projectId' ? (
+                <select
+                  autoFocus
+                  value={currentValues.projectId || ''}
+                  onChange={(e) => handleFieldChange('projectId', e.target.value || undefined)}
+                  onBlur={handleFieldBlur}
+                  disabled={!currentValues.organisationId}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">None</option>
+                  {projects
+                    .filter((p: any) => p.organisationId === currentValues.organisationId)
+                    .map((proj: any) => (
+                      <option key={proj.id} value={proj.id}>
+                        {proj.name}
+                      </option>
+                    ))}
+                </select>
+              ) : (
+                <p
+                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
+                  onClick={() => handleFieldClick('projectId')}
+                >
+                  {project?.name || 'Click to select project...'}
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">Approved</label>
+                <div className="flex items-center mt-1">
+                  {entry.approvedDate ? (
+                    <>
+                      <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                      <span className="text-base">Yes</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-5 w-5 text-gray-400 mr-2" />
+                      <span className="text-base">No</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {entry.approvedDate && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Approved Date</label>
+                  <p className="text-base mt-1">{formatDateTime(entry.approvedDate)}</p>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Created</label>
+              <p className="text-base mt-1">{formatDateTime(entry.createdAt)}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-3 justify-end pt-6 border-t">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
 function OrganisationsTab({ data }: { data: any }) {
   const [showForm, setShowForm] = useState<'organisation' | 'account' | null>(null)
 
@@ -1115,7 +1437,11 @@ function ProjectsTab({ data }: { data: any }) {
           return (
             <div key={organisation.id}>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">{organisation.name}</h3>
-              <DataTable columns={columns} data={projectsWithDetails} />
+              <DataTable
+                columns={columns}
+                data={projectsWithDetails}
+                getRowId={(row) => row.id}
+              />
             </div>
           )
         })}

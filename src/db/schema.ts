@@ -33,5 +33,6 @@ export const timeEntries = sqliteTable('time_entries', {
   description: text('description').default('').notNull(),
   hours: real('hours').notNull(),
   date: text('date').notNull(),
+  approvedDate: text('approved_date'),
   createdAt: text('created_at').notNull(),
 })

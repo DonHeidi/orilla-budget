@@ -43,6 +43,7 @@ export const timeEntrySchema = z.object({
   description: z.string().optional().default(''),
   hours: z.number().positive('Hours must be a positive number'),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
+  approvedDate: z.string().datetime().optional(),
   createdAt: z.string().datetime(),
 })
 

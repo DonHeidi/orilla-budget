@@ -17,6 +17,7 @@ import {
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
+  getRowId?: (originalRow: TData, index: number) => string
   onRowDoubleClick?: (row: Row<TData>) => void
   onRowClick?: (row: Row<TData>, event: React.MouseEvent<HTMLTableRowElement>) => void
   onRowKeyDown?: (row: Row<TData>, event: React.KeyboardEvent<HTMLTableRowElement>) => void
@@ -26,6 +27,7 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
   columns,
   data,
+  getRowId,
   onRowDoubleClick,
   onRowClick,
   onRowKeyDown,
@@ -34,6 +36,7 @@ export function DataTable<TData, TValue>({
   const table = useReactTable({
     data,
     columns,
+    getRowId,
     getCoreRowModel: getCoreRowModel(),
   })
 
@@ -86,6 +89,7 @@ export function DataTable<TData, TValue>({
                 data-state={row.getIsSelected() && 'selected'}
                 data-row-id={row.id}
                 className={onRowDoubleClick || onRowClick ? 'cursor-pointer' : undefined}
+                onDoubleClick={() => onRowDoubleClick?.(row)}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>

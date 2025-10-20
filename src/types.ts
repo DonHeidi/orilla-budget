@@ -31,6 +31,7 @@ export interface TimeEntry {
   description: string
   hours: number
   date: string
+  approvedDate?: string
   createdAt: string
 }
 
