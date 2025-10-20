@@ -91,7 +91,17 @@ Repository pattern for data access:
 File-based routing with TanStack Start:
 - `__root.tsx`: Root layout with theme provider and HTML structure
 - `index.tsx`: Landing/home page
-- `dashboard.tsx`: Full admin interface with sidebar navigation for managing all entities
+- `dashboard.tsx`: Main layout with sidebar navigation
+  - `dashboard/index.tsx`: Dashboard welcome page
+  - `dashboard/_orgs.tsx`: Layout for organisations and accounts with shared data loader
+  - `dashboard/_orgs.organisations.tsx`: Organisations list with add functionality
+  - `dashboard/_orgs.organisations.$id.tsx`: Organisation detail sheet with click-to-edit
+  - `dashboard/_orgs.accounts.tsx`: Accounts list with add functionality
+  - `dashboard/_orgs.accounts.$id.tsx`: Account detail sheet with click-to-edit
+  - `dashboard/projects.tsx`: Projects list with add functionality
+  - `dashboard/projects.$id.tsx`: Project detail sheet with click-to-edit
+  - `dashboard/time-entries.tsx`: Time entries list with add functionality
+  - `dashboard/time-entries.$id.tsx`: Time entry detail sheet with click-to-edit
 - `portal.tsx`: Client portal with access code authentication
 
 #### Types and Schemas
@@ -121,6 +131,73 @@ The app supports both:
 - Detailed time entries with project associations and descriptions via `createTimeEntrySchema`
 
 Time entries can be associated with either a project or directly with an organisation.
+
+#### Project Categories
+Projects have a `category` field that can be either:
+- **budget**: Time & Materials projects tracked by hours
+- **fixed**: Fixed Price projects with predetermined costs
+
+### Coding Patterns & Best Practices
+
+#### Data Refresh Pattern
+**ALWAYS use `router.invalidate()` instead of `window.location.reload()`** to refresh data after mutations. This provides a smoother UX by updating cached data without full page reload.
+
+```typescript
+import { useRouter } from '@tanstack/react-router'
+
+const router = useRouter()
+// After a mutation:
+router.invalidate()  // ✅ Correct
+window.location.reload()  // ❌ Never use this
+```
+
+#### CRUD UI Pattern
+All entity management follows this consistent pattern:
+
+1. **List Page** (`entity.tsx`):
+   - DataTable with entity list
+   - "Add Entity" button (top-right) opens Sheet
+   - Click row to navigate to detail page
+   - Uses `<Outlet />` to render detail sheets
+
+2. **Add Sheet**:
+   - Opens via SheetTrigger button
+   - TanStack Form with Zod validation
+   - Cancel and Create buttons
+   - Resets form on close
+
+3. **Detail Page** (`entity.$id.tsx`):
+   - Opens as Sheet overlay when row clicked
+   - Click-to-edit fields (hover to see edit cursor)
+   - Auto-saves on blur
+   - Delete button with confirmation
+   - Uses `router.invalidate()` after updates
+
+#### Click-to-Edit Implementation
+```typescript
+const [editingField, setEditingField] = useState<string | null>(null)
+const [editedValues, setEditedValues] = useState<Partial<Entity>>({})
+
+const handleFieldClick = (fieldName: string) => setEditingField(fieldName)
+
+const handleFieldBlur = async () => {
+  if (Object.keys(editedValues).length > 0) {
+    await updateEntityFn({ data: editedValues })
+    router.invalidate()  // Refresh data
+    setEditedValues({})
+  }
+  setEditingField(null)
+}
+
+// In JSX:
+{editingField === 'name' ? (
+  <Input autoFocus value={currentValues.name} onBlur={handleFieldBlur} />
+) : (
+  <p onClick={() => handleFieldClick('name')} className="cursor-pointer">
+    {currentValues.name}
+  </p>
+)}
+```
 
 ### Path Aliases
 TypeScript is configured with `@/*` path alias mapping to `./src/*` (see `tsconfig.json`).
