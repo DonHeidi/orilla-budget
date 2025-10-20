@@ -12,6 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminTimeEntriesRouteImport } from './routes/admin/time-entries'
+import { Route as AdminTimeEntriesIdRouteImport } from './routes/admin/time-entries.$id'
 
 const PortalRoute = PortalRouteImport.update({
   id: '/portal',
@@ -28,34 +31,75 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTimeEntriesRoute = AdminTimeEntriesRouteImport.update({
+  id: '/time-entries',
+  path: '/time-entries',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTimeEntriesIdRoute = AdminTimeEntriesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminTimeEntriesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/portal': typeof PortalRoute
+  '/admin/time-entries': typeof AdminTimeEntriesRouteWithChildren
+  '/admin/': typeof AdminIndexRoute
+  '/admin/time-entries/$id': typeof AdminTimeEntriesIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/portal': typeof PortalRoute
+  '/admin/time-entries': typeof AdminTimeEntriesRouteWithChildren
+  '/admin': typeof AdminIndexRoute
+  '/admin/time-entries/$id': typeof AdminTimeEntriesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/portal': typeof PortalRoute
+  '/admin/time-entries': typeof AdminTimeEntriesRouteWithChildren
+  '/admin/': typeof AdminIndexRoute
+  '/admin/time-entries/$id': typeof AdminTimeEntriesIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/portal'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/portal'
+    | '/admin/time-entries'
+    | '/admin/'
+    | '/admin/time-entries/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/portal'
-  id: '__root__' | '/' | '/admin' | '/portal'
+  to:
+    | '/'
+    | '/portal'
+    | '/admin/time-entries'
+    | '/admin'
+    | '/admin/time-entries/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/portal'
+    | '/admin/time-entries'
+    | '/admin/'
+    | '/admin/time-entries/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   PortalRoute: typeof PortalRoute
 }
 
@@ -82,12 +126,56 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/time-entries': {
+      id: '/admin/time-entries'
+      path: '/time-entries'
+      fullPath: '/admin/time-entries'
+      preLoaderRoute: typeof AdminTimeEntriesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/time-entries/$id': {
+      id: '/admin/time-entries/$id'
+      path: '/$id'
+      fullPath: '/admin/time-entries/$id'
+      preLoaderRoute: typeof AdminTimeEntriesIdRouteImport
+      parentRoute: typeof AdminTimeEntriesRoute
+    }
   }
 }
 
+interface AdminTimeEntriesRouteChildren {
+  AdminTimeEntriesIdRoute: typeof AdminTimeEntriesIdRoute
+}
+
+const AdminTimeEntriesRouteChildren: AdminTimeEntriesRouteChildren = {
+  AdminTimeEntriesIdRoute: AdminTimeEntriesIdRoute,
+}
+
+const AdminTimeEntriesRouteWithChildren =
+  AdminTimeEntriesRoute._addFileChildren(AdminTimeEntriesRouteChildren)
+
+interface AdminRouteChildren {
+  AdminTimeEntriesRoute: typeof AdminTimeEntriesRouteWithChildren
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminTimeEntriesRoute: AdminTimeEntriesRouteWithChildren,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   PortalRoute: PortalRoute,
 }
 export const routeTree = rootRouteImport
