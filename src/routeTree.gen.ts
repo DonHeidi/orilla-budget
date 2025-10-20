@@ -14,9 +14,12 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardTimeEntriesRouteImport } from './routes/dashboard/time-entries'
-import { Route as DashboardOrganisationsRouteImport } from './routes/dashboard/organisations'
+import { Route as DashboardOrgsRouteImport } from './routes/dashboard/_orgs'
 import { Route as DashboardTimeEntriesIdRouteImport } from './routes/dashboard/time-entries.$id'
-import { Route as DashboardOrganisationsIdRouteImport } from './routes/dashboard/organisations.$id'
+import { Route as DashboardOrgsOrganisationsRouteImport } from './routes/dashboard/_orgs.organisations'
+import { Route as DashboardOrgsAccountsRouteImport } from './routes/dashboard/_orgs.accounts'
+import { Route as DashboardOrgsOrganisationsIdRouteImport } from './routes/dashboard/_orgs.organisations.$id'
+import { Route as DashboardOrgsAccountsIdRouteImport } from './routes/dashboard/_orgs.accounts.$id'
 
 const PortalRoute = PortalRouteImport.update({
   id: '/portal',
@@ -43,9 +46,8 @@ const DashboardTimeEntriesRoute = DashboardTimeEntriesRouteImport.update({
   path: '/time-entries',
   getParentRoute: () => DashboardRoute,
 } as any)
-const DashboardOrganisationsRoute = DashboardOrganisationsRouteImport.update({
-  id: '/organisations',
-  path: '/organisations',
+const DashboardOrgsRoute = DashboardOrgsRouteImport.update({
+  id: '/_orgs',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardTimeEntriesIdRoute = DashboardTimeEntriesIdRouteImport.update({
@@ -53,42 +55,65 @@ const DashboardTimeEntriesIdRoute = DashboardTimeEntriesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => DashboardTimeEntriesRoute,
 } as any)
-const DashboardOrganisationsIdRoute =
-  DashboardOrganisationsIdRouteImport.update({
+const DashboardOrgsOrganisationsRoute =
+  DashboardOrgsOrganisationsRouteImport.update({
+    id: '/organisations',
+    path: '/organisations',
+    getParentRoute: () => DashboardOrgsRoute,
+  } as any)
+const DashboardOrgsAccountsRoute = DashboardOrgsAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => DashboardOrgsRoute,
+} as any)
+const DashboardOrgsOrganisationsIdRoute =
+  DashboardOrgsOrganisationsIdRouteImport.update({
     id: '/$id',
     path: '/$id',
-    getParentRoute: () => DashboardOrganisationsRoute,
+    getParentRoute: () => DashboardOrgsOrganisationsRoute,
   } as any)
+const DashboardOrgsAccountsIdRoute = DashboardOrgsAccountsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => DashboardOrgsAccountsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteWithChildren
+  '/dashboard': typeof DashboardOrgsRouteWithChildren
   '/portal': typeof PortalRoute
-  '/dashboard/organisations': typeof DashboardOrganisationsRouteWithChildren
   '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
-  '/dashboard/organisations/$id': typeof DashboardOrganisationsIdRoute
+  '/dashboard/accounts': typeof DashboardOrgsAccountsRouteWithChildren
+  '/dashboard/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
   '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
+  '/dashboard/accounts/$id': typeof DashboardOrgsAccountsIdRoute
+  '/dashboard/organisations/$id': typeof DashboardOrgsOrganisationsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/portal': typeof PortalRoute
-  '/dashboard/organisations': typeof DashboardOrganisationsRouteWithChildren
-  '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
   '/dashboard': typeof DashboardIndexRoute
-  '/dashboard/organisations/$id': typeof DashboardOrganisationsIdRoute
+  '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
+  '/dashboard/accounts': typeof DashboardOrgsAccountsRouteWithChildren
+  '/dashboard/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
   '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
+  '/dashboard/accounts/$id': typeof DashboardOrgsAccountsIdRoute
+  '/dashboard/organisations/$id': typeof DashboardOrgsOrganisationsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/portal': typeof PortalRoute
-  '/dashboard/organisations': typeof DashboardOrganisationsRouteWithChildren
+  '/dashboard/_orgs': typeof DashboardOrgsRouteWithChildren
   '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
-  '/dashboard/organisations/$id': typeof DashboardOrganisationsIdRoute
+  '/dashboard/_orgs/accounts': typeof DashboardOrgsAccountsRouteWithChildren
+  '/dashboard/_orgs/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
   '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
+  '/dashboard/_orgs/accounts/$id': typeof DashboardOrgsAccountsIdRoute
+  '/dashboard/_orgs/organisations/$id': typeof DashboardOrgsOrganisationsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -96,30 +121,37 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/portal'
-    | '/dashboard/organisations'
     | '/dashboard/time-entries'
     | '/dashboard/'
-    | '/dashboard/organisations/$id'
+    | '/dashboard/accounts'
+    | '/dashboard/organisations'
     | '/dashboard/time-entries/$id'
+    | '/dashboard/accounts/$id'
+    | '/dashboard/organisations/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/portal'
-    | '/dashboard/organisations'
-    | '/dashboard/time-entries'
     | '/dashboard'
-    | '/dashboard/organisations/$id'
+    | '/dashboard/time-entries'
+    | '/dashboard/accounts'
+    | '/dashboard/organisations'
     | '/dashboard/time-entries/$id'
+    | '/dashboard/accounts/$id'
+    | '/dashboard/organisations/$id'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/portal'
-    | '/dashboard/organisations'
+    | '/dashboard/_orgs'
     | '/dashboard/time-entries'
     | '/dashboard/'
-    | '/dashboard/organisations/$id'
+    | '/dashboard/_orgs/accounts'
+    | '/dashboard/_orgs/organisations'
     | '/dashboard/time-entries/$id'
+    | '/dashboard/_orgs/accounts/$id'
+    | '/dashboard/_orgs/organisations/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -165,11 +197,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardTimeEntriesRouteImport
       parentRoute: typeof DashboardRoute
     }
-    '/dashboard/organisations': {
-      id: '/dashboard/organisations'
-      path: '/organisations'
-      fullPath: '/dashboard/organisations'
-      preLoaderRoute: typeof DashboardOrganisationsRouteImport
+    '/dashboard/_orgs': {
+      id: '/dashboard/_orgs'
+      path: ''
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardOrgsRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/time-entries/$id': {
@@ -179,29 +211,77 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardTimeEntriesIdRouteImport
       parentRoute: typeof DashboardTimeEntriesRoute
     }
-    '/dashboard/organisations/$id': {
-      id: '/dashboard/organisations/$id'
+    '/dashboard/_orgs/organisations': {
+      id: '/dashboard/_orgs/organisations'
+      path: '/organisations'
+      fullPath: '/dashboard/organisations'
+      preLoaderRoute: typeof DashboardOrgsOrganisationsRouteImport
+      parentRoute: typeof DashboardOrgsRoute
+    }
+    '/dashboard/_orgs/accounts': {
+      id: '/dashboard/_orgs/accounts'
+      path: '/accounts'
+      fullPath: '/dashboard/accounts'
+      preLoaderRoute: typeof DashboardOrgsAccountsRouteImport
+      parentRoute: typeof DashboardOrgsRoute
+    }
+    '/dashboard/_orgs/organisations/$id': {
+      id: '/dashboard/_orgs/organisations/$id'
       path: '/$id'
       fullPath: '/dashboard/organisations/$id'
-      preLoaderRoute: typeof DashboardOrganisationsIdRouteImport
-      parentRoute: typeof DashboardOrganisationsRoute
+      preLoaderRoute: typeof DashboardOrgsOrganisationsIdRouteImport
+      parentRoute: typeof DashboardOrgsOrganisationsRoute
+    }
+    '/dashboard/_orgs/accounts/$id': {
+      id: '/dashboard/_orgs/accounts/$id'
+      path: '/$id'
+      fullPath: '/dashboard/accounts/$id'
+      preLoaderRoute: typeof DashboardOrgsAccountsIdRouteImport
+      parentRoute: typeof DashboardOrgsAccountsRoute
     }
   }
 }
 
-interface DashboardOrganisationsRouteChildren {
-  DashboardOrganisationsIdRoute: typeof DashboardOrganisationsIdRoute
+interface DashboardOrgsAccountsRouteChildren {
+  DashboardOrgsAccountsIdRoute: typeof DashboardOrgsAccountsIdRoute
 }
 
-const DashboardOrganisationsRouteChildren: DashboardOrganisationsRouteChildren =
+const DashboardOrgsAccountsRouteChildren: DashboardOrgsAccountsRouteChildren = {
+  DashboardOrgsAccountsIdRoute: DashboardOrgsAccountsIdRoute,
+}
+
+const DashboardOrgsAccountsRouteWithChildren =
+  DashboardOrgsAccountsRoute._addFileChildren(
+    DashboardOrgsAccountsRouteChildren,
+  )
+
+interface DashboardOrgsOrganisationsRouteChildren {
+  DashboardOrgsOrganisationsIdRoute: typeof DashboardOrgsOrganisationsIdRoute
+}
+
+const DashboardOrgsOrganisationsRouteChildren: DashboardOrgsOrganisationsRouteChildren =
   {
-    DashboardOrganisationsIdRoute: DashboardOrganisationsIdRoute,
+    DashboardOrgsOrganisationsIdRoute: DashboardOrgsOrganisationsIdRoute,
   }
 
-const DashboardOrganisationsRouteWithChildren =
-  DashboardOrganisationsRoute._addFileChildren(
-    DashboardOrganisationsRouteChildren,
+const DashboardOrgsOrganisationsRouteWithChildren =
+  DashboardOrgsOrganisationsRoute._addFileChildren(
+    DashboardOrgsOrganisationsRouteChildren,
   )
+
+interface DashboardOrgsRouteChildren {
+  DashboardOrgsAccountsRoute: typeof DashboardOrgsAccountsRouteWithChildren
+  DashboardOrgsOrganisationsRoute: typeof DashboardOrgsOrganisationsRouteWithChildren
+}
+
+const DashboardOrgsRouteChildren: DashboardOrgsRouteChildren = {
+  DashboardOrgsAccountsRoute: DashboardOrgsAccountsRouteWithChildren,
+  DashboardOrgsOrganisationsRoute: DashboardOrgsOrganisationsRouteWithChildren,
+}
+
+const DashboardOrgsRouteWithChildren = DashboardOrgsRoute._addFileChildren(
+  DashboardOrgsRouteChildren,
+)
 
 interface DashboardTimeEntriesRouteChildren {
   DashboardTimeEntriesIdRoute: typeof DashboardTimeEntriesIdRoute
@@ -215,13 +295,13 @@ const DashboardTimeEntriesRouteWithChildren =
   DashboardTimeEntriesRoute._addFileChildren(DashboardTimeEntriesRouteChildren)
 
 interface DashboardRouteChildren {
-  DashboardOrganisationsRoute: typeof DashboardOrganisationsRouteWithChildren
+  DashboardOrgsRoute: typeof DashboardOrgsRouteWithChildren
   DashboardTimeEntriesRoute: typeof DashboardTimeEntriesRouteWithChildren
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
-  DashboardOrganisationsRoute: DashboardOrganisationsRouteWithChildren,
+  DashboardOrgsRoute: DashboardOrgsRouteWithChildren,
   DashboardTimeEntriesRoute: DashboardTimeEntriesRouteWithChildren,
   DashboardIndexRoute: DashboardIndexRoute,
 }

@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useRouter, getRouteApi } from '@tanstack/react-router'
+import { createFileRoute, getRouteApi, useNavigate, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { Users, Mail, Building2, Clock } from 'lucide-react'
@@ -12,8 +12,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-
-const parentRouteApi = getRouteApi('/dashboard/organisations')
 
 // Helper functions
 function formatDateTime(isoString: string): string {
@@ -48,8 +46,10 @@ const updateOrganisationFn = createServerFn({ method: 'POST' }).handler(
   }
 )
 
-// Route definition - no loader needed, uses parent data
-export const Route = createFileRoute('/dashboard/organisations/$id')({
+const parentRouteApi = getRouteApi('/dashboard/_orgs')
+
+// Route definition
+export const Route = createFileRoute('/dashboard/_orgs/organisations/$id')({
   component: OrganisationDetailPage,
 })
 
