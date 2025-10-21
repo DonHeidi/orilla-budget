@@ -30,6 +30,7 @@ const createAccountFn = createServerFn({ method: 'POST' })
       organisationId: data.organisationId,
       name: data.name,
       email: data.email,
+      role: data.role || 'contact',
       accessCode: accessCode,
       createdAt: new Date().toISOString(),
     }
@@ -47,6 +48,7 @@ type AccountWithDetails = {
   organisationName: string
   name: string
   email: string
+  role: 'contact' | 'project_manager' | 'finance'
   accessCode: string
   createdAt: string
 }
@@ -67,6 +69,7 @@ function AccountsPage() {
         organisationName: organisation?.name || '',
         name: account.name,
         email: account.email,
+        role: account.role || 'contact',
         accessCode: account.accessCode,
         createdAt: account.createdAt,
       }
@@ -87,6 +90,23 @@ function AccountsPage() {
           <span>{getValue() as string}</span>
         </div>
       ),
+    },
+    {
+      accessorKey: 'role',
+      header: 'Role',
+      cell: ({ getValue }) => {
+        const role = getValue() as string
+        const roleLabels = {
+          contact: 'Contact',
+          project_manager: 'Project Manager',
+          finance: 'Finance/Controller',
+        }
+        return (
+          <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded text-sm">
+            {roleLabels[role as keyof typeof roleLabels] || role}
+          </span>
+        )
+      },
     },
     {
       accessorKey: 'organisationName',
@@ -168,6 +188,7 @@ function AddAccountSheet({ organisations }: { organisations: any[] }) {
       organisationId: '',
       name: '',
       email: '',
+      role: 'contact' as 'contact' | 'project_manager' | 'finance',
     },
     validatorAdapter: zodValidator(),
     validators: {
@@ -179,6 +200,7 @@ function AddAccountSheet({ organisations }: { organisations: any[] }) {
           organisationId: value.organisationId,
           name: value.name,
           email: value.email,
+          role: value.role,
         }
       })
       setCreatedAccessCode(result.accessCode)
@@ -309,6 +331,33 @@ function AddAccountSheet({ organisations }: { organisations: any[] }) {
                     onChange={(e) => field.handleChange(e.target.value)}
                     placeholder="e.g., larry@google.com"
                   />
+                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-red-500">
+                      {field.state.meta.errors.map((err) =>
+                        typeof err === 'string' ? err : err.message || JSON.stringify(err)
+                      ).join(', ')}
+                    </p>
+                  )}
+                </div>
+              )}
+            </form.Field>
+
+            <form.Field name="role">
+              {(field) => (
+                <div className="space-y-2">
+                  <label htmlFor={field.name} className="text-sm font-medium">
+                    Role *
+                  </label>
+                  <select
+                    id={field.name}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value as 'contact' | 'project_manager' | 'finance')}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                  >
+                    <option value="contact">Contact</option>
+                    <option value="project_manager">Project Manager</option>
+                    <option value="finance">Finance/Controller</option>
+                  </select>
                   {field.state.meta.errors && field.state.meta.errors.length > 0 && (
                     <p className="text-sm text-red-500">
                       {field.state.meta.errors.map((err) =>
