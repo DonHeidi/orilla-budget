@@ -1,5 +1,15 @@
 import { z } from 'zod'
 
+// User Schema
+export const userSchema = z.object({
+  id: z.string(),
+  handle: z.string().min(1, 'Handle is required').regex(/^[a-zA-Z0-9_-]+$/, 'Handle can only contain letters, numbers, underscores, and hyphens'),
+  email: z.string().email('Invalid email address'),
+  createdAt: z.string().datetime(),
+})
+
+export const createUserSchema = userSchema.omit({ id: true, createdAt: true })
+
 // Organisation Schema
 export const organisationSchema = z.object({
   id: z.string(),
@@ -15,6 +25,7 @@ export const createOrganisationSchema = organisationSchema.omit({ id: true, crea
 // Account Schema
 export const accountSchema = z.object({
   id: z.string(),
+  userId: z.string().optional().nullable(),
   organisationId: z.string(),
   name: z.string().min(1, 'Account name is required'),
   email: z.string().email('Invalid email address'),
@@ -73,6 +84,8 @@ export const quickTimeEntrySchema = z.object({
 })
 
 // Type exports
+export type User = z.infer<typeof userSchema>
+export type CreateUser = z.infer<typeof createUserSchema>
 export type Organisation = z.infer<typeof organisationSchema>
 export type CreateOrganisation = z.infer<typeof createOrganisationSchema>
 export type Account = z.infer<typeof accountSchema>

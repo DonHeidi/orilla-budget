@@ -1,5 +1,12 @@
 import { sqliteTable, text, real, integer } from 'drizzle-orm/sqlite-core'
 
+export const users = sqliteTable('users', {
+  id: text('id').primaryKey(),
+  handle: text('handle').notNull().unique(),
+  email: text('email').notNull().unique(),
+  createdAt: text('created_at').notNull(),
+})
+
 export const organisations = sqliteTable('organisations', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -11,6 +18,7 @@ export const organisations = sqliteTable('organisations', {
 
 export const accounts = sqliteTable('accounts', {
   id: text('id').primaryKey(),
+  userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
   organisationId: text('organisation_id').notNull().references(() => organisations.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   email: text('email').notNull(),
