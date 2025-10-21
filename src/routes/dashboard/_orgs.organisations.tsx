@@ -6,7 +6,8 @@ import { Plus, Users, Mail, Building2 } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { organisationRepository } from '@/server/repositories/organisation.repository'
-import { createOrganisationSchema, type Organisation } from '@/schemas'
+import { accountRepository } from '@/server/repositories/account.repository'
+import { createOrganisationSchema, type Organisation, type Account } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,7 +33,22 @@ const createOrganisationFn = createServerFn({ method: 'POST' })
       totalBudgetHours: data.totalBudgetHours,
       createdAt: new Date().toISOString(),
     }
-    return await organisationRepository.create(organisation)
+    const createdOrg = await organisationRepository.create(organisation)
+
+    // Automatically create a contact account for this organisation
+    const accessCode = Math.random().toString(36).substring(2, 10).toUpperCase()
+    const contactAccount: Account = {
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      organisationId: createdOrg.id,
+      name: data.contactName,
+      email: data.contactEmail,
+      role: 'contact',
+      accessCode: accessCode,
+      createdAt: new Date().toISOString(),
+    }
+    await accountRepository.create(contactAccount)
+
+    return createdOrg
   })
 
 // Route definition
