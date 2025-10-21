@@ -18,6 +18,7 @@ export const accountSchema = z.object({
   organisationId: z.string(),
   name: z.string().min(1, 'Account name is required'),
   email: z.string().email('Invalid email address'),
+  role: z.enum(['contact', 'project_manager', 'finance']).default('contact'),
   accessCode: z.string(),
   createdAt: z.string().datetime(),
 })

@@ -14,6 +14,7 @@ export const accounts = sqliteTable('accounts', {
   organisationId: text('organisation_id').notNull().references(() => organisations.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   email: text('email').notNull(),
+  role: text('role', { enum: ['contact', 'project_manager', 'finance'] }).notNull().default('contact'),
   accessCode: text('access_code').notNull().unique(),
   createdAt: text('created_at').notNull(),
 })
