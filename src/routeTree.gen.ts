@@ -11,15 +11,19 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as DashboardTimeEntriesRouteImport } from './routes/dashboard/time-entries'
 import { Route as DashboardProjectsRouteImport } from './routes/dashboard/projects'
 import { Route as DashboardOrgsRouteImport } from './routes/dashboard/_orgs'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as DashboardTimeEntriesIdRouteImport } from './routes/dashboard/time-entries.$id'
 import { Route as DashboardProjectsIdRouteImport } from './routes/dashboard/projects.$id'
 import { Route as DashboardOrgsOrganisationsRouteImport } from './routes/dashboard/_orgs.organisations'
 import { Route as DashboardOrgsAccountsRouteImport } from './routes/dashboard/_orgs.accounts'
+import { Route as AdminUsersIdRouteImport } from './routes/admin/users.$id'
 import { Route as DashboardOrgsOrganisationsIdRouteImport } from './routes/dashboard/_orgs.organisations.$id'
 import { Route as DashboardOrgsAccountsIdRouteImport } from './routes/dashboard/_orgs.accounts.$id'
 
@@ -33,6 +37,11 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -42,6 +51,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DashboardRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const DashboardTimeEntriesRoute = DashboardTimeEntriesRouteImport.update({
   id: '/time-entries',
@@ -56,6 +70,11 @@ const DashboardProjectsRoute = DashboardProjectsRouteImport.update({
 const DashboardOrgsRoute = DashboardOrgsRouteImport.update({
   id: '/_orgs',
   getParentRoute: () => DashboardRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
 } as any)
 const DashboardTimeEntriesIdRoute = DashboardTimeEntriesIdRouteImport.update({
   id: '/$id',
@@ -78,6 +97,11 @@ const DashboardOrgsAccountsRoute = DashboardOrgsAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => DashboardOrgsRoute,
 } as any)
+const AdminUsersIdRoute = AdminUsersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminUsersRoute,
+} as any)
 const DashboardOrgsOrganisationsIdRoute =
   DashboardOrgsOrganisationsIdRouteImport.update({
     id: '/$id',
@@ -92,11 +116,15 @@ const DashboardOrgsAccountsIdRoute = DashboardOrgsAccountsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardOrgsRouteWithChildren
   '/portal': typeof PortalRoute
+  '/admin/users': typeof AdminUsersRouteWithChildren
   '/dashboard/projects': typeof DashboardProjectsRouteWithChildren
   '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
+  '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/admin/users/$id': typeof AdminUsersIdRoute
   '/dashboard/accounts': typeof DashboardOrgsAccountsRouteWithChildren
   '/dashboard/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
   '/dashboard/projects/$id': typeof DashboardProjectsIdRoute
@@ -107,9 +135,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/portal': typeof PortalRoute
+  '/admin/users': typeof AdminUsersRouteWithChildren
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/projects': typeof DashboardProjectsRouteWithChildren
   '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
+  '/admin': typeof AdminIndexRoute
+  '/admin/users/$id': typeof AdminUsersIdRoute
   '/dashboard/accounts': typeof DashboardOrgsAccountsRouteWithChildren
   '/dashboard/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
   '/dashboard/projects/$id': typeof DashboardProjectsIdRoute
@@ -120,12 +151,16 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRouteWithChildren
   '/portal': typeof PortalRoute
+  '/admin/users': typeof AdminUsersRouteWithChildren
   '/dashboard/_orgs': typeof DashboardOrgsRouteWithChildren
   '/dashboard/projects': typeof DashboardProjectsRouteWithChildren
   '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
+  '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/admin/users/$id': typeof AdminUsersIdRoute
   '/dashboard/_orgs/accounts': typeof DashboardOrgsAccountsRouteWithChildren
   '/dashboard/_orgs/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
   '/dashboard/projects/$id': typeof DashboardProjectsIdRoute
@@ -137,11 +172,15 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/dashboard'
     | '/portal'
+    | '/admin/users'
     | '/dashboard/projects'
     | '/dashboard/time-entries'
+    | '/admin/'
     | '/dashboard/'
+    | '/admin/users/$id'
     | '/dashboard/accounts'
     | '/dashboard/organisations'
     | '/dashboard/projects/$id'
@@ -152,9 +191,12 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/portal'
+    | '/admin/users'
     | '/dashboard'
     | '/dashboard/projects'
     | '/dashboard/time-entries'
+    | '/admin'
+    | '/admin/users/$id'
     | '/dashboard/accounts'
     | '/dashboard/organisations'
     | '/dashboard/projects/$id'
@@ -164,12 +206,16 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/dashboard'
     | '/portal'
+    | '/admin/users'
     | '/dashboard/_orgs'
     | '/dashboard/projects'
     | '/dashboard/time-entries'
+    | '/admin/'
     | '/dashboard/'
+    | '/admin/users/$id'
     | '/dashboard/_orgs/accounts'
     | '/dashboard/_orgs/organisations'
     | '/dashboard/projects/$id'
@@ -180,6 +226,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
   DashboardRoute: typeof DashboardRouteWithChildren
   PortalRoute: typeof PortalRoute
 }
@@ -200,6 +247,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -213,6 +267,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/'
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/dashboard/time-entries': {
       id: '/dashboard/time-entries'
@@ -234,6 +295,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardOrgsRouteImport
       parentRoute: typeof DashboardRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/dashboard/time-entries/$id': {
       id: '/dashboard/time-entries/$id'
@@ -263,6 +331,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgsAccountsRouteImport
       parentRoute: typeof DashboardOrgsRoute
     }
+    '/admin/users/$id': {
+      id: '/admin/users/$id'
+      path: '/$id'
+      fullPath: '/admin/users/$id'
+      preLoaderRoute: typeof AdminUsersIdRouteImport
+      parentRoute: typeof AdminUsersRoute
+    }
     '/dashboard/_orgs/organisations/$id': {
       id: '/dashboard/_orgs/organisations/$id'
       path: '/$id'
@@ -279,6 +354,30 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminUsersRouteChildren {
+  AdminUsersIdRoute: typeof AdminUsersIdRoute
+}
+
+const AdminUsersRouteChildren: AdminUsersRouteChildren = {
+  AdminUsersIdRoute: AdminUsersIdRoute,
+}
+
+const AdminUsersRouteWithChildren = AdminUsersRoute._addFileChildren(
+  AdminUsersRouteChildren,
+)
+
+interface AdminRouteChildren {
+  AdminUsersRoute: typeof AdminUsersRouteWithChildren
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminUsersRoute: AdminUsersRouteWithChildren,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface DashboardOrgsAccountsRouteChildren {
   DashboardOrgsAccountsIdRoute: typeof DashboardOrgsAccountsIdRoute
@@ -363,6 +462,7 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
   DashboardRoute: DashboardRouteWithChildren,
   PortalRoute: PortalRoute,
 }
