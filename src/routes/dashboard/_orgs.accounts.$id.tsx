@@ -1,7 +1,7 @@
 import { createFileRoute, getRouteApi, useNavigate, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { useState } from 'react'
-import { Users, Mail, Building2, Key } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Users, Mail, Building2, Key, UserCog } from 'lucide-react'
 import type { Account } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -61,6 +61,7 @@ function AccountDetailPage() {
   const router = useRouter()
   const [editingField, setEditingField] = useState<string | null>(null)
   const [editedValues, setEditedValues] = useState<Partial<Account>>({})
+  const roleSelectRef = useRef<HTMLSelectElement>(null)
 
   // Get data from parent route
   const accounts = parentData?.accounts || []
@@ -134,6 +135,13 @@ function AccountDetailPage() {
     setEditedValues(prev => ({ ...prev, [fieldName]: value }))
   }
 
+  // Auto-open select when role field becomes editable
+  useEffect(() => {
+    if (editingField === 'role' && roleSelectRef.current) {
+      roleSelectRef.current.showPicker?.()
+    }
+  }, [editingField])
+
   return (
     <Sheet open={true} onOpenChange={(open) => {
       if (!open) {
@@ -193,6 +201,36 @@ function AccountDetailPage() {
                   onClick={() => handleFieldClick('email')}
                 >
                   {currentValues.email}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">
+                <UserCog className="inline-block h-4 w-4 mr-1" />
+                Role
+              </label>
+              {editingField === 'role' ? (
+                <select
+                  ref={roleSelectRef}
+                  autoFocus
+                  value={currentValues.role || 'contact'}
+                  onChange={(e) => handleFieldChange('role', e.target.value)}
+                  onBlur={handleFieldBlur}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
+                >
+                  <option value="contact">Contact</option>
+                  <option value="project_manager">Project Manager</option>
+                  <option value="finance">Finance/Controller</option>
+                </select>
+              ) : (
+                <p
+                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
+                  onClick={() => handleFieldClick('role')}
+                >
+                  {currentValues.role === 'contact' && 'Contact'}
+                  {currentValues.role === 'project_manager' && 'Project Manager'}
+                  {currentValues.role === 'finance' && 'Finance/Controller'}
                 </p>
               )}
             </div>
