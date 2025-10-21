@@ -169,11 +169,11 @@ const deleteProjectFn = createServerFn({ method: 'POST' }).handler(
 )
 
 export const Route = createFileRoute('/dashboard')({
-  component: AdminDashboard,
+  component: AgentDashboard,
   loader: () => getAllDataFn(),
 })
 
-function AdminDashboard() {
+function AgentDashboard() {
   const data = Route.useLoaderData()
   const [timeEntryDialogOpen, setTimeEntryDialogOpen] = useState(false)
   const [timeEntriesExpanded, setTimeEntriesExpanded] = useState(true)
@@ -185,7 +185,7 @@ function AdminDashboard() {
         <Sidebar>
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel>Admin Dashboard</SidebarGroupLabel>
+              <SidebarGroupLabel>Agent Dashboard</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -281,7 +281,7 @@ function AdminDashboard() {
           <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
-            <h1 className="text-lg font-semibold">Admin Dashboard</h1>
+            <h1 className="text-lg font-semibold">Agent Dashboard</h1>
           </header>
 
           <div className="flex flex-1 flex-col">
