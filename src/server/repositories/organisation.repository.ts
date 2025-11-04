@@ -1,5 +1,5 @@
-import { db, organisations } from '@/db'
-import { eq } from 'drizzle-orm'
+import { db, organisations, projects } from '@/db'
+import { eq, sum, sql } from 'drizzle-orm'
 import type { Organisation } from '@/schemas'
 
 export const organisationRepository = {
@@ -23,5 +23,17 @@ export const organisationRepository = {
 
   async delete(id: string): Promise<void> {
     await db.delete(organisations).where(eq(organisations.id, id))
+  },
+
+  async calculateBudgetHours(organisationId: string): Promise<number> {
+    // Only sum budget hours from Time & Materials (budget) projects, not fixed price projects
+    const result = await db
+      .select({ total: sum(projects.budgetHours) })
+      .from(projects)
+      .where(
+        sql`${projects.organisationId} = ${organisationId} AND ${projects.category} = 'budget'`
+      )
+
+    return result[0]?.total ? Number(result[0].total) : 0
   },
 }
