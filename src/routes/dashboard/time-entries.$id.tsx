@@ -330,13 +330,29 @@ function TimeEntryDetailPage() {
                 </div>
               </div>
 
-              {timeEntry.approvedDate && (
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Approved Date</label>
-                  <p className="text-base mt-1">{formatDateTime(timeEntry.approvedDate)}</p>
+              <div>
+                <label className="text-sm font-medium text-gray-500">Billed</label>
+                <div className="flex items-center mt-1">
+                  <input
+                    type="checkbox"
+                    checked={currentValues.billed || false}
+                    onChange={(e) => {
+                      handleFieldChange('billed', e.target.checked)
+                      handleFieldBlur()
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"
+                  />
+                  <span className="ml-2 text-base">{currentValues.billed ? 'Yes' : 'No'}</span>
                 </div>
-              )}
+              </div>
             </div>
+
+            {timeEntry.approvedDate && (
+              <div>
+                <label className="text-sm font-medium text-gray-500">Approved Date</label>
+                <p className="text-base mt-1">{formatDateTime(timeEntry.approvedDate)}</p>
+              </div>
+            )}
 
             <div>
               <label className="text-sm font-medium text-gray-500">Created</label>

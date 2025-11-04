@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, useRouter, Outlet } from '@tanstack/react
 import { createServerFn } from '@tanstack/react-start'
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { CheckCircle, XCircle, Plus } from 'lucide-react'
+import { CheckCircle, XCircle, Plus, X } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { organisationRepository } from '@/server/repositories/organisation.repository'
@@ -20,6 +20,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox'
 
 // Helper functions
 function timeToHours(time: string): number {
@@ -70,6 +71,7 @@ const createTimeEntryFn = createServerFn({ method: 'POST' })
       description: data.description || '',
       hours: data.hours,
       date: data.date,
+      billed: false,
       createdAt: new Date().toISOString(),
     }
     return await timeEntryRepository.create(timeEntry)
@@ -111,6 +113,8 @@ type TimeEntryWithDetails = {
 function TimeEntriesPage() {
   const data = Route.useLoaderData()
   const navigate = useNavigate({ from: Route.fullPath })
+  const [filterOrganisationId, setFilterOrganisationId] = useState<string>('')
+  const [filterProjectId, setFilterProjectId] = useState<string>('')
 
   const timeEntriesWithDetails = useMemo(() => {
     return data.timeEntries.map((entry: any) => {
@@ -124,9 +128,61 @@ function TimeEntriesPage() {
         title: entry.title,
         hours: entry.hours,
         approvedDate: entry.approvedDate,
+        organisationId: entry.organisationId,
+        projectId: entry.projectId,
       }
     })
   }, [data])
+
+  const filteredTimeEntries = useMemo(() => {
+    let filtered = timeEntriesWithDetails
+
+    if (filterOrganisationId) {
+      filtered = filtered.filter(entry => entry.organisationId === filterOrganisationId)
+    }
+
+    if (filterProjectId) {
+      filtered = filtered.filter(entry => entry.projectId === filterProjectId)
+    }
+
+    return filtered
+  }, [timeEntriesWithDetails, filterOrganisationId, filterProjectId])
+
+  const organisationOptions: ComboboxOption[] = useMemo(() => {
+    return data.organisations.map((org: any) => ({
+      value: org.id,
+      label: org.name,
+    }))
+  }, [data.organisations])
+
+  const projectOptions: ComboboxOption[] = useMemo(() => {
+    const projects = filterOrganisationId
+      ? data.projects.filter((p: any) => p.organisationId === filterOrganisationId)
+      : data.projects
+
+    return projects.map((proj: any) => ({
+      value: proj.id,
+      label: proj.name,
+    }))
+  }, [data.projects, filterOrganisationId])
+
+  const handleOrganisationChange = (value: string) => {
+    setFilterOrganisationId(value)
+    // Clear project filter if organisation changes
+    if (filterProjectId) {
+      const selectedProject = data.projects.find((p: any) => p.id === filterProjectId)
+      if (selectedProject && selectedProject.organisationId !== value) {
+        setFilterProjectId('')
+      }
+    }
+  }
+
+  const clearFilters = () => {
+    setFilterOrganisationId('')
+    setFilterProjectId('')
+  }
+
+  const hasActiveFilters = filterOrganisationId || filterProjectId
 
   const columns: ColumnDef<TimeEntryWithDetails>[] = [
     {
@@ -188,9 +244,47 @@ function TimeEntriesPage() {
         <QuickTimeEntrySheet organisations={data.organisations} projects={data.projects} />
       </div>
 
+      <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Filter by:</span>
+          <Combobox
+            options={organisationOptions}
+            value={filterOrganisationId}
+            onChange={handleOrganisationChange}
+            placeholder="Organisation"
+            searchPlaceholder="Search organisations..."
+            emptyText="No organisation found."
+            className="w-[200px]"
+          />
+          <Combobox
+            options={projectOptions}
+            value={filterProjectId}
+            onChange={setFilterProjectId}
+            placeholder="Project"
+            searchPlaceholder="Search projects..."
+            emptyText="No project found."
+            className="w-[200px]"
+          />
+        </div>
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="h-8"
+          >
+            <X className="mr-1 h-4 w-4" />
+            Clear filters
+          </Button>
+        )}
+        <div className="text-sm text-muted-foreground ml-auto">
+          Showing {filteredTimeEntries.length} of {timeEntriesWithDetails.length} entries
+        </div>
+      </div>
+
       <DataTable
         columns={columns}
-        data={timeEntriesWithDetails}
+        data={filteredTimeEntries}
         getRowId={(row) => row.id}
         onRowDoubleClick={(row) => {
           navigate({ to: '/dashboard/time-entries/$id', params: { id: row.original.id } })
