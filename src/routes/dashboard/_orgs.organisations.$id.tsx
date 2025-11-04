@@ -1,7 +1,7 @@
 import { createFileRoute, getRouteApi, useNavigate, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
-import { Users, Mail, Building2, Clock } from 'lucide-react'
+import { Users, Mail, Building2 } from 'lucide-react'
 import type { Organisation } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -213,32 +213,6 @@ function OrganisationDetailPage() {
                   onClick={() => handleFieldClick('contactEmail')}
                 >
                   {currentValues.contactEmail}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                <Clock className="inline-block h-4 w-4 mr-1" />
-                Total Budget (hours)
-              </label>
-              {editingField === 'totalBudgetHours' ? (
-                <Input
-                  autoFocus
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  value={currentValues.totalBudgetHours}
-                  onChange={(e) => handleFieldChange('totalBudgetHours', parseFloat(e.target.value) || 0)}
-                  onBlur={handleFieldBlur}
-                  className="mt-1"
-                />
-              ) : (
-                <p
-                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
-                  onClick={() => handleFieldClick('totalBudgetHours')}
-                >
-                  {currentValues.totalBudgetHours} hours
                 </p>
               )}
             </div>

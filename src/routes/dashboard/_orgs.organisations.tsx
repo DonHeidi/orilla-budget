@@ -30,7 +30,6 @@ const createOrganisationFn = createServerFn({ method: 'POST' })
       name: data.name,
       contactName: data.contactName,
       contactEmail: data.contactEmail,
-      totalBudgetHours: data.totalBudgetHours,
       createdAt: new Date().toISOString(),
     }
     const createdOrg = await organisationRepository.create(organisation)
@@ -61,8 +60,12 @@ type OrganisationWithDetails = {
   name: string
   contactName: string
   contactEmail: string
-  totalBudgetHours: number
   accountCount: number
+  totalBudgetHours: number
+  usedHours: number
+  billedHours: number
+  usedPercentage: number
+  billedPercentage: number
   createdAt: string
 }
 
@@ -76,13 +79,33 @@ function OrganisationsPage() {
   const organisationsWithDetails = useMemo(() => {
     return parentData.organisations.map((org: any) => {
       const accountCount = parentData.accounts.filter((a: any) => a.organisationId === org.id).length
+      const orgProjects = parentData.projects.filter((p: any) => p.organisationId === org.id)
+      // Only sum budget hours from Time & Materials (budget) projects, not fixed price projects
+      const totalBudgetHours = orgProjects
+        .filter((p: any) => p.category === 'budget')
+        .reduce((sum: number, p: any) => sum + (p.budgetHours || 0), 0)
+
+      // Get all time entries for this organisation
+      const orgTimeEntries = parentData.timeEntries.filter((t: any) => t.organisationId === org.id)
+      const usedHours = orgTimeEntries.reduce((sum: number, t: any) => sum + t.hours, 0)
+      const billedHours = orgTimeEntries
+        .filter((t: any) => t.billed === true)
+        .reduce((sum: number, t: any) => sum + t.hours, 0)
+
+      const usedPercentage = totalBudgetHours > 0 ? (usedHours / totalBudgetHours) * 100 : 0
+      const billedPercentage = totalBudgetHours > 0 ? (billedHours / totalBudgetHours) * 100 : 0
+
       return {
         id: org.id,
         name: org.name,
         contactName: org.contactName,
         contactEmail: org.contactEmail,
-        totalBudgetHours: org.totalBudgetHours,
         accountCount,
+        totalBudgetHours,
+        usedHours,
+        billedHours,
+        usedPercentage,
+        billedPercentage,
         createdAt: org.createdAt,
       }
     })
@@ -116,7 +139,60 @@ function OrganisationsPage() {
     {
       accessorKey: 'totalBudgetHours',
       header: 'Budget (hours)',
-      cell: ({ getValue }) => `${getValue()} hours`,
+      cell: ({ getValue }) => {
+        const hours = getValue() as number
+        return hours > 0 ? `${hours}h` : 'No projects'
+      },
+    },
+    {
+      accessorKey: 'usedPercentage',
+      header: 'Used',
+      cell: ({ getValue, row }) => {
+        const percentage = getValue() as number
+        const hours = row.original.usedHours
+        const budget = row.original.totalBudgetHours
+
+        if (budget === 0) {
+          return <span className="text-gray-400">-</span>
+        }
+
+        return (
+          <div className="flex items-center gap-2">
+            <span className={
+              percentage > 100
+                ? 'text-red-600 dark:text-red-400 font-semibold'
+                : percentage > 75
+                ? 'text-orange-600 dark:text-orange-400 font-medium'
+                : 'text-gray-900 dark:text-gray-100'
+            }>
+              {percentage.toFixed(1)}%
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">({hours.toFixed(1)}h)</span>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'billedPercentage',
+      header: 'Billed',
+      cell: ({ getValue, row }) => {
+        const percentage = getValue() as number
+        const hours = row.original.billedHours
+        const budget = row.original.totalBudgetHours
+
+        if (budget === 0) {
+          return <span className="text-gray-400">-</span>
+        }
+
+        return (
+          <div className="flex items-center gap-2">
+            <span className="text-green-600 dark:text-green-400 font-medium">
+              {percentage.toFixed(1)}%
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">({hours.toFixed(1)}h)</span>
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'accountCount',
@@ -183,7 +259,6 @@ function AddOrganisationSheet() {
       name: '',
       contactName: '',
       contactEmail: '',
-      totalBudgetHours: 0,
     },
     validatorAdapter: zodValidator(),
     validators: {
@@ -195,7 +270,6 @@ function AddOrganisationSheet() {
           name: value.name,
           contactName: value.contactName,
           contactEmail: value.contactEmail,
-          totalBudgetHours: value.totalBudgetHours,
         }
       })
       setOpen(false)
@@ -297,33 +371,6 @@ function AddOrganisationSheet() {
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="e.g., sundar@google.com"
-                />
-                {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-red-500">
-                    {field.state.meta.errors.map((err) =>
-                      typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                    ).join(', ')}
-                  </p>
-                )}
-              </div>
-            )}
-          </form.Field>
-
-          <form.Field name="totalBudgetHours">
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Total Budget (hours) *
-                </label>
-                <Input
-                  id={field.name}
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
-                  placeholder="e.g., 100"
                 />
                 {field.state.meta.errors && field.state.meta.errors.length > 0 && (
                   <p className="text-sm text-red-500">
