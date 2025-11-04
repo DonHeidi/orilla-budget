@@ -21,9 +21,21 @@ bun run build        # Build for production
 ```bash
 bun run db:generate  # Generate migration files from schema changes
 bun run db:migrate   # Run migrations
-bun run db:push      # Push schema changes directly to database (dev only)
+bun run db:push      # Push schema changes directly to database (dev only - SKIPS MIGRATIONS!)
 bun run db:studio    # Open Drizzle Studio for database visualization
 ```
+
+**CRITICAL MIGRATION WORKFLOW:**
+When making schema changes, ALWAYS follow this exact workflow:
+1. Modify `src/db/schema.ts`
+2. Run `bun run db:generate` to create migration
+3. Review the generated SQL in `drizzle/` folder
+4. Run `bun run db:migrate` to apply the migration
+5. Commit migration files to git
+
+**NEVER use `db:push` for changes going to production** - it bypasses migrations and won't work on production databases. Only use for throwaway local development.
+
+**Migration files live in `drizzle/` and MUST be committed to git.** See `docs/database.md` for more details.
 
 ## Git Workflow
 

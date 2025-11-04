@@ -12,6 +12,7 @@ export const organisations = sqliteTable('organisations', {
   name: text('name').notNull(),
   contactName: text('contact_name').notNull(),
   contactEmail: text('contact_email').notNull(),
+  contactPhone: text('contact_phone'),
   totalBudgetHours: real('total_budget_hours').notNull(),
   createdAt: text('created_at').notNull(),
 })

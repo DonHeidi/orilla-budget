@@ -1,0 +1,1 @@
+ALTER TABLE `organisations` ADD `contact_phone` text;
