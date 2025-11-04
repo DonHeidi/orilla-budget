@@ -23,6 +23,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 // Server Functions
 const getTimeSheetDetailFn = createServerFn({ method: 'GET' }).handler(
@@ -628,53 +630,19 @@ function AddEntriesDialog({
     onClose()
   }
 
-  const columns: ColumnDef<TimeEntry>[] = [
-    {
-      id: 'select',
-      header: ({ table }) => (
-        <input
-          type="checkbox"
-          checked={selectedEntryIds.size === availableEntries.length && availableEntries.length > 0}
-          onChange={(e) => {
-            if (e.target.checked) {
-              setSelectedEntryIds(new Set(availableEntries.map((entry) => entry.id)))
-            } else {
-              setSelectedEntryIds(new Set())
-            }
-          }}
-          className="h-4 w-4"
-        />
-      ),
-      cell: ({ row }) => (
-        <input
-          type="checkbox"
-          checked={selectedEntryIds.has(row.original.id)}
-          onChange={() => handleToggleEntry(row.original.id)}
-          className="h-4 w-4"
-        />
-      ),
-    },
-    {
-      accessorKey: 'date',
-      header: 'Date',
-    },
-    {
-      accessorKey: 'title',
-      header: 'Title',
-    },
-    {
-      accessorKey: 'hours',
-      header: 'Hours',
-      cell: ({ getValue }) => {
-        const hours = getValue() as number
-        return hours.toFixed(2)
-      },
-    },
-  ]
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedEntryIds(new Set(availableEntries.map((entry) => entry.id)))
+    } else {
+      setSelectedEntryIds(new Set())
+    }
+  }
+
+  const allSelected = selectedEntryIds.size === availableEntries.length && availableEntries.length > 0
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Add Time Entries</DialogTitle>
           <DialogDescription>
@@ -682,17 +650,54 @@ function AddEntriesDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[60vh] overflow-y-auto">
-          {loading ? (
-            <div className="py-8 text-center text-gray-500">Loading available entries...</div>
-          ) : availableEntries.length === 0 ? (
-            <div className="py-8 text-center text-gray-500">
-              No available entries found. All entries may already be in approved time sheets.
-            </div>
-          ) : (
-            <DataTable columns={columns} data={availableEntries} getRowId={(row) => row.id} />
-          )}
-        </div>
+        {loading ? (
+          <div className="py-8 text-center text-gray-500">Loading available entries...</div>
+        ) : availableEntries.length === 0 ? (
+          <div className="py-8 text-center text-gray-500">
+            No available entries found. All entries may already be in approved time sheets.
+          </div>
+        ) : (
+          <ScrollArea className="flex-1 border rounded-md">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
+                <tr>
+                  <th className="px-4 py-3 text-left text-sm font-medium">
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Date</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Title</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Description</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Hours</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {availableEntries.map((entry) => (
+                  <tr
+                    key={entry.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                    onClick={() => handleToggleEntry(entry.id)}
+                  >
+                    <td className="px-4 py-3">
+                      <Checkbox
+                        checked={selectedEntryIds.has(entry.id)}
+                        onCheckedChange={() => handleToggleEntry(entry.id)}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-sm">{entry.date}</td>
+                    <td className="px-4 py-3 text-sm font-medium">{entry.title}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                      {entry.description || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-sm">{entry.hours.toFixed(2)}h</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollArea>
+        )}
 
         <div className="flex gap-3 justify-end border-t pt-4">
           <Button variant="outline" onClick={onClose}>
