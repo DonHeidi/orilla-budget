@@ -131,9 +131,14 @@ function ClientDashboard({
 }) {
   const { organisation, projects, timeEntries } = clientData
 
+  // Calculate total budget from Time & Materials (budget) projects only, not fixed price projects
+  const totalBudgetHours = projects
+    .filter((project: any) => project.category === 'budget')
+    .reduce((sum: number, project: any) => sum + (project.budgetHours || 0), 0)
+
   const totalHours = timeEntries.reduce((sum: number, entry: any) => sum + entry.hours, 0)
-  const remainingHours = organisation.totalBudgetHours - totalHours
-  const percentageUsed = (totalHours / organisation.totalBudgetHours) * 100
+  const remainingHours = totalBudgetHours - totalHours
+  const percentageUsed = totalBudgetHours > 0 ? (totalHours / totalBudgetHours) * 100 : 0
 
   const projectsWithHours = projects.map((project: any) => {
     const projectEntries = timeEntries.filter((entry: any) => entry.projectId === project.id)
@@ -229,7 +234,7 @@ function ClientDashboard({
           <div className="grid md:grid-cols-3 gap-6 mb-6">
             <div>
               <p className="text-sm text-gray-600 mb-1">Total Budget</p>
-              <p className="text-3xl font-bold text-gray-900">{organisation.totalBudgetHours}h</p>
+              <p className="text-3xl font-bold text-gray-900">{totalBudgetHours}h</p>
             </div>
             <div>
               <p className="text-sm text-gray-600 mb-1">Hours Used</p>
