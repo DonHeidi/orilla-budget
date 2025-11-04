@@ -143,7 +143,32 @@ function ProjectsPage() {
     {
       accessorKey: 'usedHours',
       header: 'Used',
-      cell: ({ getValue }) => `${(getValue() as number).toFixed(2)}h`,
+      cell: ({ getValue, row }) => {
+        const hours = getValue() as number
+        const budget = row.original.budgetHours
+        const category = row.original.category
+
+        if (category === 'fixed' || !budget) {
+          return <span className="text-gray-400">-</span>
+        }
+
+        const percentage = (hours / budget) * 100
+
+        return (
+          <div className="flex items-center gap-2">
+            <span className={
+              percentage > 100
+                ? 'text-red-600 dark:text-red-400 font-semibold'
+                : percentage > 75
+                ? 'text-orange-600 dark:text-orange-400 font-medium'
+                : 'text-gray-900 dark:text-gray-100'
+            }>
+              {percentage.toFixed(1)}%
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">({hours.toFixed(1)}h)</span>
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'remainingHours',
@@ -151,13 +176,25 @@ function ProjectsPage() {
       cell: ({ getValue, row }) => {
         const remaining = getValue() as number
         const category = row.original.category
-        if (category === 'fixed') {
+        const budget = row.original.budgetHours
+
+        if (category === 'fixed' || !budget) {
           return <span className="text-gray-400">-</span>
         }
+
+        const percentage = (remaining / budget) * 100
+
         return (
-          <span className={remaining < 0 ? 'text-red-600 font-semibold' : ''}>
-            {remaining.toFixed(2)}h
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={
+              remaining < 0
+                ? 'text-red-600 dark:text-red-400 font-semibold'
+                : 'text-green-600 dark:text-green-400 font-medium'
+            }>
+              {percentage.toFixed(1)}%
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">({remaining.toFixed(1)}h)</span>
+          </div>
         )
       },
     },
