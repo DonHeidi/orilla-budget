@@ -1,0 +1,699 @@
+import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
+import { useState, useMemo } from 'react'
+import { type ColumnDef } from '@tanstack/react-table'
+import { Trash2, Plus, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { timeSheetRepository } from '@/server/repositories/timeSheet.repository'
+import { timeEntryRepository } from '@/server/repositories/timeEntry.repository'
+import { organisationRepository } from '@/server/repositories/organisation.repository'
+import { projectRepository } from '@/server/repositories/project.repository'
+import type { TimeSheet, TimeEntry, Organisation, Project } from '@/schemas'
+import { DataTable } from '@/components/DataTable'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+
+// Server Functions
+const getTimeSheetDetailFn = createServerFn({ method: 'GET' }).handler(
+  async ({ id }: { id: string }) => {
+    const sheetData = await timeSheetRepository.findWithEntries(id)
+    const organisations = await organisationRepository.findAll()
+    const projects = await projectRepository.findAll()
+
+    return {
+      sheetData: JSON.parse(JSON.stringify(sheetData)),
+      organisations: JSON.parse(JSON.stringify(organisations)),
+      projects: JSON.parse(JSON.stringify(projects)),
+    }
+  }
+)
+
+const updateTimeSheetFn = createServerFn({ method: 'POST' }).handler(
+  async ({ id, data }: { id: string; data: Partial<TimeSheet> }) => {
+    const { createdAt, updatedAt, ...updateData } = data
+    const cleanUpdateData = Object.fromEntries(
+      Object.entries(updateData).filter(([_, value]) => value !== undefined)
+    )
+
+    if (Object.keys(cleanUpdateData).length === 0) {
+      throw new Error('No fields to update')
+    }
+
+    return await timeSheetRepository.update(id, cleanUpdateData)
+  }
+)
+
+const deleteTimeSheetFn = createServerFn({ method: 'POST' }).handler(
+  async ({ id }: { id: string }) => {
+    return await timeSheetRepository.delete(id)
+  }
+)
+
+const addEntriesToSheetFn = createServerFn({ method: 'POST' }).handler(
+  async ({ sheetId, entryIds }: { sheetId: string; entryIds: string[] }) => {
+    return await timeSheetRepository.addEntries(sheetId, entryIds)
+  }
+)
+
+const removeEntryFromSheetFn = createServerFn({ method: 'POST' }).handler(
+  async ({ sheetId, entryId }: { sheetId: string; entryId: string }) => {
+    return await timeSheetRepository.removeEntry(sheetId, entryId)
+  }
+)
+
+const submitTimeSheetFn = createServerFn({ method: 'POST' }).handler(
+  async ({ id }: { id: string }) => {
+    return await timeSheetRepository.submitSheet(id)
+  }
+)
+
+const approveTimeSheetFn = createServerFn({ method: 'POST' }).handler(
+  async ({ id }: { id: string }) => {
+    return await timeSheetRepository.approveSheet(id)
+  }
+)
+
+const rejectTimeSheetFn = createServerFn({ method: 'POST' }).handler(
+  async ({ id, reason }: { id: string; reason?: string }) => {
+    return await timeSheetRepository.rejectSheet(id, reason)
+  }
+)
+
+const revertToDraftFn = createServerFn({ method: 'POST' }).handler(
+  async ({ id }: { id: string }) => {
+    return await timeSheetRepository.revertToDraft(id)
+  }
+)
+
+const getAvailableEntriesFn = createServerFn({ method: 'POST' }).handler(
+  async (filters?: { organisationId?: string; projectId?: string }) => {
+    const entries = await timeSheetRepository.getAvailableEntries(filters)
+    return JSON.parse(JSON.stringify(entries))
+  }
+)
+
+export const Route = createFileRoute('/dashboard/time-sheets/$id')({
+  component: TimeSheetDetailPage,
+  loader: ({ params }) => getTimeSheetDetailFn({ id: params.id }),
+})
+
+function TimeSheetDetailPage() {
+  const { id } = Route.useParams()
+  const data = Route.useLoaderData()
+  const router = useRouter()
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showRejectDialog, setShowRejectDialog] = useState(false)
+  const [showAddEntriesDialog, setShowAddEntriesDialog] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [editingField, setEditingField] = useState<string | null>(null)
+  const [editedValues, setEditedValues] = useState<Partial<TimeSheet>>({})
+
+  if (!data.sheetData) {
+    return <div>Time sheet not found</div>
+  }
+
+  const { timeSheet, entries, totalHours, organisation, project } = data.sheetData
+  const currentValues = { ...timeSheet, ...editedValues }
+  const isDraft = timeSheet.status === 'draft'
+
+  const handleFieldClick = (fieldName: string) => {
+    if (isDraft || fieldName === 'status') {
+      setEditingField(fieldName)
+    }
+  }
+
+  const handleFieldBlur = async () => {
+    if (Object.keys(editedValues).length > 0) {
+      await updateTimeSheetFn({ id, data: { id, ...editedValues } as TimeSheet })
+      setEditedValues({})
+      router.invalidate()
+    }
+    setEditingField(null)
+  }
+
+  const handleFieldChange = (fieldName: string, value: any) => {
+    setEditedValues((prev) => ({ ...prev, [fieldName]: value }))
+  }
+
+  const handleDelete = async () => {
+    await deleteTimeSheetFn({ id })
+    setShowDeleteConfirm(false)
+    router.navigate({ to: '/dashboard/time-sheets' })
+  }
+
+  const handleSubmit = async () => {
+    if (entries.length === 0) {
+      alert('Cannot submit an empty time sheet. Please add at least one entry.')
+      return
+    }
+    await submitTimeSheetFn({ id })
+    router.invalidate()
+  }
+
+  const handleApprove = async () => {
+    await approveTimeSheetFn({ id })
+    router.invalidate()
+  }
+
+  const handleReject = async () => {
+    await rejectTimeSheetFn({ id, reason: rejectionReason })
+    setShowRejectDialog(false)
+    setRejectionReason('')
+    router.invalidate()
+  }
+
+  const handleRevertToDraft = async () => {
+    await revertToDraftFn({ id })
+    router.invalidate()
+  }
+
+  const handleRemoveEntry = async (entryId: string) => {
+    await removeEntryFromSheetFn({ sheetId: id, entryId })
+    router.invalidate()
+  }
+
+  const entryColumns: ColumnDef<TimeEntry>[] = [
+    {
+      accessorKey: 'date',
+      header: 'Date',
+    },
+    {
+      accessorKey: 'title',
+      header: 'Title',
+      cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span>,
+    },
+    {
+      accessorKey: 'description',
+      header: 'Description',
+      cell: ({ getValue }) => {
+        const desc = getValue() as string
+        return desc || <span className="text-gray-400">-</span>
+      },
+    },
+    {
+      accessorKey: 'hours',
+      header: 'Hours',
+      cell: ({ getValue }) => {
+        const hours = getValue() as number
+        const h = Math.floor(hours)
+        const m = Math.round((hours - h) * 60)
+        return `${h}:${m.toString().padStart(2, '0')}`
+      },
+    },
+    {
+      id: 'actions',
+      header: () => null,
+      cell: ({ row }) =>
+        isDraft && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleRemoveEntry(row.original.id)}
+            className="h-8 w-8 p-0"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        ),
+    },
+  ]
+
+  return (
+    <Sheet open={true} onOpenChange={() => router.navigate({ to: '/dashboard/time-sheets' })}>
+      <SheetContent className="w-full sm:max-w-[700px] overflow-y-auto">
+        <SheetHeader className="space-y-3 pb-6 border-b">
+          <SheetTitle>Time Sheet Details</SheetTitle>
+          <SheetDescription>
+            View and manage time sheet information and entries
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-6 py-6">
+          {/* Header with Status and Actions */}
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <StatusBadge status={timeSheet.status} />
+            </div>
+            <div className="flex gap-2">
+              {isDraft && (
+                <>
+                  <Button onClick={handleSubmit} size="sm">
+                    Submit for Approval
+                  </Button>
+                  <Button onClick={() => setShowDeleteConfirm(true)} variant="destructive" size="sm">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+              {timeSheet.status === 'submitted' && (
+                <>
+                  <Button onClick={handleApprove} size="sm" variant="default">
+                    Approve
+                  </Button>
+                  <Button onClick={() => setShowRejectDialog(true)} size="sm" variant="destructive">
+                    Reject
+                  </Button>
+                  <Button onClick={handleRevertToDraft} size="sm" variant="outline">
+                    Revert to Draft
+                  </Button>
+                </>
+              )}
+              {(timeSheet.status === 'rejected' || timeSheet.status === 'approved') && (
+                <Button onClick={handleRevertToDraft} size="sm" variant="outline">
+                  Revert to Draft
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Editable Fields */}
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-gray-500">Title</label>
+              {editingField === 'title' && isDraft ? (
+                <Input
+                  autoFocus
+                  value={currentValues.title}
+                  onChange={(e) => handleFieldChange('title', e.target.value)}
+                  onBlur={handleFieldBlur}
+                  className="mt-1"
+                />
+              ) : (
+                <p
+                  className={cn(
+                    'text-base mt-1 px-2 py-1 -mx-2 rounded',
+                    isDraft && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
+                  )}
+                  onClick={() => handleFieldClick('title')}
+                >
+                  {currentValues.title}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Description</label>
+              {editingField === 'description' && isDraft ? (
+                <textarea
+                  autoFocus
+                  value={currentValues.description}
+                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  onBlur={handleFieldBlur}
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 mt-1"
+                  rows={3}
+                />
+              ) : (
+                <p
+                  className={cn(
+                    'text-base mt-1 px-2 py-1 -mx-2 rounded min-h-[1.5rem]',
+                    isDraft && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
+                  )}
+                  onClick={() => handleFieldClick('description')}
+                >
+                  {currentValues.description || 'Click to add description...'}
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">Start Date</label>
+                {editingField === 'startDate' && isDraft ? (
+                  <Input
+                    autoFocus
+                    type="date"
+                    value={currentValues.startDate || ''}
+                    onChange={(e) => handleFieldChange('startDate', e.target.value || undefined)}
+                    onBlur={handleFieldBlur}
+                    className="mt-1"
+                  />
+                ) : (
+                  <p
+                    className={cn(
+                      'text-base mt-1 px-2 py-1 -mx-2 rounded',
+                      isDraft && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
+                    )}
+                    onClick={() => handleFieldClick('startDate')}
+                  >
+                    {currentValues.startDate || 'Not set'}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-500">End Date</label>
+                {editingField === 'endDate' && isDraft ? (
+                  <Input
+                    autoFocus
+                    type="date"
+                    value={currentValues.endDate || ''}
+                    onChange={(e) => handleFieldChange('endDate', e.target.value || undefined)}
+                    onBlur={handleFieldBlur}
+                    className="mt-1"
+                  />
+                ) : (
+                  <p
+                    className={cn(
+                      'text-base mt-1 px-2 py-1 -mx-2 rounded',
+                      isDraft && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
+                    )}
+                    onClick={() => handleFieldClick('endDate')}
+                  >
+                    {currentValues.endDate || 'Not set'}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Organisation</label>
+              {editingField === 'organisationId' && isDraft ? (
+                <select
+                  autoFocus
+                  value={currentValues.organisationId || ''}
+                  onChange={(e) => {
+                    handleFieldChange('organisationId', e.target.value || undefined)
+                    handleFieldChange('projectId', undefined)
+                  }}
+                  onBlur={handleFieldBlur}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
+                >
+                  <option value="">None</option>
+                  {data.organisations.map((org: Organisation) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p
+                  className={cn(
+                    'text-base mt-1 px-2 py-1 -mx-2 rounded',
+                    isDraft && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
+                  )}
+                  onClick={() => handleFieldClick('organisationId')}
+                >
+                  {organisation?.name || 'Not set'}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">Project</label>
+              {editingField === 'projectId' && isDraft ? (
+                <select
+                  autoFocus
+                  value={currentValues.projectId || ''}
+                  onChange={(e) => handleFieldChange('projectId', e.target.value || undefined)}
+                  onBlur={handleFieldBlur}
+                  disabled={!currentValues.organisationId}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">None</option>
+                  {data.projects
+                    .filter((p: Project) => p.organisationId === currentValues.organisationId)
+                    .map((proj: Project) => (
+                      <option key={proj.id} value={proj.id}>
+                        {proj.name}
+                      </option>
+                    ))}
+                </select>
+              ) : (
+                <p
+                  className={cn(
+                    'text-base mt-1 px-2 py-1 -mx-2 rounded',
+                    isDraft && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
+                  )}
+                  onClick={() => handleFieldClick('projectId')}
+                >
+                  {project?.name || 'Not set'}
+                </p>
+              )}
+            </div>
+
+            {timeSheet.rejectionReason && (
+              <div>
+                <label className="text-sm font-medium text-gray-500">Rejection Reason</label>
+                <p className="text-base mt-1 text-red-600">{timeSheet.rejectionReason}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Time Entries Section */}
+          <div className="border-t pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">Time Entries</h3>
+                <p className="text-sm text-gray-500">
+                  {entries.length} {entries.length === 1 ? 'entry' : 'entries'} • Total:{' '}
+                  {totalHours.toFixed(2)}h
+                </p>
+              </div>
+              {isDraft && (
+                <Button onClick={() => setShowAddEntriesDialog(true)} size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Entries
+                </Button>
+              )}
+            </div>
+
+            {entries.length > 0 ? (
+              <DataTable columns={entryColumns} data={entries} getRowId={(row) => row.id} />
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                No entries in this time sheet yet.
+                {isDraft && ' Click "Add Entries" to get started.'}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Delete Confirmation Dialog */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md">
+              <h3 className="text-lg font-semibold mb-2">Delete Time Sheet</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Are you sure you want to delete this time sheet? This action cannot be undone.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={handleDelete}>
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reject Dialog */}
+        {showRejectDialog && (
+          <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Reject Time Sheet</DialogTitle>
+                <DialogDescription>
+                  Please provide a reason for rejecting this time sheet
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  placeholder="Reason for rejection..."
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={handleReject}>
+                  Reject
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Add Entries Dialog */}
+        {showAddEntriesDialog && (
+          <AddEntriesDialog
+            sheetId={id}
+            organisationId={timeSheet.organisationId}
+            projectId={timeSheet.projectId}
+            onClose={() => {
+              setShowAddEntriesDialog(false)
+              router.invalidate()
+            }}
+          />
+        )}
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const variants: Record<string, { label: string; className: string }> = {
+    draft: {
+      label: 'Draft',
+      className: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100',
+    },
+    submitted: {
+      label: 'Submitted',
+      className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
+    },
+    approved: {
+      label: 'Approved',
+      className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
+    },
+    rejected: {
+      label: 'Rejected',
+      className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100',
+    },
+  }
+
+  const variant = variants[status] || variants.draft
+
+  return (
+    <Badge variant="outline" className={cn('font-medium', variant.className)}>
+      {variant.label}
+    </Badge>
+  )
+}
+
+function AddEntriesDialog({
+  sheetId,
+  organisationId,
+  projectId,
+  onClose,
+}: {
+  sheetId: string
+  organisationId?: string
+  projectId?: string
+  onClose: () => void
+}) {
+  const [availableEntries, setAvailableEntries] = useState<TimeEntry[]>([])
+  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set())
+  const [loading, setLoading] = useState(true)
+
+  // Load available entries
+  useState(() => {
+    getAvailableEntriesFn({ organisationId, projectId }).then((entries) => {
+      setAvailableEntries(entries)
+      setLoading(false)
+    })
+  })
+
+  const handleToggleEntry = (entryId: string) => {
+    setSelectedEntryIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(entryId)) {
+        next.delete(entryId)
+      } else {
+        next.add(entryId)
+      }
+      return next
+    })
+  }
+
+  const handleAddEntries = async () => {
+    await addEntriesToSheetFn({ sheetId, entryIds: Array.from(selectedEntryIds) })
+    onClose()
+  }
+
+  const columns: ColumnDef<TimeEntry>[] = [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <input
+          type="checkbox"
+          checked={selectedEntryIds.size === availableEntries.length && availableEntries.length > 0}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedEntryIds(new Set(availableEntries.map((entry) => entry.id)))
+            } else {
+              setSelectedEntryIds(new Set())
+            }
+          }}
+          className="h-4 w-4"
+        />
+      ),
+      cell: ({ row }) => (
+        <input
+          type="checkbox"
+          checked={selectedEntryIds.has(row.original.id)}
+          onChange={() => handleToggleEntry(row.original.id)}
+          className="h-4 w-4"
+        />
+      ),
+    },
+    {
+      accessorKey: 'date',
+      header: 'Date',
+    },
+    {
+      accessorKey: 'title',
+      header: 'Title',
+    },
+    {
+      accessorKey: 'hours',
+      header: 'Hours',
+      cell: ({ getValue }) => {
+        const hours = getValue() as number
+        return hours.toFixed(2)
+      },
+    },
+  ]
+
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Add Time Entries</DialogTitle>
+          <DialogDescription>
+            Select entries to add to this time sheet. {selectedEntryIds.size} selected.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="max-h-[60vh] overflow-y-auto">
+          {loading ? (
+            <div className="py-8 text-center text-gray-500">Loading available entries...</div>
+          ) : availableEntries.length === 0 ? (
+            <div className="py-8 text-center text-gray-500">
+              No available entries found. All entries may already be in approved time sheets.
+            </div>
+          ) : (
+            <DataTable columns={columns} data={availableEntries} getRowId={(row) => row.id} />
+          )}
+        </div>
+
+        <div className="flex gap-3 justify-end border-t pt-4">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleAddEntries} disabled={selectedEntryIds.size === 0}>
+            Add {selectedEntryIds.size} {selectedEntryIds.size === 1 ? 'Entry' : 'Entries'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
