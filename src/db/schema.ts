@@ -49,3 +49,27 @@ export const timeEntries = sqliteTable('time_entries', {
   billed: integer('billed', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull(),
 })
+
+export const timeSheets = sqliteTable('time_sheets', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  description: text('description').default('').notNull(),
+  startDate: text('start_date'),
+  endDate: text('end_date'),
+  status: text('status', { enum: ['draft', 'submitted', 'approved', 'rejected'] }).notNull().default('draft'),
+  submittedDate: text('submitted_date'),
+  approvedDate: text('approved_date'),
+  rejectedDate: text('rejected_date'),
+  rejectionReason: text('rejection_reason'),
+  organisationId: text('organisation_id').references(() => organisations.id, { onDelete: 'set null' }),
+  projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+})
+
+export const timeSheetEntries = sqliteTable('time_sheet_entries', {
+  id: text('id').primaryKey(),
+  timeSheetId: text('time_sheet_id').notNull().references(() => timeSheets.id, { onDelete: 'cascade' }),
+  timeEntryId: text('time_entry_id').notNull().references(() => timeEntries.id, { onDelete: 'cascade' }),
+  createdAt: text('created_at').notNull(),
+})
