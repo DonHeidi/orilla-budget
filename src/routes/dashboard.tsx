@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState, useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Clock, Users, FolderKanban, ChevronDown, Plus, Moon, Sun, Monitor, CheckCircle, XCircle, ChevronUp, Building2 } from 'lucide-react'
+import { Clock, Users, FolderKanban, ChevronDown, Plus, Moon, Sun, Monitor, CheckCircle, XCircle, ChevronUp, Building2, FileText } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { cn } from '@/lib/utils'
@@ -217,6 +217,14 @@ function AgentDashboard() {
                         </SidebarMenuSubItem>
                       </SidebarMenuSub>
                     )}
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link to="/dashboard/time-sheets">
+                        <FileText className="mr-2 h-4 w-4" />
+                        <span>Time Sheets</span>
+                      </Link>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>

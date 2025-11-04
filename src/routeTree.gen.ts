@@ -15,10 +15,12 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as DashboardTimeSheetsRouteImport } from './routes/dashboard/time-sheets'
 import { Route as DashboardTimeEntriesRouteImport } from './routes/dashboard/time-entries'
 import { Route as DashboardProjectsRouteImport } from './routes/dashboard/projects'
 import { Route as DashboardOrgsRouteImport } from './routes/dashboard/_orgs'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as DashboardTimeSheetsIdRouteImport } from './routes/dashboard/time-sheets.$id'
 import { Route as DashboardTimeEntriesIdRouteImport } from './routes/dashboard/time-entries.$id'
 import { Route as DashboardProjectsIdRouteImport } from './routes/dashboard/projects.$id'
 import { Route as DashboardOrgsOrganisationsRouteImport } from './routes/dashboard/_orgs.organisations'
@@ -57,6 +59,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const DashboardTimeSheetsRoute = DashboardTimeSheetsRouteImport.update({
+  id: '/time-sheets',
+  path: '/time-sheets',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardTimeEntriesRoute = DashboardTimeEntriesRouteImport.update({
   id: '/time-entries',
   path: '/time-entries',
@@ -75,6 +82,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
   getParentRoute: () => AdminRoute,
+} as any)
+const DashboardTimeSheetsIdRoute = DashboardTimeSheetsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => DashboardTimeSheetsRoute,
 } as any)
 const DashboardTimeEntriesIdRoute = DashboardTimeEntriesIdRouteImport.update({
   id: '/$id',
@@ -122,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRouteWithChildren
   '/dashboard/projects': typeof DashboardProjectsRouteWithChildren
   '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
+  '/dashboard/time-sheets': typeof DashboardTimeSheetsRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
@@ -129,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
   '/dashboard/projects/$id': typeof DashboardProjectsIdRoute
   '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
+  '/dashboard/time-sheets/$id': typeof DashboardTimeSheetsIdRoute
   '/dashboard/accounts/$id': typeof DashboardOrgsAccountsIdRoute
   '/dashboard/organisations/$id': typeof DashboardOrgsOrganisationsIdRoute
 }
@@ -139,12 +153,14 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/projects': typeof DashboardProjectsRouteWithChildren
   '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
+  '/dashboard/time-sheets': typeof DashboardTimeSheetsRouteWithChildren
   '/admin': typeof AdminIndexRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/dashboard/accounts': typeof DashboardOrgsAccountsRouteWithChildren
   '/dashboard/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
   '/dashboard/projects/$id': typeof DashboardProjectsIdRoute
   '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
+  '/dashboard/time-sheets/$id': typeof DashboardTimeSheetsIdRoute
   '/dashboard/accounts/$id': typeof DashboardOrgsAccountsIdRoute
   '/dashboard/organisations/$id': typeof DashboardOrgsOrganisationsIdRoute
 }
@@ -158,6 +174,7 @@ export interface FileRoutesById {
   '/dashboard/_orgs': typeof DashboardOrgsRouteWithChildren
   '/dashboard/projects': typeof DashboardProjectsRouteWithChildren
   '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
+  '/dashboard/time-sheets': typeof DashboardTimeSheetsRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
@@ -165,6 +182,7 @@ export interface FileRoutesById {
   '/dashboard/_orgs/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
   '/dashboard/projects/$id': typeof DashboardProjectsIdRoute
   '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
+  '/dashboard/time-sheets/$id': typeof DashboardTimeSheetsIdRoute
   '/dashboard/_orgs/accounts/$id': typeof DashboardOrgsAccountsIdRoute
   '/dashboard/_orgs/organisations/$id': typeof DashboardOrgsOrganisationsIdRoute
 }
@@ -178,6 +196,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/dashboard/projects'
     | '/dashboard/time-entries'
+    | '/dashboard/time-sheets'
     | '/admin/'
     | '/dashboard/'
     | '/admin/users/$id'
@@ -185,6 +204,7 @@ export interface FileRouteTypes {
     | '/dashboard/organisations'
     | '/dashboard/projects/$id'
     | '/dashboard/time-entries/$id'
+    | '/dashboard/time-sheets/$id'
     | '/dashboard/accounts/$id'
     | '/dashboard/organisations/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -195,12 +215,14 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/dashboard/projects'
     | '/dashboard/time-entries'
+    | '/dashboard/time-sheets'
     | '/admin'
     | '/admin/users/$id'
     | '/dashboard/accounts'
     | '/dashboard/organisations'
     | '/dashboard/projects/$id'
     | '/dashboard/time-entries/$id'
+    | '/dashboard/time-sheets/$id'
     | '/dashboard/accounts/$id'
     | '/dashboard/organisations/$id'
   id:
@@ -213,6 +235,7 @@ export interface FileRouteTypes {
     | '/dashboard/_orgs'
     | '/dashboard/projects'
     | '/dashboard/time-entries'
+    | '/dashboard/time-sheets'
     | '/admin/'
     | '/dashboard/'
     | '/admin/users/$id'
@@ -220,6 +243,7 @@ export interface FileRouteTypes {
     | '/dashboard/_orgs/organisations'
     | '/dashboard/projects/$id'
     | '/dashboard/time-entries/$id'
+    | '/dashboard/time-sheets/$id'
     | '/dashboard/_orgs/accounts/$id'
     | '/dashboard/_orgs/organisations/$id'
   fileRoutesById: FileRoutesById
@@ -275,6 +299,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/dashboard/time-sheets': {
+      id: '/dashboard/time-sheets'
+      path: '/time-sheets'
+      fullPath: '/dashboard/time-sheets'
+      preLoaderRoute: typeof DashboardTimeSheetsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/time-entries': {
       id: '/dashboard/time-entries'
       path: '/time-entries'
@@ -302,6 +333,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/users'
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/dashboard/time-sheets/$id': {
+      id: '/dashboard/time-sheets/$id'
+      path: '/$id'
+      fullPath: '/dashboard/time-sheets/$id'
+      preLoaderRoute: typeof DashboardTimeSheetsIdRouteImport
+      parentRoute: typeof DashboardTimeSheetsRoute
     }
     '/dashboard/time-entries/$id': {
       id: '/dashboard/time-entries/$id'
@@ -442,10 +480,22 @@ const DashboardTimeEntriesRouteChildren: DashboardTimeEntriesRouteChildren = {
 const DashboardTimeEntriesRouteWithChildren =
   DashboardTimeEntriesRoute._addFileChildren(DashboardTimeEntriesRouteChildren)
 
+interface DashboardTimeSheetsRouteChildren {
+  DashboardTimeSheetsIdRoute: typeof DashboardTimeSheetsIdRoute
+}
+
+const DashboardTimeSheetsRouteChildren: DashboardTimeSheetsRouteChildren = {
+  DashboardTimeSheetsIdRoute: DashboardTimeSheetsIdRoute,
+}
+
+const DashboardTimeSheetsRouteWithChildren =
+  DashboardTimeSheetsRoute._addFileChildren(DashboardTimeSheetsRouteChildren)
+
 interface DashboardRouteChildren {
   DashboardOrgsRoute: typeof DashboardOrgsRouteWithChildren
   DashboardProjectsRoute: typeof DashboardProjectsRouteWithChildren
   DashboardTimeEntriesRoute: typeof DashboardTimeEntriesRouteWithChildren
+  DashboardTimeSheetsRoute: typeof DashboardTimeSheetsRouteWithChildren
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
@@ -453,6 +503,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardOrgsRoute: DashboardOrgsRouteWithChildren,
   DashboardProjectsRoute: DashboardProjectsRouteWithChildren,
   DashboardTimeEntriesRoute: DashboardTimeEntriesRouteWithChildren,
+  DashboardTimeSheetsRoute: DashboardTimeSheetsRouteWithChildren,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 
