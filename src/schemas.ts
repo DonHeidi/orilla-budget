@@ -16,7 +16,6 @@ export const organisationSchema = z.object({
   name: z.string().min(1, 'Organisation name is required'),
   contactName: z.string().min(1, 'Contact name is required'),
   contactEmail: z.string().email('Invalid email address'),
-  totalBudgetHours: z.number().positive('Budget must be a positive number'),
   createdAt: z.string().datetime(),
 })
 
@@ -46,11 +45,19 @@ export const projectSchema = z.object({
   budgetHours: z.number().positive('Budget must be a positive number').nullable().optional(),
   createdAt: z.string().datetime(),
 }).superRefine((data, ctx) => {
-  // Budget projects must have budgetHours
+  // Budget (T&M) projects must have budgetHours
   if (data.category === 'budget' && !data.budgetHours) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Budget is required for budget projects',
+      message: 'Budget is required for Time & Materials projects',
+      path: ['budgetHours'],
+    })
+  }
+  // Fixed price projects should NOT have budgetHours
+  if (data.category === 'fixed' && data.budgetHours) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Fixed price projects should not have hourly budgets',
       path: ['budgetHours'],
     })
   }
@@ -68,6 +75,7 @@ export const timeEntrySchema = z.object({
   hours: z.number().positive('Hours must be a positive number'),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
   approvedDate: z.string().datetime().optional(),
+  billed: z.boolean().default(false),
   createdAt: z.string().datetime(),
 })
 
