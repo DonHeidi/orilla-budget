@@ -91,6 +91,45 @@ export const quickTimeEntrySchema = z.object({
   projectId: z.string().transform(val => val || undefined).optional(),
 })
 
+// Time Sheet Schema
+export const timeSheetSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional().default(''),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format').optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format').optional(),
+  status: z.enum(['draft', 'submitted', 'approved', 'rejected']).default('draft'),
+  submittedDate: z.string().datetime().optional(),
+  approvedDate: z.string().datetime().optional(),
+  rejectedDate: z.string().datetime().optional(),
+  rejectionReason: z.string().optional(),
+  organisationId: z.string().optional(),
+  projectId: z.string().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+}).superRefine((data, ctx) => {
+  // Validate date range if both dates are provided
+  if (data.startDate && data.endDate && data.startDate > data.endDate) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'End date must be after start date',
+      path: ['endDate'],
+    })
+  }
+})
+
+export const createTimeSheetSchema = timeSheetSchema.omit({ id: true, createdAt: true, updatedAt: true, submittedDate: true, approvedDate: true, rejectedDate: true })
+
+export const updateTimeSheetSchema = timeSheetSchema.partial().required({ id: true })
+
+// Time Sheet Entry Schema (junction table)
+export const timeSheetEntrySchema = z.object({
+  id: z.string(),
+  timeSheetId: z.string(),
+  timeEntryId: z.string(),
+  createdAt: z.string().datetime(),
+})
+
 // Type exports
 export type User = z.infer<typeof userSchema>
 export type CreateUser = z.infer<typeof createUserSchema>
@@ -103,3 +142,7 @@ export type CreateProject = z.infer<typeof createProjectSchema>
 export type TimeEntry = z.infer<typeof timeEntrySchema>
 export type CreateTimeEntry = z.infer<typeof createTimeEntrySchema>
 export type QuickTimeEntry = z.infer<typeof quickTimeEntrySchema>
+export type TimeSheet = z.infer<typeof timeSheetSchema>
+export type CreateTimeSheet = z.infer<typeof createTimeSheetSchema>
+export type UpdateTimeSheet = z.infer<typeof updateTimeSheetSchema>
+export type TimeSheetEntry = z.infer<typeof timeSheetEntrySchema>
