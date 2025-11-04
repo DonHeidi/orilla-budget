@@ -10,13 +10,15 @@ import { createTimeSheetSchema, type TimeSheet, type Organisation, type Project,
 import type { TimeSheetSummary } from '@/types'
 import { DataTable } from '@/components/DataTable'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -211,7 +213,7 @@ function TimeSheetsPage() {
             Organize time entries into sheets for approval
           </p>
         </div>
-        <AddTimeSheetSheet
+        <AddTimeSheetDialog
           organisations={data.organisations}
           projects={data.projects}
         />
@@ -272,7 +274,7 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-function AddTimeSheetSheet({
+function AddTimeSheetDialog({
   organisations,
   projects,
 }: {
@@ -317,7 +319,7 @@ function AddTimeSheetSheet({
   })
 
   return (
-    <Sheet open={open} onOpenChange={(open) => {
+    <Dialog open={open} onOpenChange={(open) => {
       if (!open) {
         setOpen(false)
         form.reset()
@@ -325,28 +327,29 @@ function AddTimeSheetSheet({
         setOpen(open)
       }
     }}>
-      <SheetTrigger asChild>
+      <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
           Add Time Sheet
         </Button>
-      </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
-        <SheetHeader className="space-y-3 pb-6 border-b">
-          <SheetTitle>Create Time Sheet</SheetTitle>
-          <SheetDescription>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col p-0">
+        <DialogHeader className="space-y-3 px-6 pt-6">
+          <DialogTitle>Create Time Sheet</DialogTitle>
+          <DialogDescription>
             Create a new time sheet to organize time entries for approval
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            form.handleSubmit()
-          }}
-          className="space-y-6 py-6 px-1"
-        >
+        <ScrollArea className="flex-1 px-6">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              form.handleSubmit()
+            }}
+            className="space-y-6 py-6"
+          >
           <form.Field name="title" validators={{
             onChange: ({ value }) => !value ? 'Title is required' : undefined,
           }}>
@@ -479,19 +482,20 @@ function AddTimeSheetSheet({
               )
             }}
           </form.Field>
+          </form>
+        </ScrollArea>
 
-          <div className="flex gap-3 justify-end pt-6 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit">Create Time Sheet</Button>
-          </div>
-        </form>
-      </SheetContent>
-    </Sheet>
+        <DialogFooter className="px-6 pb-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button onClick={() => form.handleSubmit()}>Create Time Sheet</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
