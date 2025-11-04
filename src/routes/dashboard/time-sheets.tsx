@@ -19,6 +19,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -80,6 +81,13 @@ const deleteTimeSheetFn = createServerFn({ method: 'POST' }).handler(
   async ({ id }: { id: string }) => {
     const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
     return await timeSheetRepository.delete(id)
+  }
+)
+
+const addEntriesToSheetFn = createServerFn({ method: 'POST' }).handler(
+  async ({ sheetId, entryIds }: { sheetId: string; entryIds: string[] }) => {
+    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
+    return await timeSheetRepository.addEntries(sheetId, entryIds)
   }
 )
 
@@ -216,6 +224,7 @@ function TimeSheetsPage() {
         <AddTimeSheetDialog
           organisations={data.organisations}
           projects={data.projects}
+          timeEntries={data.timeEntries}
         />
       </div>
 
@@ -277,11 +286,16 @@ function StatusBadge({ status }: { status: string }) {
 function AddTimeSheetDialog({
   organisations,
   projects,
+  timeEntries,
 }: {
   organisations: any[]
   projects: any[]
+  timeEntries: any[]
 }) {
   const [open, setOpen] = useState(false)
+  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set())
+  const [selectedOrgId, setSelectedOrgId] = useState<string>('')
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('')
   const router = useRouter()
 
   const form = useForm({
@@ -299,18 +313,28 @@ function AddTimeSheetDialog({
     },
     onSubmit: async ({ value }) => {
       try {
-        await createTimeSheetFn({
+        const sheet = await createTimeSheetFn({
           data: {
             title: value.title,
             description: value.description,
             startDate: value.startDate || undefined,
             endDate: value.endDate || undefined,
-            organisationId: value.organisationId || undefined,
+            organisationId: value.organisationId,
             projectId: value.projectId || undefined,
           },
         })
+
+        // Add selected entries to the sheet
+        if (selectedEntryIds.size > 0 && sheet) {
+          await addEntriesToSheetFn({
+            sheetId: sheet.id,
+            entryIds: Array.from(selectedEntryIds),
+          })
+        }
+
         setOpen(false)
         form.reset()
+        setSelectedEntryIds(new Set())
         router.invalidate()
       } catch (error) {
         console.error('Error creating time sheet:', error)
@@ -318,11 +342,29 @@ function AddTimeSheetDialog({
     },
   })
 
+  const availableEntries = useMemo(() => {
+    return timeEntries.filter((entry: any) => {
+      // Only show entries that aren't already in a sheet
+      if (entry.timeSheetId) return false
+
+      // Filter by organisation if one is selected
+      if (selectedOrgId && entry.organisationId !== selectedOrgId) return false
+
+      // Filter by project if one is selected
+      if (selectedProjectId && entry.projectId !== selectedProjectId) return false
+
+      return true
+    })
+  }, [timeEntries, selectedOrgId, selectedProjectId])
+
   return (
     <Dialog open={open} onOpenChange={(open) => {
       if (!open) {
         setOpen(false)
         form.reset()
+        setSelectedOrgId('')
+        setSelectedProjectId('')
+        setSelectedEntryIds(new Set())
       } else {
         setOpen(open)
       }
@@ -333,7 +375,7 @@ function AddTimeSheetDialog({
           Add Time Sheet
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-[600px] h-[85vh] flex flex-col p-0">
         <DialogHeader className="space-y-3 px-6 pt-6">
           <DialogTitle>Create Time Sheet</DialogTitle>
           <DialogDescription>
@@ -341,15 +383,16 @@ function AddTimeSheetDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              form.handleSubmit()
-            }}
-            className="space-y-6 py-6"
-          >
+        <ScrollArea className="flex-1">
+          <div className="px-6 py-6 space-y-6 pb-4">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                form.handleSubmit()
+              }}
+              className="space-y-6"
+            >
           <form.Field name="title" validators={{
             onChange: ({ value }) => !value ? 'Title is required' : undefined,
           }}>
@@ -424,28 +467,38 @@ function AddTimeSheetDialog({
             </form.Field>
           </div>
 
-          <form.Field name="organisationId">
+          <form.Field name="organisationId" validators={{
+            onChange: ({ value }) => !value ? 'Organisation is required' : undefined,
+          }}>
             {(field) => (
               <div className="space-y-2">
                 <label htmlFor={field.name} className="text-sm font-medium">
-                  Organisation (optional)
+                  Organisation *
                 </label>
                 <select
                   id={field.name}
                   value={field.state.value}
+                  onBlur={field.handleBlur}
                   onChange={(e) => {
-                    field.handleChange(e.target.value)
+                    const value = e.target.value
+                    field.handleChange(value)
                     form.setFieldValue('projectId', '')
+                    setSelectedOrgId(value)
+                    setSelectedProjectId('')
+                    setSelectedEntryIds(new Set())
                   }}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                 >
-                  <option value="">None</option>
+                  <option value="">Select organisation...</option>
                   {organisations.map((org: any) => (
                     <option key={org.id} value={org.id}>
                       {org.name}
                     </option>
                   ))}
                 </select>
+                {field.state.meta.errors && field.state.meta.errors.length > 0 && (
+                  <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                )}
               </div>
             )}
           </form.Field>
@@ -465,7 +518,12 @@ function AddTimeSheetDialog({
                   <select
                     id={field.name}
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      field.handleChange(value)
+                      setSelectedProjectId(value)
+                      setSelectedEntryIds(new Set())
+                    }}
                     disabled={!selectedOrg}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -482,7 +540,95 @@ function AddTimeSheetDialog({
               )
             }}
           </form.Field>
-          </form>
+
+          {/* Time Entry Selection */}
+          {selectedOrgId && (
+            <div className="space-y-3 pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">
+                  Select Time Entries ({availableEntries.length} available)
+                </label>
+                {availableEntries.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (selectedEntryIds.size === availableEntries.length) {
+                        setSelectedEntryIds(new Set())
+                      } else {
+                        setSelectedEntryIds(new Set(availableEntries.map((e: any) => e.id)))
+                      }
+                    }}
+                  >
+                    {selectedEntryIds.size === availableEntries.length ? 'Deselect All' : 'Select All'}
+                  </Button>
+                )}
+              </div>
+
+              {availableEntries.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">
+                  No available time entries for the selected filters.
+                </p>
+              ) : (
+                <div className="border rounded-md">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="w-10 p-2"></th>
+                        <th className="text-left p-2">Title</th>
+                        <th className="text-left p-2">Date</th>
+                        <th className="text-right p-2">Hours</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {availableEntries.map((entry: any) => (
+                        <tr
+                          key={entry.id}
+                          className="border-t hover:bg-muted/30 cursor-pointer"
+                          onClick={() => {
+                            const newSet = new Set(selectedEntryIds)
+                            if (newSet.has(entry.id)) {
+                              newSet.delete(entry.id)
+                            } else {
+                              newSet.add(entry.id)
+                            }
+                            setSelectedEntryIds(newSet)
+                          }}
+                        >
+                          <td className="p-2" onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedEntryIds.has(entry.id)}
+                              onCheckedChange={(checked) => {
+                                const newSet = new Set(selectedEntryIds)
+                                if (checked) {
+                                  newSet.add(entry.id)
+                                } else {
+                                  newSet.delete(entry.id)
+                                }
+                                setSelectedEntryIds(newSet)
+                              }}
+                            />
+                          </td>
+                          <td className="p-2">{entry.title}</td>
+                          <td className="p-2">{entry.date || '-'}</td>
+                          <td className="p-2 text-right">{entry.hours}h</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {selectedEntryIds.size > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {selectedEntryIds.size} {selectedEntryIds.size === 1 ? 'entry' : 'entries'} selected
+                </p>
+              )}
+            </div>
+          )}
+            </form>
+          </div>
         </ScrollArea>
 
         <DialogFooter className="px-6 pb-6">

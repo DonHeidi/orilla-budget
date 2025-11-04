@@ -118,7 +118,9 @@ export const timeSheetSchema = z.object({
   }
 })
 
-export const createTimeSheetSchema = timeSheetSchema.omit({ id: true, createdAt: true, updatedAt: true, submittedDate: true, approvedDate: true, rejectedDate: true })
+export const createTimeSheetSchema = timeSheetSchema.omit({ id: true, createdAt: true, updatedAt: true, submittedDate: true, approvedDate: true, rejectedDate: true }).extend({
+  organisationId: z.string().min(1, 'Organisation is required'),
+})
 
 export const updateTimeSheetSchema = timeSheetSchema.partial().required({ id: true })
 
