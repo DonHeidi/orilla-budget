@@ -289,27 +289,34 @@ function AddTimeSheetSheet({
       projectId: '',
     },
     validatorAdapter: zodValidator(),
+    validators: {
+      onSubmit: createTimeSheetSchema,
+    },
     onSubmit: async ({ value }) => {
-      await createTimeSheetFn({
-        data: {
-          title: value.title,
-          description: value.description,
-          startDate: value.startDate || undefined,
-          endDate: value.endDate || undefined,
-          organisationId: value.organisationId || undefined,
-          projectId: value.projectId || undefined,
-        },
-      })
-      setOpen(false)
-      form.reset()
-      router.invalidate()
+      try {
+        await createTimeSheetFn({
+          data: {
+            title: value.title,
+            description: value.description,
+            startDate: value.startDate || undefined,
+            endDate: value.endDate || undefined,
+            organisationId: value.organisationId || undefined,
+            projectId: value.projectId || undefined,
+          },
+        })
+        setOpen(false)
+        form.reset()
+        router.invalidate()
+      } catch (error) {
+        console.error('Error creating time sheet:', error)
+      }
     },
   })
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button>
+        <Button onClick={() => setOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Time Sheet
         </Button>
