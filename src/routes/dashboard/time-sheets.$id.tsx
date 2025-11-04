@@ -4,10 +4,6 @@ import { useState, useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Trash2, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { timeSheetRepository } from '@/server/repositories/timeSheet.repository'
-import { timeEntryRepository } from '@/server/repositories/timeEntry.repository'
-import { organisationRepository } from '@/server/repositories/organisation.repository'
-import { projectRepository } from '@/server/repositories/project.repository'
 import type { TimeSheet, TimeEntry, Organisation, Project } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import {
@@ -31,6 +27,10 @@ import { Badge } from '@/components/ui/badge'
 // Server Functions
 const getTimeSheetDetailFn = createServerFn({ method: 'GET' }).handler(
   async ({ id }: { id: string }) => {
+    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
+    const { organisationRepository } = await import('@/server/repositories/organisation.repository')
+    const { projectRepository } = await import('@/server/repositories/project.repository')
+
     const sheetData = await timeSheetRepository.findWithEntries(id)
     const organisations = await organisationRepository.findAll()
     const projects = await projectRepository.findAll()
@@ -45,6 +45,7 @@ const getTimeSheetDetailFn = createServerFn({ method: 'GET' }).handler(
 
 const updateTimeSheetFn = createServerFn({ method: 'POST' }).handler(
   async ({ id, data }: { id: string; data: Partial<TimeSheet> }) => {
+    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
     const { createdAt, updatedAt, ...updateData } = data
     const cleanUpdateData = Object.fromEntries(
       Object.entries(updateData).filter(([_, value]) => value !== undefined)
@@ -60,48 +61,56 @@ const updateTimeSheetFn = createServerFn({ method: 'POST' }).handler(
 
 const deleteTimeSheetFn = createServerFn({ method: 'POST' }).handler(
   async ({ id }: { id: string }) => {
+    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
     return await timeSheetRepository.delete(id)
   }
 )
 
 const addEntriesToSheetFn = createServerFn({ method: 'POST' }).handler(
   async ({ sheetId, entryIds }: { sheetId: string; entryIds: string[] }) => {
+    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
     return await timeSheetRepository.addEntries(sheetId, entryIds)
   }
 )
 
 const removeEntryFromSheetFn = createServerFn({ method: 'POST' }).handler(
   async ({ sheetId, entryId }: { sheetId: string; entryId: string }) => {
+    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
     return await timeSheetRepository.removeEntry(sheetId, entryId)
   }
 )
 
 const submitTimeSheetFn = createServerFn({ method: 'POST' }).handler(
   async ({ id }: { id: string }) => {
+    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
     return await timeSheetRepository.submitSheet(id)
   }
 )
 
 const approveTimeSheetFn = createServerFn({ method: 'POST' }).handler(
   async ({ id }: { id: string }) => {
+    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
     return await timeSheetRepository.approveSheet(id)
   }
 )
 
 const rejectTimeSheetFn = createServerFn({ method: 'POST' }).handler(
   async ({ id, reason }: { id: string; reason?: string }) => {
+    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
     return await timeSheetRepository.rejectSheet(id, reason)
   }
 )
 
 const revertToDraftFn = createServerFn({ method: 'POST' }).handler(
   async ({ id }: { id: string }) => {
+    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
     return await timeSheetRepository.revertToDraft(id)
   }
 )
 
 const getAvailableEntriesFn = createServerFn({ method: 'POST' }).handler(
   async (filters?: { organisationId?: string; projectId?: string }) => {
+    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
     const entries = await timeSheetRepository.getAvailableEntries(filters)
     return JSON.parse(JSON.stringify(entries))
   }

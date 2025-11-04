@@ -6,10 +6,6 @@ import { FileText, Plus, ChevronDown, ChevronRight } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { cn } from '@/lib/utils'
-import { timeSheetRepository } from '@/server/repositories/timeSheet.repository'
-import { organisationRepository } from '@/server/repositories/organisation.repository'
-import { projectRepository } from '@/server/repositories/project.repository'
-import { timeEntryRepository } from '@/server/repositories/timeEntry.repository'
 import { createTimeSheetSchema, type TimeSheet, type Organisation, type Project, type TimeEntry } from '@/schemas'
 import type { TimeSheetSummary } from '@/types'
 import { DataTable } from '@/components/DataTable'
@@ -27,6 +23,11 @@ import { Badge } from '@/components/ui/badge'
 
 // Server Functions
 const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
+  const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
+  const { organisationRepository } = await import('@/server/repositories/organisation.repository')
+  const { projectRepository } = await import('@/server/repositories/project.repository')
+  const { timeEntryRepository } = await import('@/server/repositories/timeEntry.repository')
+
   const timeSheets = await timeSheetRepository.findAll()
   const organisations = await organisationRepository.findAll()
   const projects = await projectRepository.findAll()
@@ -56,6 +57,7 @@ const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
 const createTimeSheetFn = createServerFn({ method: 'POST' })
   .inputValidator(createTimeSheetSchema)
   .handler(async ({ data }) => {
+    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
     const now = new Date().toISOString()
     const sheet: TimeSheet = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -74,6 +76,7 @@ const createTimeSheetFn = createServerFn({ method: 'POST' })
 
 const deleteTimeSheetFn = createServerFn({ method: 'POST' }).handler(
   async ({ id }: { id: string }) => {
+    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
     return await timeSheetRepository.delete(id)
   }
 )
@@ -314,9 +317,16 @@ function AddTimeSheetSheet({
   })
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={(open) => {
+      if (!open) {
+        setOpen(false)
+        form.reset()
+      } else {
+        setOpen(open)
+      }
+    }}>
       <SheetTrigger asChild>
-        <Button onClick={() => setOpen(true)}>
+        <Button>
           <Plus className="mr-2 h-4 w-4" />
           Add Time Sheet
         </Button>
@@ -474,10 +484,7 @@ function AddTimeSheetSheet({
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                setOpen(false)
-                form.reset()
-              }}
+              onClick={() => setOpen(false)}
             >
               Cancel
             </Button>
