@@ -1,0 +1,1 @@
+ALTER TABLE `organisations` DROP COLUMN `total_budget_hours`;

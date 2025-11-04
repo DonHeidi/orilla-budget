@@ -13,7 +13,6 @@ export const organisations = sqliteTable('organisations', {
   contactName: text('contact_name').notNull(),
   contactEmail: text('contact_email').notNull(),
   contactPhone: text('contact_phone'),
-  totalBudgetHours: real('total_budget_hours').notNull(),
   createdAt: text('created_at').notNull(),
 })
 
@@ -47,5 +46,6 @@ export const timeEntries = sqliteTable('time_entries', {
   hours: real('hours').notNull(),
   date: text('date').notNull(),
   approvedDate: text('approved_date'),
+  billed: integer('billed', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull(),
 })

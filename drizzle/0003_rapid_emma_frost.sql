@@ -1,0 +1,1 @@
+ALTER TABLE `time_entries` ADD `billed` integer DEFAULT false NOT NULL;

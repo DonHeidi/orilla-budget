@@ -15,6 +15,20 @@
       "when": 1762282752748,
       "tag": "0001_ambiguous_skin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1762283701873,
+      "tag": "0002_melted_spectrum",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1762284542150,
+      "tag": "0003_rapid_emma_frost",
+      "breakpoints": true
     }
   ]
 }
