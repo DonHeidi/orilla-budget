@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, useRouter, getRouteApi } from '@tanstack/
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { CheckCircle, XCircle } from 'lucide-react'
+import { timeEntryRepository } from '@/repositories/timeEntry.repository'
 import type { TimeEntry } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,7 +39,6 @@ function formatDateTime(isoString: string): string {
 // Server function for updates only
 const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
   async ({ data }: { data: TimeEntry }) => {
-    const { timeEntryRepository } = await import('@/server/repositories/timeEntry.repository')
     const { id, createdAt, ...updateData } = data
 
     // Filter out undefined values

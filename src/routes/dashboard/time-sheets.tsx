@@ -6,6 +6,10 @@ import { FileText, Plus, ChevronDown, ChevronRight } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { cn } from '@/lib/utils'
+import { timeSheetRepository } from '@/repositories/timeSheet.repository'
+import { organisationRepository } from '@/repositories/organisation.repository'
+import { projectRepository } from '@/repositories/project.repository'
+import { timeEntryRepository } from '@/repositories/timeEntry.repository'
 import { createTimeSheetSchema, type TimeSheet, type Organisation, type Project, type TimeEntry } from '@/schemas'
 import type { TimeSheetSummary } from '@/types'
 import { DataTable } from '@/components/DataTable'
@@ -26,10 +30,6 @@ import { Badge } from '@/components/ui/badge'
 
 // Server Functions
 const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
-  const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
-  const { organisationRepository } = await import('@/server/repositories/organisation.repository')
-  const { projectRepository } = await import('@/server/repositories/project.repository')
-  const { timeEntryRepository } = await import('@/server/repositories/timeEntry.repository')
 
   const timeSheets = await timeSheetRepository.findAll()
   const organisations = await organisationRepository.findAll()
@@ -49,18 +49,17 @@ const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
   )
 
   return {
-    timeSheets: JSON.parse(JSON.stringify(timeSheets)),
-    organisations: JSON.parse(JSON.stringify(organisations)),
-    projects: JSON.parse(JSON.stringify(projects)),
-    timeEntries: JSON.parse(JSON.stringify(timeEntries)),
-    sheetsWithData: JSON.parse(JSON.stringify(sheetsWithData)),
+    timeSheets,
+    organisations,
+    projects,
+    timeEntries,
+    sheetsWithData,
   }
 })
 
 const createTimeSheetFn = createServerFn({ method: 'POST' })
   .inputValidator(createTimeSheetSchema)
   .handler(async ({ data }) => {
-    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
     const now = new Date().toISOString()
     const sheet: TimeSheet = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -79,14 +78,12 @@ const createTimeSheetFn = createServerFn({ method: 'POST' })
 
 const deleteTimeSheetFn = createServerFn({ method: 'POST' }).handler(
   async ({ id }: { id: string }) => {
-    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
     return await timeSheetRepository.delete(id)
   }
 )
 
 const addEntriesToSheetFn = createServerFn({ method: 'POST' }).handler(
   async ({ sheetId, entryIds }: { sheetId: string; entryIds: string[] }) => {
-    const { timeSheetRepository } = await import('@/server/repositories/timeSheet.repository')
     return await timeSheetRepository.addEntries(sheetId, entryIds)
   }
 )

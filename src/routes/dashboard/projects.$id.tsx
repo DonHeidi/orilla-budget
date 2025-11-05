@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { FolderKanban, Building2, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { projectRepository } from '@/repositories/project.repository'
 import type { Project } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,7 +32,6 @@ function formatDateTime(isoString: string): string {
 // Server function for updates only
 const updateProjectFn = createServerFn({ method: 'POST' }).handler(
   async ({ data }: { data: Project }) => {
-    const { projectRepository } = await import('@/server/repositories/project.repository')
     const { id, createdAt, ...updateData } = data
 
     // Filter out undefined values
@@ -49,7 +49,6 @@ const updateProjectFn = createServerFn({ method: 'POST' }).handler(
 
 const deleteProjectFn = createServerFn({ method: 'POST' }).handler(
   async (ctx: { data: { id: string } }) => {
-    const { projectRepository } = await import('@/server/repositories/project.repository')
     console.log('Deleting project with id:', ctx.data.id)
     await projectRepository.delete(ctx.data.id)
     console.log('Project deleted successfully')
@@ -58,18 +57,15 @@ const deleteProjectFn = createServerFn({ method: 'POST' }).handler(
 )
 
 const getProjectDetailDataFn = createServerFn({ method: 'GET' }).handler(async (ctx) => {
-  const { organisationRepository } = await import('@/server/repositories/organisation.repository')
-  const { projectRepository } = await import('@/server/repositories/project.repository')
-  const { timeEntryRepository } = await import('@/server/repositories/timeEntry.repository')
 
   const organisations = await organisationRepository.findAll()
   const projects = await projectRepository.findAll()
   const timeEntries = await timeEntryRepository.findAll()
 
   return {
-    organisations: JSON.parse(JSON.stringify(organisations)),
-    projects: JSON.parse(JSON.stringify(projects)),
-    timeEntries: JSON.parse(JSON.stringify(timeEntries)),
+    organisations: organisations,
+    projects: projects,
+    timeEntries: timeEntries,
   }
 })
 

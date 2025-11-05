@@ -1,10 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
-import { accountRepository } from '@/server/repositories/account.repository'
-import { organisationRepository } from '@/server/repositories/organisation.repository'
-import { projectRepository } from '@/server/repositories/project.repository'
-import { timeEntryRepository } from '@/server/repositories/timeEntry.repository'
+import { accountRepository } from '@/repositories/account.repository'
+import { organisationRepository } from '@/repositories/organisation.repository'
+import { projectRepository } from '@/repositories/project.repository'
+import { timeEntryRepository } from '@/repositories/timeEntry.repository'
 import {
   Sheet,
   SheetContent,

@@ -5,7 +5,7 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { Plus, Users } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
-import { userRepository } from '@/server/repositories/user.repository'
+import { userRepository } from '@/repositories/user.repository'
 import { createUserSchema, type User } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,7 @@ const getUsersDataFn = createServerFn({ method: 'GET' }).handler(async () => {
   const users = await userRepository.findAll()
 
   return {
-    users: JSON.parse(JSON.stringify(users)),
+    users: users,
   }
 })
 

@@ -6,10 +6,10 @@ import { Clock, Users, FolderKanban, ChevronDown, Plus, Moon, Sun, Monitor, Chec
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { cn } from '@/lib/utils'
-import { organisationRepository } from '@/server/repositories/organisation.repository'
-import { accountRepository } from '@/server/repositories/account.repository'
-import { projectRepository } from '@/server/repositories/project.repository'
-import { timeEntryRepository } from '@/server/repositories/timeEntry.repository'
+import { organisationRepository } from '@/repositories/organisation.repository'
+import { accountRepository } from '@/repositories/account.repository'
+import { projectRepository } from '@/repositories/project.repository'
+import { timeEntryRepository } from '@/repositories/timeEntry.repository'
 import { quickTimeEntrySchema, createTimeEntrySchema, type Organisation, type Account, type Project, type TimeEntry } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import { useTheme } from '@/components/theme-provider'
@@ -58,10 +58,10 @@ const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
 
   // Return plain objects to ensure serializability
   return {
-    organisations: JSON.parse(JSON.stringify(organisations)),
-    accounts: JSON.parse(JSON.stringify(accounts)),
-    projects: JSON.parse(JSON.stringify(projects)),
-    timeEntries: JSON.parse(JSON.stringify(timeEntries)),
+    organisations: organisations,
+    accounts: accounts,
+    projects: projects,
+    timeEntries: timeEntries,
   }
 })
 

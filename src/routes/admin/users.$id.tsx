@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { Mail, AtSign } from 'lucide-react'
+import { userRepository } from '@/repositories/user.repository'
 import type { User } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,7 +31,6 @@ function formatDateTime(isoString: string): string {
 // Server functions
 const updateUserFn = createServerFn({ method: 'POST' }).handler(
   async ({ data }: { data: User }) => {
-    const { userRepository } = await import('@/server/repositories/user.repository')
     const { id, createdAt, ...updateData } = data
 
     // Filter out undefined values
@@ -48,20 +48,14 @@ const updateUserFn = createServerFn({ method: 'POST' }).handler(
 
 const deleteUserFn = createServerFn({ method: 'POST' }).handler(
   async (ctx: { data: { id: string } }) => {
-    const { userRepository } = await import('@/server/repositories/user.repository')
     await userRepository.delete(ctx.data.id)
     return { success: true }
   }
 )
 
 const getUserDetailDataFn = createServerFn({ method: 'GET' }).handler(async () => {
-  const { userRepository } = await import('@/server/repositories/user.repository')
-
   const users = await userRepository.findAll()
-
-  return {
-    users: JSON.parse(JSON.stringify(users)),
-  }
+  return { users }
 })
 
 // Route definition

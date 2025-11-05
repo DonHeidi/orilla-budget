@@ -2,6 +2,7 @@ import { createFileRoute, getRouteApi, useNavigate, useRouter } from '@tanstack/
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { Users, Mail, Building2 } from 'lucide-react'
+import { organisationRepository } from '@/repositories/organisation.repository'
 import type { Organisation } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,7 +31,6 @@ function formatDateTime(isoString: string): string {
 // Server function for updates only
 const updateOrganisationFn = createServerFn({ method: 'POST' }).handler(
   async ({ data }: { data: Organisation }) => {
-    const { organisationRepository } = await import('@/server/repositories/organisation.repository')
     const { id, createdAt, ...updateData } = data
 
     // Filter out undefined values

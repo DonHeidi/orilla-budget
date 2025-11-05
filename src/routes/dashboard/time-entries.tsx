@@ -5,9 +5,9 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { CheckCircle, XCircle, Plus, X } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
-import { organisationRepository } from '@/server/repositories/organisation.repository'
-import { projectRepository } from '@/server/repositories/project.repository'
-import { timeEntryRepository } from '@/server/repositories/timeEntry.repository'
+import { organisationRepository } from '@/repositories/organisation.repository'
+import { projectRepository } from '@/repositories/project.repository'
+import { timeEntryRepository } from '@/repositories/timeEntry.repository'
 import { quickTimeEntrySchema, type TimeEntry } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
@@ -54,9 +54,9 @@ const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
   const timeEntries = await timeEntryRepository.findAll()
 
   return {
-    organisations: JSON.parse(JSON.stringify(organisations)),
-    projects: JSON.parse(JSON.stringify(projects)),
-    timeEntries: JSON.parse(JSON.stringify(timeEntries)),
+    organisations: organisations,
+    projects: projects,
+    timeEntries: timeEntries,
   }
 })
 
