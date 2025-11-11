@@ -8,6 +8,17 @@ export default defineConfig({
     environment: 'happy-dom',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'src/test-utils.tsx',
+        '**/*.stories.tsx',
+        '**/*.config.ts',
+        '**/routeTree.gen.ts',
+      ],
+    },
   },
   resolve: {
     alias: {
