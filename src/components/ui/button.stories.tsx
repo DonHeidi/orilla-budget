@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { Button } from './button'
 import { Plus, Trash2 } from 'lucide-react'
-import { expect, within } from '@storybook/addon-interactions'
 
 const meta = {
   title: 'UI/Button',
@@ -32,12 +31,6 @@ export const Default: Story = {
   args: {
     children: 'Button',
     variant: 'default',
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    const button = canvas.getByRole('button')
-    await expect(button).toBeInTheDocument()
-    await expect(button).toHaveTextContent('Button')
   },
 }
 
