@@ -10,7 +10,7 @@ import { timeSheetRepository } from '@/repositories/timeSheet.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
-import { createTimeSheetSchema, type TimeSheet, type Organisation, type Project, type TimeEntry } from '@/schemas'
+import { createTimeSheetSchema, addEntriesToSheetSchema, type TimeSheet, type Organisation, type Project, type TimeEntry } from '@/schemas'
 import type { TimeSheetSummary } from '@/types'
 import { DataTable } from '@/components/DataTable'
 import {
@@ -82,11 +82,11 @@ const deleteTimeSheetFn = createServerFn({ method: 'POST' }).handler(
   }
 )
 
-const addEntriesToSheetFn = createServerFn({ method: 'POST' }).handler(
-  async ({ sheetId, entryIds }: { sheetId: string; entryIds: string[] }) => {
-    return await timeSheetRepository.addEntries(sheetId, entryIds)
-  }
-)
+const addEntriesToSheetFn = createServerFn({ method: 'POST' })
+  .inputValidator(addEntriesToSheetSchema)
+  .handler(async ({ data }) => {
+    return await timeSheetRepository.addEntries(data.sheetId, data.entryIds)
+  })
 
 export const Route = createFileRoute('/dashboard/time-sheets')({
   component: TimeSheetsPage,
@@ -324,8 +324,10 @@ function AddTimeSheetDialog({
         // Add selected entries to the sheet
         if (selectedEntryIds.size > 0 && sheet) {
           await addEntriesToSheetFn({
-            sheetId: sheet.id,
-            entryIds: Array.from(selectedEntryIds),
+            data: {
+              sheetId: sheet.id,
+              entryIds: Array.from(selectedEntryIds),
+            },
           })
         }
 
