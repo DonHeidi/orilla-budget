@@ -80,6 +80,32 @@ bun run dev          # Start development server (runs on port 3000)
 bun run build        # Build for production
 ```
 
+### Testing
+```bash
+bun test             # Run all tests
+bun test --watch     # Run tests in watch mode
+bun test --coverage  # Run tests with coverage report
+bun test <file>      # Run specific test file
+```
+
+**Testing Strategy:**
+- We use **Bun's native test runner** for backend and core functionality
+- **296 tests** covering schemas, repositories, hooks, and utilities
+- **~97% code coverage** on tested modules
+- Tests run in ~700-900ms for the full suite
+
+**What we test:**
+- ✅ Zod validation schemas (business rules)
+- ✅ Repository layer (database operations)
+- ✅ Utility functions
+- ✅ Custom React hooks
+
+**What we DON'T test with unit tests:**
+- ❌ UI Components (we use Storybook for component documentation and visual testing)
+- ❌ Routes (integration/E2E tests would be more appropriate)
+
+**See [docs/testing.md](docs/testing.md) for comprehensive testing guide.**
+
 ### Database Management
 ```bash
 bun run db:generate  # Generate migration files from schema changes
