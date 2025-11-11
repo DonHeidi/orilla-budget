@@ -148,3 +148,9 @@ export type TimeSheet = z.infer<typeof timeSheetSchema>
 export type CreateTimeSheet = z.infer<typeof createTimeSheetSchema>
 export type UpdateTimeSheet = z.infer<typeof updateTimeSheetSchema>
 export type TimeSheetEntry = z.infer<typeof timeSheetEntrySchema>
+
+// Add entries to sheet schema
+export const addEntriesToSheetSchema = z.object({
+  sheetId: z.string().min(1, 'Sheet ID is required'),
+  entryIds: z.array(z.string()).min(1, 'At least one entry is required'),
+})
