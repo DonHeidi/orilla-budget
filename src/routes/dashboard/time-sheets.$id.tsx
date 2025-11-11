@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { timeSheetRepository } from '@/repositories/timeSheet.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
-import type { TimeSheet, TimeEntry, Organisation, Project } from '@/schemas'
+import { addEntriesToSheetSchema, type TimeSheet, type TimeEntry, type Organisation, type Project } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import {
   Sheet,
@@ -66,11 +66,11 @@ const deleteTimeSheetFn = createServerFn({ method: 'POST' }).handler(
   }
 )
 
-const addEntriesToSheetFn = createServerFn({ method: 'POST' }).handler(
-  async ({ sheetId, entryIds }: { sheetId: string; entryIds: string[] }) => {
-    return await timeSheetRepository.addEntries(sheetId, entryIds)
-  }
-)
+const addEntriesToSheetFn = createServerFn({ method: 'POST' })
+  .inputValidator(addEntriesToSheetSchema)
+  .handler(async ({ data }) => {
+    return await timeSheetRepository.addEntries(data.sheetId, data.entryIds)
+  })
 
 const removeEntryFromSheetFn = createServerFn({ method: 'POST' }).handler(
   async ({ sheetId, entryId }: { sheetId: string; entryId: string }) => {
@@ -617,7 +617,7 @@ function AddEntriesDialog({
   }
 
   const handleAddEntries = async () => {
-    await addEntriesToSheetFn({ sheetId, entryIds: Array.from(selectedEntryIds) })
+    await addEntriesToSheetFn({ data: { sheetId, entryIds: Array.from(selectedEntryIds) } })
     onClose()
   }
 
