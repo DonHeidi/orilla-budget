@@ -1,6 +1,6 @@
 [test]
 # Set up test environment
-preload = ["./src/test/dom-setup.ts", "./src/test/setup.ts"]
+preload = ["./src/test/dom-setup.ts", "./src/test/setup.ts", "./test-setup.ts"]
 
 # Coverage configuration
 coverage = true
