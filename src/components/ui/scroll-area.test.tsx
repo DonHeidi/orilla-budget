@@ -45,7 +45,9 @@ describe('ScrollArea', () => {
           <div>Text content that may overflow</div>
         </ScrollArea>
       )
-      expect(screen.getByText('Text content that may overflow')).toBeInTheDocument()
+      expect(
+        screen.getByText('Text content that may overflow')
+      ).toBeInTheDocument()
     })
 
     it('renders list content', () => {
@@ -108,7 +110,9 @@ describe('ScrollArea', () => {
 
       expect(screen.getByText('Tall content')).toBeInTheDocument()
       // ScrollArea renders internal scrollbar components
-      expect(container.querySelector('[data-radix-scroll-area-viewport]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-radix-scroll-area-viewport]')
+      ).toBeInTheDocument()
     })
 
     it('supports horizontal scrollbar', () => {
@@ -165,7 +169,10 @@ describe('ScrollArea', () => {
         </ScrollArea>
       )
 
-      expect(screen.getByTestId('scroll')).toHaveAttribute('data-custom', 'test')
+      expect(screen.getByTestId('scroll')).toHaveAttribute(
+        'data-custom',
+        'test'
+      )
     })
   })
 

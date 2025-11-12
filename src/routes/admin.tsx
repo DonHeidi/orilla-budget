@@ -58,8 +58,8 @@ function AdminDashboard() {
                     theme === 'light'
                       ? 'Switch to dark mode'
                       : theme === 'dark'
-                      ? 'Switch to system mode'
-                      : 'Switch to light mode'
+                        ? 'Switch to system mode'
+                        : 'Switch to light mode'
                   }
                 >
                   {theme === 'light' ? (

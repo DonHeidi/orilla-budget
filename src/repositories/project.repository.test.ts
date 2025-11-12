@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'bun:test'
-import { createTestDb, cleanDatabase, seed, testFactories } from '@/test/db-utils'
+import {
+  createTestDb,
+  cleanDatabase,
+  seed,
+  testFactories,
+} from '@/test/db-utils'
 import { projectRepository } from './project.repository'
 import * as schema from '@/db/schema'
 import { eq } from 'drizzle-orm'
@@ -31,8 +36,8 @@ describe('projectRepository', () => {
 
       // Assert
       expect(results).toHaveLength(2)
-      expect(results.map(p => p.name)).toContain('Project Alpha')
-      expect(results.map(p => p.name)).toContain('Project Beta')
+      expect(results.map((p) => p.name)).toContain('Project Alpha')
+      expect(results.map((p) => p.name)).toContain('Project Beta')
     })
 
     it('should return empty array when no projects exist', async () => {
@@ -48,11 +53,18 @@ describe('projectRepository', () => {
     it('should retrieve project by id', async () => {
       // Arrange
       const org = await seed.organisation(db)
-      const project = testFactories.project(org.id, { id: 'proj-123', name: 'Test Project' })
+      const project = testFactories.project(org.id, {
+        id: 'proj-123',
+        name: 'Test Project',
+      })
       await db.insert(schema.projects).values(project)
 
       // Act
-      const result = await db.select().from(schema.projects).where(eq(schema.projects.id, 'proj-123')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, 'proj-123'))
+        .limit(1)
 
       // Assert
       expect(result[0]).toBeDefined()
@@ -62,7 +74,11 @@ describe('projectRepository', () => {
 
     it('should return undefined when project not found', async () => {
       // Act
-      const result = await db.select().from(schema.projects).where(eq(schema.projects.id, 'nonexistent')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, 'nonexistent'))
+        .limit(1)
 
       // Assert
       expect(result[0]).toBeUndefined()
@@ -82,13 +98,16 @@ describe('projectRepository', () => {
       await db.insert(schema.projects).values([proj1, proj2, proj3])
 
       // Act
-      const results = await db.select().from(schema.projects).where(eq(schema.projects.organisationId, 'org-1'))
+      const results = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.organisationId, 'org-1'))
 
       // Assert
       expect(results).toHaveLength(2)
-      expect(results.map(p => p.name)).toContain('Org1 Project 1')
-      expect(results.map(p => p.name)).toContain('Org1 Project 2')
-      expect(results.map(p => p.name)).not.toContain('Org2 Project 1')
+      expect(results.map((p) => p.name)).toContain('Org1 Project 1')
+      expect(results.map((p) => p.name)).toContain('Org1 Project 2')
+      expect(results.map((p) => p.name)).not.toContain('Org2 Project 1')
     })
 
     it('should return empty array when organisation has no projects', async () => {
@@ -96,7 +115,10 @@ describe('projectRepository', () => {
       await seed.organisation(db, { id: 'org-1' })
 
       // Act
-      const results = await db.select().from(schema.projects).where(eq(schema.projects.organisationId, 'org-1'))
+      const results = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.organisationId, 'org-1'))
 
       // Assert
       expect(results).toEqual([])
@@ -113,8 +135,14 @@ describe('projectRepository', () => {
       await seed.project(db, 'org-2', { name: 'Org2 Project 3' })
 
       // Act
-      const org1Results = await db.select().from(schema.projects).where(eq(schema.projects.organisationId, 'org-1'))
-      const org2Results = await db.select().from(schema.projects).where(eq(schema.projects.organisationId, 'org-2'))
+      const org1Results = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.organisationId, 'org-1'))
+      const org2Results = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.organisationId, 'org-2'))
 
       // Assert
       expect(org1Results).toHaveLength(1)
@@ -136,7 +164,11 @@ describe('projectRepository', () => {
       await db.insert(schema.projects).values(newProject)
 
       // Assert
-      const result = await db.select().from(schema.projects).where(eq(schema.projects.id, newProject.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, newProject.id))
+        .limit(1)
       expect(result[0]).toBeDefined()
       expect(result[0].name).toBe('New Project')
       expect(result[0].category).toBe('budget')
@@ -156,7 +188,11 @@ describe('projectRepository', () => {
       await db.insert(schema.projects).values(newProject)
 
       // Assert
-      const result = await db.select().from(schema.projects).where(eq(schema.projects.id, newProject.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, newProject.id))
+        .limit(1)
       expect(result[0]).toBeDefined()
       expect(result[0].category).toBe('fixed')
       expect(result[0].budgetHours).toBeNull()
@@ -176,7 +212,11 @@ describe('projectRepository', () => {
       await db.insert(schema.projects).values(newProject)
 
       // Assert
-      const result = await db.select().from(schema.projects).where(eq(schema.projects.id, newProject.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, newProject.id))
+        .limit(1)
       expect(result[0].description).toBe('A detailed description')
       expect(result[0].budgetHours).toBe(150.5)
     })
@@ -189,23 +229,39 @@ describe('projectRepository', () => {
       const project = await seed.project(db, org.id, { name: 'Old Name' })
 
       // Act
-      await db.update(schema.projects).set({ name: 'New Name' }).where(eq(schema.projects.id, project.id))
+      await db
+        .update(schema.projects)
+        .set({ name: 'New Name' })
+        .where(eq(schema.projects.id, project.id))
 
       // Assert
-      const result = await db.select().from(schema.projects).where(eq(schema.projects.id, project.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, project.id))
+        .limit(1)
       expect(result[0].name).toBe('New Name')
     })
 
     it('should update project description', async () => {
       // Arrange
       const org = await seed.organisation(db)
-      const project = await seed.project(db, org.id, { description: 'Old description' })
+      const project = await seed.project(db, org.id, {
+        description: 'Old description',
+      })
 
       // Act
-      await db.update(schema.projects).set({ description: 'New description' }).where(eq(schema.projects.id, project.id))
+      await db
+        .update(schema.projects)
+        .set({ description: 'New description' })
+        .where(eq(schema.projects.id, project.id))
 
       // Assert
-      const result = await db.select().from(schema.projects).where(eq(schema.projects.id, project.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, project.id))
+        .limit(1)
       expect(result[0].description).toBe('New description')
     })
 
@@ -215,10 +271,17 @@ describe('projectRepository', () => {
       const project = await seed.project(db, org.id, { budgetHours: 100 })
 
       // Act
-      await db.update(schema.projects).set({ budgetHours: 200 }).where(eq(schema.projects.id, project.id))
+      await db
+        .update(schema.projects)
+        .set({ budgetHours: 200 })
+        .where(eq(schema.projects.id, project.id))
 
       // Assert
-      const result = await db.select().from(schema.projects).where(eq(schema.projects.id, project.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, project.id))
+        .limit(1)
       expect(result[0].budgetHours).toBe(200)
     })
 
@@ -228,14 +291,21 @@ describe('projectRepository', () => {
       const project = await seed.project(db, org.id)
 
       // Act
-      await db.update(schema.projects).set({
-        name: 'Updated Name',
-        description: 'Updated description',
-        budgetHours: 300
-      }).where(eq(schema.projects.id, project.id))
+      await db
+        .update(schema.projects)
+        .set({
+          name: 'Updated Name',
+          description: 'Updated description',
+          budgetHours: 300,
+        })
+        .where(eq(schema.projects.id, project.id))
 
       // Assert
-      const result = await db.select().from(schema.projects).where(eq(schema.projects.id, project.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, project.id))
+        .limit(1)
       expect(result[0].name).toBe('Updated Name')
       expect(result[0].description).toBe('Updated description')
       expect(result[0].budgetHours).toBe(300)
@@ -244,16 +314,26 @@ describe('projectRepository', () => {
     it('should convert budget project to fixed project', async () => {
       // Arrange
       const org = await seed.organisation(db)
-      const project = await seed.project(db, org.id, { category: 'budget', budgetHours: 100 })
+      const project = await seed.project(db, org.id, {
+        category: 'budget',
+        budgetHours: 100,
+      })
 
       // Act
-      await db.update(schema.projects).set({
-        category: 'fixed',
-        budgetHours: null
-      }).where(eq(schema.projects.id, project.id))
+      await db
+        .update(schema.projects)
+        .set({
+          category: 'fixed',
+          budgetHours: null,
+        })
+        .where(eq(schema.projects.id, project.id))
 
       // Assert
-      const result = await db.select().from(schema.projects).where(eq(schema.projects.id, project.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, project.id))
+        .limit(1)
       expect(result[0].category).toBe('fixed')
       expect(result[0].budgetHours).toBeNull()
     })
@@ -265,10 +345,17 @@ describe('projectRepository', () => {
       const project2 = await seed.project(db, org.id, { name: 'Project 2' })
 
       // Act
-      await db.update(schema.projects).set({ name: 'Updated' }).where(eq(schema.projects.id, project1.id))
+      await db
+        .update(schema.projects)
+        .set({ name: 'Updated' })
+        .where(eq(schema.projects.id, project1.id))
 
       // Assert
-      const result2 = await db.select().from(schema.projects).where(eq(schema.projects.id, project2.id)).limit(1)
+      const result2 = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, project2.id))
+        .limit(1)
       expect(result2[0].name).toBe('Project 2')
     })
   })
@@ -283,7 +370,11 @@ describe('projectRepository', () => {
       await db.delete(schema.projects).where(eq(schema.projects.id, project.id))
 
       // Assert
-      const result = await db.select().from(schema.projects).where(eq(schema.projects.id, project.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, project.id))
+        .limit(1)
       expect(result[0]).toBeUndefined()
     })
 
@@ -293,10 +384,16 @@ describe('projectRepository', () => {
       const project = await seed.project(db, 'org-1')
 
       // Act - Delete organisation
-      await db.delete(schema.organisations).where(eq(schema.organisations.id, 'org-1'))
+      await db
+        .delete(schema.organisations)
+        .where(eq(schema.organisations.id, 'org-1'))
 
       // Assert - Project should be deleted due to cascade
-      const result = await db.select().from(schema.projects).where(eq(schema.projects.id, project.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, project.id))
+        .limit(1)
       expect(result[0]).toBeUndefined()
     })
 
@@ -307,7 +404,9 @@ describe('projectRepository', () => {
       const project2 = await seed.project(db, org.id)
 
       // Act
-      await db.delete(schema.projects).where(eq(schema.projects.id, project1.id))
+      await db
+        .delete(schema.projects)
+        .where(eq(schema.projects.id, project1.id))
 
       // Assert
       const remaining = await db.select().from(schema.projects)
@@ -339,7 +438,10 @@ describe('projectRepository', () => {
       await db.insert(schema.projects).values([project1, project2, project3])
 
       // Assert
-      const results = await db.select().from(schema.projects).where(eq(schema.projects.organisationId, 'org-1'))
+      const results = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.organisationId, 'org-1'))
       expect(results).toHaveLength(3)
     })
   })
@@ -357,7 +459,11 @@ describe('projectRepository', () => {
       await db.insert(schema.projects).values(project)
 
       // Assert
-      const result = await db.select().from(schema.projects).where(eq(schema.projects.id, project.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, project.id))
+        .limit(1)
       expect(result[0].category).toBe('budget')
       expect(result[0].budgetHours).toBe(100)
     })
@@ -374,7 +480,11 @@ describe('projectRepository', () => {
       await db.insert(schema.projects).values(project)
 
       // Assert
-      const result = await db.select().from(schema.projects).where(eq(schema.projects.id, project.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, project.id))
+        .limit(1)
       expect(result[0].category).toBe('fixed')
       expect(result[0].budgetHours).toBeNull()
     })
@@ -391,7 +501,11 @@ describe('projectRepository', () => {
       await db.insert(schema.projects).values(project)
 
       // Assert
-      const result = await db.select().from(schema.projects).where(eq(schema.projects.id, project.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, project.id))
+        .limit(1)
       expect(result[0].budgetHours).toBe(75.25)
     })
   })

@@ -13,6 +13,7 @@ Simple guide for working with the database.
 File: `src/db/schema.ts`
 
 This file defines all tables:
+
 - users
 - organisations
 - accounts
@@ -31,9 +32,11 @@ When you change this file, you need to create a migration.
    - Save file
 
 2. **Generate migration**
+
    ```bash
    bun run db:generate
    ```
+
    - Creates new file in `drizzle/` folder
    - File name like `0001_something.sql`
    - Contains SQL commands
@@ -44,9 +47,11 @@ When you change this file, you need to create a migration.
    - This is what will run on database
 
 4. **Run migration**
+
    ```bash
    bun run db:migrate
    ```
+
    - Applies the SQL to database
    - Database now has your changes
 
@@ -70,6 +75,7 @@ export const organisations = sqliteTable('organisations', {
 ```
 
 Then:
+
 ```bash
 bun run db:generate  # Creates migration
 bun run db:migrate   # Applies it
@@ -80,6 +86,7 @@ git commit          # Commit it
 ## Two Ways to Update Database
 
 ### Method 1: Migrations (PRODUCTION)
+
 - Use: `bun run db:generate` then `bun run db:migrate`
 - Safe for production
 - Tracks history
@@ -87,6 +94,7 @@ git commit          # Commit it
 - **Always use this for real changes**
 
 ### Method 2: Push (LOCAL ONLY)
+
 - Use: `bun run db:push`
 - Quick and dirty
 - Skips migration files
@@ -110,6 +118,7 @@ bun run db:studio      # Open visual database browser
 Migrations are like git commits for your database.
 
 Each migration file:
+
 - Has number (0000, 0001, 0002, etc)
 - Contains SQL commands
 - Applied in order
@@ -118,6 +127,7 @@ Each migration file:
 Database remembers which migrations already ran.
 
 When you deploy:
+
 - Production database has migrations 0000-0005
 - You add migration 0006 locally
 - Push code to production
@@ -141,26 +151,31 @@ project/
 ## What Goes in Git
 
 ✅ Commit these:
+
 - `drizzle/` folder (all migrations)
 - `src/db/schema.ts`
 - `drizzle.config.ts`
 
 ❌ Never commit:
+
 - `data.db` (your local database)
 - `data.db-*` (database temp files)
 
 ## Troubleshooting
 
 ### Migration fails
+
 - Check if migration SQL is valid
 - Check if column/table already exists
 - Look at error message carefully
 
 ### Lost sync between schema and database
+
 - In development: delete `data.db` and run `bun run db:migrate`
 - In production: never delete database, fix with new migration
 
 ### Want to undo migration
+
 - Create new migration that reverses the change
 - Never delete migration files after they're committed
 
@@ -178,6 +193,7 @@ project/
 Want to add `budget_warning_threshold` to projects?
 
 1. Edit schema:
+
 ```typescript
 export const projects = sqliteTable('projects', {
   // existing fields...
@@ -186,6 +202,7 @@ export const projects = sqliteTable('projects', {
 ```
 
 2. Generate:
+
 ```bash
 bun run db:generate
 ```
@@ -193,6 +210,7 @@ bun run db:generate
 Output: `Created drizzle/0002_add_budget_warning.sql`
 
 3. Check the file:
+
 ```sql
 ALTER TABLE `projects` ADD `budget_warning_threshold` real DEFAULT 0.8;
 ```
@@ -200,6 +218,7 @@ ALTER TABLE `projects` ADD `budget_warning_threshold` real DEFAULT 0.8;
 Looks good!
 
 4. Apply:
+
 ```bash
 bun run db:migrate
 ```
@@ -207,6 +226,7 @@ bun run db:migrate
 Output: `migrations applied successfully!`
 
 5. Commit:
+
 ```bash
 git add drizzle/0002_add_budget_warning.sql
 git add drizzle/meta/

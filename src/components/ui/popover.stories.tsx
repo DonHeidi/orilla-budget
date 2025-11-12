@@ -50,7 +50,9 @@ export const WithForm: Story = {
           </div>
           <div className="grid gap-2">
             <div className="grid grid-cols-3 items-center gap-4">
-              <label htmlFor="width" className="text-sm">Width</label>
+              <label htmlFor="width" className="text-sm">
+                Width
+              </label>
               <Input
                 id="width"
                 defaultValue="100%"
@@ -58,7 +60,9 @@ export const WithForm: Story = {
               />
             </div>
             <div className="grid grid-cols-3 items-center gap-4">
-              <label htmlFor="maxWidth" className="text-sm">Max. width</label>
+              <label htmlFor="maxWidth" className="text-sm">
+                Max. width
+              </label>
               <Input
                 id="maxWidth"
                 defaultValue="300px"
@@ -66,7 +70,9 @@ export const WithForm: Story = {
               />
             </div>
             <div className="grid grid-cols-3 items-center gap-4">
-              <label htmlFor="height" className="text-sm">Height</label>
+              <label htmlFor="height" className="text-sm">
+                Height
+              </label>
               <Input
                 id="height"
                 defaultValue="25px"
@@ -151,7 +157,9 @@ export const UserProfile: Story = {
           <div className="flex-1 space-y-2">
             <h4 className="font-semibold">John Doe</h4>
             <p className="text-sm text-muted-foreground">john@example.com</p>
-            <Button size="sm" className="w-full">View Profile</Button>
+            <Button size="sm" className="w-full">
+              View Profile
+            </Button>
           </div>
         </div>
       </PopoverContent>

@@ -7,7 +7,13 @@ import { cn } from '@/lib/utils'
 import { timeSheetRepository } from '@/repositories/timeSheet.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
-import { addEntriesToSheetSchema, type TimeSheet, type TimeEntry, type Organisation, type Project } from '@/schemas'
+import {
+  addEntriesToSheetSchema,
+  type TimeSheet,
+  type TimeEntry,
+  type Organisation,
+  type Project,
+} from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import {
   Sheet,
@@ -32,7 +38,6 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 // Server Functions
 const getTimeSheetDetailFn = createServerFn({ method: 'GET' }).handler(
   async ({ id }: { id: string }) => {
-
     const sheetData = await timeSheetRepository.findWithEntries(id)
     const organisations = await organisationRepository.findAll()
     const projects = await projectRepository.findAll()
@@ -129,7 +134,8 @@ function TimeSheetDetailPage() {
     return <div>Time sheet not found</div>
   }
 
-  const { timeSheet, entries, totalHours, organisation, project } = data.sheetData
+  const { timeSheet, entries, totalHours, organisation, project } =
+    data.sheetData
   const currentValues = { ...timeSheet, ...editedValues }
   const isDraft = timeSheet.status === 'draft'
 
@@ -141,7 +147,10 @@ function TimeSheetDetailPage() {
 
   const handleFieldBlur = async () => {
     if (Object.keys(editedValues).length > 0) {
-      await updateTimeSheetFn({ id, data: { id, ...editedValues } as TimeSheet })
+      await updateTimeSheetFn({
+        id,
+        data: { id, ...editedValues } as TimeSheet,
+      })
       setEditedValues({})
       router.invalidate()
     }
@@ -197,7 +206,9 @@ function TimeSheetDetailPage() {
     {
       accessorKey: 'title',
       header: 'Title',
-      cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span>,
+      cell: ({ getValue }) => (
+        <span className="font-medium">{getValue() as string}</span>
+      ),
     },
     {
       accessorKey: 'description',
@@ -235,7 +246,10 @@ function TimeSheetDetailPage() {
   ]
 
   return (
-    <Sheet open={true} onOpenChange={() => router.navigate({ to: '/dashboard/time-sheets' })}>
+    <Sheet
+      open={true}
+      onOpenChange={() => router.navigate({ to: '/dashboard/time-sheets' })}
+    >
       <SheetContent className="w-full sm:max-w-[700px] overflow-y-auto">
         <SheetHeader className="space-y-3 pb-6 border-b">
           <SheetTitle>Time Sheet Details</SheetTitle>
@@ -256,7 +270,11 @@ function TimeSheetDetailPage() {
                   <Button onClick={handleSubmit} size="sm">
                     Submit for Approval
                   </Button>
-                  <Button onClick={() => setShowDeleteConfirm(true)} variant="destructive" size="sm">
+                  <Button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    variant="destructive"
+                    size="sm"
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </>
@@ -266,16 +284,29 @@ function TimeSheetDetailPage() {
                   <Button onClick={handleApprove} size="sm" variant="default">
                     Approve
                   </Button>
-                  <Button onClick={() => setShowRejectDialog(true)} size="sm" variant="destructive">
+                  <Button
+                    onClick={() => setShowRejectDialog(true)}
+                    size="sm"
+                    variant="destructive"
+                  >
                     Reject
                   </Button>
-                  <Button onClick={handleRevertToDraft} size="sm" variant="outline">
+                  <Button
+                    onClick={handleRevertToDraft}
+                    size="sm"
+                    variant="outline"
+                  >
                     Revert to Draft
                   </Button>
                 </>
               )}
-              {(timeSheet.status === 'rejected' || timeSheet.status === 'approved') && (
-                <Button onClick={handleRevertToDraft} size="sm" variant="outline">
+              {(timeSheet.status === 'rejected' ||
+                timeSheet.status === 'approved') && (
+                <Button
+                  onClick={handleRevertToDraft}
+                  size="sm"
+                  variant="outline"
+                >
                   Revert to Draft
                 </Button>
               )}
@@ -298,7 +329,8 @@ function TimeSheetDetailPage() {
                 <p
                   className={cn(
                     'text-base mt-1 px-2 py-1 -mx-2 rounded',
-                    isDraft && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
+                    isDraft &&
+                      'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
                   )}
                   onClick={() => handleFieldClick('title')}
                 >
@@ -308,12 +340,16 @@ function TimeSheetDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Description</label>
+              <label className="text-sm font-medium text-gray-500">
+                Description
+              </label>
               {editingField === 'description' && isDraft ? (
                 <textarea
                   autoFocus
                   value={currentValues.description}
-                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  onChange={(e) =>
+                    handleFieldChange('description', e.target.value)
+                  }
                   onBlur={handleFieldBlur}
                   className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 mt-1"
                   rows={3}
@@ -322,7 +358,8 @@ function TimeSheetDetailPage() {
                 <p
                   className={cn(
                     'text-base mt-1 px-2 py-1 -mx-2 rounded min-h-[1.5rem]',
-                    isDraft && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
+                    isDraft &&
+                      'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
                   )}
                   onClick={() => handleFieldClick('description')}
                 >
@@ -333,13 +370,20 @@ function TimeSheetDetailPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-500">Start Date</label>
+                <label className="text-sm font-medium text-gray-500">
+                  Start Date
+                </label>
                 {editingField === 'startDate' && isDraft ? (
                   <Input
                     autoFocus
                     type="date"
                     value={currentValues.startDate || ''}
-                    onChange={(e) => handleFieldChange('startDate', e.target.value || undefined)}
+                    onChange={(e) =>
+                      handleFieldChange(
+                        'startDate',
+                        e.target.value || undefined
+                      )
+                    }
                     onBlur={handleFieldBlur}
                     className="mt-1"
                   />
@@ -347,7 +391,8 @@ function TimeSheetDetailPage() {
                   <p
                     className={cn(
                       'text-base mt-1 px-2 py-1 -mx-2 rounded',
-                      isDraft && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
+                      isDraft &&
+                        'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
                     )}
                     onClick={() => handleFieldClick('startDate')}
                   >
@@ -357,13 +402,17 @@ function TimeSheetDetailPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-500">End Date</label>
+                <label className="text-sm font-medium text-gray-500">
+                  End Date
+                </label>
                 {editingField === 'endDate' && isDraft ? (
                   <Input
                     autoFocus
                     type="date"
                     value={currentValues.endDate || ''}
-                    onChange={(e) => handleFieldChange('endDate', e.target.value || undefined)}
+                    onChange={(e) =>
+                      handleFieldChange('endDate', e.target.value || undefined)
+                    }
                     onBlur={handleFieldBlur}
                     className="mt-1"
                   />
@@ -371,7 +420,8 @@ function TimeSheetDetailPage() {
                   <p
                     className={cn(
                       'text-base mt-1 px-2 py-1 -mx-2 rounded',
-                      isDraft && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
+                      isDraft &&
+                        'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
                     )}
                     onClick={() => handleFieldClick('endDate')}
                   >
@@ -382,13 +432,18 @@ function TimeSheetDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Organisation</label>
+              <label className="text-sm font-medium text-gray-500">
+                Organisation
+              </label>
               {editingField === 'organisationId' && isDraft ? (
                 <select
                   autoFocus
                   value={currentValues.organisationId || ''}
                   onChange={(e) => {
-                    handleFieldChange('organisationId', e.target.value || undefined)
+                    handleFieldChange(
+                      'organisationId',
+                      e.target.value || undefined
+                    )
                     handleFieldChange('projectId', undefined)
                   }}
                   onBlur={handleFieldBlur}
@@ -405,7 +460,8 @@ function TimeSheetDetailPage() {
                 <p
                   className={cn(
                     'text-base mt-1 px-2 py-1 -mx-2 rounded',
-                    isDraft && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
+                    isDraft &&
+                      'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
                   )}
                   onClick={() => handleFieldClick('organisationId')}
                 >
@@ -415,19 +471,26 @@ function TimeSheetDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Project</label>
+              <label className="text-sm font-medium text-gray-500">
+                Project
+              </label>
               {editingField === 'projectId' && isDraft ? (
                 <select
                   autoFocus
                   value={currentValues.projectId || ''}
-                  onChange={(e) => handleFieldChange('projectId', e.target.value || undefined)}
+                  onChange={(e) =>
+                    handleFieldChange('projectId', e.target.value || undefined)
+                  }
                   onBlur={handleFieldBlur}
                   disabled={!currentValues.organisationId}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <option value="">None</option>
                   {data.projects
-                    .filter((p: Project) => p.organisationId === currentValues.organisationId)
+                    .filter(
+                      (p: Project) =>
+                        p.organisationId === currentValues.organisationId
+                    )
                     .map((proj: Project) => (
                       <option key={proj.id} value={proj.id}>
                         {proj.name}
@@ -438,7 +501,8 @@ function TimeSheetDetailPage() {
                 <p
                   className={cn(
                     'text-base mt-1 px-2 py-1 -mx-2 rounded',
-                    isDraft && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
+                    isDraft &&
+                      'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
                   )}
                   onClick={() => handleFieldClick('projectId')}
                 >
@@ -449,8 +513,12 @@ function TimeSheetDetailPage() {
 
             {timeSheet.rejectionReason && (
               <div>
-                <label className="text-sm font-medium text-gray-500">Rejection Reason</label>
-                <p className="text-base mt-1 text-red-600">{timeSheet.rejectionReason}</p>
+                <label className="text-sm font-medium text-gray-500">
+                  Rejection Reason
+                </label>
+                <p className="text-base mt-1 text-red-600">
+                  {timeSheet.rejectionReason}
+                </p>
               </div>
             )}
           </div>
@@ -461,8 +529,8 @@ function TimeSheetDetailPage() {
               <div>
                 <h3 className="text-lg font-semibold">Time Entries</h3>
                 <p className="text-sm text-gray-500">
-                  {entries.length} {entries.length === 1 ? 'entry' : 'entries'} • Total:{' '}
-                  {totalHours.toFixed(2)}h
+                  {entries.length} {entries.length === 1 ? 'entry' : 'entries'}{' '}
+                  • Total: {totalHours.toFixed(2)}h
                 </p>
               </div>
               {isDraft && (
@@ -474,7 +542,11 @@ function TimeSheetDetailPage() {
             </div>
 
             {entries.length > 0 ? (
-              <DataTable columns={entryColumns} data={entries} getRowId={(row) => row.id} />
+              <DataTable
+                columns={entryColumns}
+                data={entries}
+                getRowId={(row) => row.id}
+              />
             ) : (
               <div className="text-center py-8 text-gray-500">
                 No entries in this time sheet yet.
@@ -490,10 +562,14 @@ function TimeSheetDetailPage() {
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md">
               <h3 className="text-lg font-semibold mb-2">Delete Time Sheet</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Are you sure you want to delete this time sheet? This action cannot be undone.
+                Are you sure you want to delete this time sheet? This action
+                cannot be undone.
               </p>
               <div className="flex gap-3 justify-end">
-                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
                   Cancel
                 </Button>
                 <Button variant="destructive" onClick={handleDelete}>
@@ -524,7 +600,10 @@ function TimeSheetDetailPage() {
                 />
               </div>
               <div className="flex gap-3 justify-end">
-                <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowRejectDialog(false)}
+                >
                   Cancel
                 </Button>
                 <Button variant="destructive" onClick={handleReject}>
@@ -556,15 +635,18 @@ function StatusBadge({ status }: { status: string }) {
   const variants: Record<string, { label: string; className: string }> = {
     draft: {
       label: 'Draft',
-      className: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100',
+      className:
+        'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100',
     },
     submitted: {
       label: 'Submitted',
-      className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
+      className:
+        'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
     },
     approved: {
       label: 'Approved',
-      className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
+      className:
+        'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
     },
     rejected: {
       label: 'Rejected',
@@ -593,7 +675,9 @@ function AddEntriesDialog({
   onClose: () => void
 }) {
   const [availableEntries, setAvailableEntries] = useState<TimeEntry[]>([])
-  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set())
+  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
+    new Set()
+  )
   const [loading, setLoading] = useState(true)
 
   // Load available entries
@@ -617,7 +701,9 @@ function AddEntriesDialog({
   }
 
   const handleAddEntries = async () => {
-    await addEntriesToSheetFn({ data: { sheetId, entryIds: Array.from(selectedEntryIds) } })
+    await addEntriesToSheetFn({
+      data: { sheetId, entryIds: Array.from(selectedEntryIds) },
+    })
     onClose()
   }
 
@@ -629,7 +715,9 @@ function AddEntriesDialog({
     }
   }
 
-  const allSelected = selectedEntryIds.size === availableEntries.length && availableEntries.length > 0
+  const allSelected =
+    selectedEntryIds.size === availableEntries.length &&
+    availableEntries.length > 0
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -637,15 +725,19 @@ function AddEntriesDialog({
         <DialogHeader>
           <DialogTitle>Add Time Entries</DialogTitle>
           <DialogDescription>
-            Select entries to add to this time sheet. {selectedEntryIds.size} selected.
+            Select entries to add to this time sheet. {selectedEntryIds.size}{' '}
+            selected.
           </DialogDescription>
         </DialogHeader>
 
         {loading ? (
-          <div className="py-8 text-center text-gray-500">Loading available entries...</div>
+          <div className="py-8 text-center text-gray-500">
+            Loading available entries...
+          </div>
         ) : availableEntries.length === 0 ? (
           <div className="py-8 text-center text-gray-500">
-            No available entries found. All entries may already be in approved time sheets.
+            No available entries found. All entries may already be in approved
+            time sheets.
           </div>
         ) : (
           <ScrollArea className="flex-1 border rounded-md">
@@ -658,10 +750,18 @@ function AddEntriesDialog({
                       onCheckedChange={handleSelectAll}
                     />
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Date</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Title</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Description</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Hours</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">
+                    Date
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">
+                    Title
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">
+                    Description
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">
+                    Hours
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -678,11 +778,15 @@ function AddEntriesDialog({
                       />
                     </td>
                     <td className="px-4 py-3 text-sm">{entry.date}</td>
-                    <td className="px-4 py-3 text-sm font-medium">{entry.title}</td>
+                    <td className="px-4 py-3 text-sm font-medium">
+                      {entry.title}
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                       {entry.description || '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm">{entry.hours.toFixed(2)}h</td>
+                    <td className="px-4 py-3 text-sm">
+                      {entry.hours.toFixed(2)}h
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -694,8 +798,12 @@ function AddEntriesDialog({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleAddEntries} disabled={selectedEntryIds.size === 0}>
-            Add {selectedEntryIds.size} {selectedEntryIds.size === 1 ? 'Entry' : 'Entries'}
+          <Button
+            onClick={handleAddEntries}
+            disabled={selectedEntryIds.size === 0}
+          >
+            Add {selectedEntryIds.size}{' '}
+            {selectedEntryIds.size === 1 ? 'Entry' : 'Entries'}
           </Button>
         </div>
       </DialogContent>

@@ -8,16 +8,27 @@ export const accountRepository = {
   },
 
   async findById(id: string): Promise<Account | undefined> {
-    const result = await db.select().from(accounts).where(eq(accounts.id, id)).limit(1)
+    const result = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, id))
+      .limit(1)
     return result[0]
   },
 
   async findByOrganisationId(organisationId: string): Promise<Account[]> {
-    return await db.select().from(accounts).where(eq(accounts.organisationId, organisationId))
+    return await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.organisationId, organisationId))
   },
 
   async findByAccessCode(accessCode: string): Promise<Account | undefined> {
-    const result = await db.select().from(accounts).where(eq(accounts.accessCode, accessCode)).limit(1)
+    const result = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.accessCode, accessCode))
+      .limit(1)
     return result[0]
   },
 

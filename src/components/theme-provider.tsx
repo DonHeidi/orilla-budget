@@ -31,11 +31,12 @@ export function ThemeProvider({
   useEffect(() => {
     const root = window.document.documentElement
 
-    const resolvedTheme = theme === 'system'
-      ? window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light'
-      : theme
+    const resolvedTheme =
+      theme === 'system'
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light'
+        : theme
 
     // Only update if the resolved theme is different from current
     if (!root.classList.contains(resolvedTheme)) {

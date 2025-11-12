@@ -79,7 +79,9 @@ export const CompactList: Story = {
   render: () => (
     <ScrollArea className="h-48 w-64 rounded-md border">
       <div className="p-4">
-        <h4 className="mb-4 text-sm font-medium leading-none">Recent Activity</h4>
+        <h4 className="mb-4 text-sm font-medium leading-none">
+          Recent Activity
+        </h4>
         <div className="space-y-2">
           {Array.from({ length: 20 }).map((_, i) => (
             <div key={i} className="flex items-center gap-2 text-sm">

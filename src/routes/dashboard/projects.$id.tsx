@@ -1,4 +1,9 @@
-import { createFileRoute, getRouteApi, useNavigate, useRouter } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  getRouteApi,
+  useNavigate,
+  useRouter,
+} from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { FolderKanban, Building2, Clock } from 'lucide-react'
@@ -24,7 +29,7 @@ function formatDateTime(isoString: string): string {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true
+    hour12: true,
   }
   return date.toLocaleString('en-US', options)
 }
@@ -56,18 +61,19 @@ const deleteProjectFn = createServerFn({ method: 'POST' }).handler(
   }
 )
 
-const getProjectDetailDataFn = createServerFn({ method: 'GET' }).handler(async (ctx) => {
+const getProjectDetailDataFn = createServerFn({ method: 'GET' }).handler(
+  async (ctx) => {
+    const organisations = await organisationRepository.findAll()
+    const projects = await projectRepository.findAll()
+    const timeEntries = await timeEntryRepository.findAll()
 
-  const organisations = await organisationRepository.findAll()
-  const projects = await projectRepository.findAll()
-  const timeEntries = await timeEntryRepository.findAll()
-
-  return {
-    organisations: organisations,
-    projects: projects,
-    timeEntries: timeEntries,
+    return {
+      organisations: organisations,
+      projects: projects,
+      timeEntries: timeEntries,
+    }
   }
-})
+)
 
 // Route definition
 export const Route = createFileRoute('/dashboard/projects/$id')({
@@ -95,21 +101,29 @@ function ProjectDetailPage() {
 
   if (!project) {
     return (
-      <Sheet open={true} onOpenChange={(open) => {
-        if (!open) {
-          navigate({ to: '/dashboard/projects' })
-        }
-      }}>
+      <Sheet
+        open={true}
+        onOpenChange={(open) => {
+          if (!open) {
+            navigate({ to: '/dashboard/projects' })
+          }
+        }}
+      >
         <SheetContent className="w-full sm:max-w-[600px]">
           <SheetHeader>
             <SheetTitle>Error</SheetTitle>
             <SheetDescription>Project not found</SheetDescription>
           </SheetHeader>
           <div className="py-6">
-            <p className="text-gray-500">The requested project could not be found.</p>
+            <p className="text-gray-500">
+              The requested project could not be found.
+            </p>
           </div>
           <div className="flex gap-3 justify-end pt-6 border-t">
-            <Button variant="outline" onClick={() => navigate({ to: '/dashboard/projects' })}>
+            <Button
+              variant="outline"
+              onClick={() => navigate({ to: '/dashboard/projects' })}
+            >
               Back to List
             </Button>
           </div>
@@ -118,9 +132,16 @@ function ProjectDetailPage() {
     )
   }
 
-  const organisation = organisations.find((o: any) => o.id === project.organisationId)
-  const projectTimeEntries = timeEntries.filter((t: any) => t.projectId === project.id)
-  const totalHours = projectTimeEntries.reduce((sum: number, t: any) => sum + t.hours, 0)
+  const organisation = organisations.find(
+    (o: any) => o.id === project.organisationId
+  )
+  const projectTimeEntries = timeEntries.filter(
+    (t: any) => t.projectId === project.id
+  )
+  const totalHours = projectTimeEntries.reduce(
+    (sum: number, t: any) => sum + t.hours,
+    0
+  )
   const remainingHours = project.budgetHours - totalHours
 
   const currentValues = { ...project, ...editedValues }
@@ -157,7 +178,7 @@ function ProjectDetailPage() {
   }
 
   const handleFieldChange = (fieldName: string, value: any) => {
-    setEditedValues(prev => ({ ...prev, [fieldName]: value }))
+    setEditedValues((prev) => ({ ...prev, [fieldName]: value }))
   }
 
   const handleDelete = async () => {
@@ -174,11 +195,14 @@ function ProjectDetailPage() {
   }
 
   return (
-    <Sheet open={true} onOpenChange={(open) => {
-      if (!open) {
-        navigate({ to: '/dashboard/projects' })
-      }
-    }}>
+    <Sheet
+      open={true}
+      onOpenChange={(open) => {
+        if (!open) {
+          navigate({ to: '/dashboard/projects' })
+        }
+      }}
+    >
       <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
         <SheetHeader className="space-y-3 pb-6 border-b">
           <SheetTitle>Project Details</SheetTitle>
@@ -190,12 +214,16 @@ function ProjectDetailPage() {
         <div className="space-y-6 py-6">
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-500">Organisation</label>
+              <label className="text-sm font-medium text-gray-500">
+                Organisation
+              </label>
               {editingField === 'organisationId' ? (
                 <select
                   autoFocus
                   value={currentValues.organisationId || ''}
-                  onChange={(e) => handleFieldChange('organisationId', e.target.value)}
+                  onChange={(e) =>
+                    handleFieldChange('organisationId', e.target.value)
+                  }
                   onBlur={handleFieldBlur}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
                 >
@@ -217,7 +245,9 @@ function ProjectDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Project Name</label>
+              <label className="text-sm font-medium text-gray-500">
+                Project Name
+              </label>
               {editingField === 'name' ? (
                 <Input
                   autoFocus
@@ -238,12 +268,16 @@ function ProjectDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Description</label>
+              <label className="text-sm font-medium text-gray-500">
+                Description
+              </label>
               {editingField === 'description' ? (
                 <textarea
                   autoFocus
                   value={currentValues.description}
-                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  onChange={(e) =>
+                    handleFieldChange('description', e.target.value)
+                  }
                   onBlur={handleFieldBlur}
                   className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1"
                   rows={3}
@@ -259,12 +293,19 @@ function ProjectDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Category</label>
+              <label className="text-sm font-medium text-gray-500">
+                Category
+              </label>
               {editingField === 'category' ? (
                 <select
                   autoFocus
                   value={currentValues.category}
-                  onChange={(e) => handleFieldChange('category', e.target.value as 'budget' | 'fixed')}
+                  onChange={(e) =>
+                    handleFieldChange(
+                      'category',
+                      e.target.value as 'budget' | 'fixed'
+                    )
+                  }
                   onBlur={handleFieldBlur}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
                 >
@@ -276,13 +317,17 @@ function ProjectDetailPage() {
                   className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
                   onClick={() => handleFieldClick('category')}
                 >
-                  <span className={cn(
-                    "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                    currentValues.category === 'budget'
-                      ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                      : "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                  )}>
-                    {currentValues.category === 'budget' ? 'Budget' : 'Fixed Price'}
+                  <span
+                    className={cn(
+                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                      currentValues.category === 'budget'
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                        : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                    )}
+                  >
+                    {currentValues.category === 'budget'
+                      ? 'Budget'
+                      : 'Fixed Price'}
                   </span>
                 </p>
               )}
@@ -290,14 +335,21 @@ function ProjectDetailPage() {
 
             {currentValues.category === 'budget' && (
               <div>
-                <label className="text-sm font-medium text-gray-500">Budget (hours)</label>
+                <label className="text-sm font-medium text-gray-500">
+                  Budget (hours)
+                </label>
                 {editingField === 'budgetHours' ? (
                   <Input
                     autoFocus
                     type="number"
                     step="0.5"
                     value={currentValues.budgetHours || 0}
-                    onChange={(e) => handleFieldChange('budgetHours', parseFloat(e.target.value))}
+                    onChange={(e) =>
+                      handleFieldChange(
+                        'budgetHours',
+                        parseFloat(e.target.value)
+                      )
+                    }
                     onBlur={handleFieldBlur}
                     className="mt-1"
                   />
@@ -313,38 +365,57 @@ function ProjectDetailPage() {
               </div>
             )}
 
-            {currentValues.category === 'budget' && currentValues.budgetHours !== null && (
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Budget Summary</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Total Budget:</span>
-                    <span className="text-sm font-medium">{currentValues.budgetHours}h</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Used:</span>
-                    <span className="text-sm font-medium">{totalHours.toFixed(2)}h</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Remaining:</span>
-                    <span className={cn(
-                      "text-sm font-semibold",
-                      remainingHours < 0 ? "text-red-600" : "text-green-600"
-                    )}>
-                      {remainingHours.toFixed(2)}h
-                    </span>
-                  </div>
-                  <div className="flex justify-between pt-2 border-t">
-                    <span className="text-sm text-gray-600">Time Entries:</span>
-                    <span className="text-sm font-medium">{projectTimeEntries.length} entries</span>
+            {currentValues.category === 'budget' &&
+              currentValues.budgetHours !== null && (
+                <div className="border-t pt-4">
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">
+                    Budget Summary
+                  </h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">
+                        Total Budget:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {currentValues.budgetHours}h
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Used:</span>
+                      <span className="text-sm font-medium">
+                        {totalHours.toFixed(2)}h
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Remaining:</span>
+                      <span
+                        className={cn(
+                          'text-sm font-semibold',
+                          remainingHours < 0 ? 'text-red-600' : 'text-green-600'
+                        )}
+                      >
+                        {remainingHours.toFixed(2)}h
+                      </span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t">
+                      <span className="text-sm text-gray-600">
+                        Time Entries:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {projectTimeEntries.length} entries
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Created</label>
-              <p className="text-base mt-1">{formatDateTime(project.createdAt)}</p>
+              <label className="text-sm font-medium text-gray-500">
+                Created
+              </label>
+              <p className="text-base mt-1">
+                {formatDateTime(project.createdAt)}
+              </p>
             </div>
           </div>
         </div>
@@ -356,7 +427,10 @@ function ProjectDetailPage() {
           >
             Delete Project
           </Button>
-          <Button variant="outline" onClick={() => navigate({ to: '/dashboard/projects' })}>
+          <Button
+            variant="outline"
+            onClick={() => navigate({ to: '/dashboard/projects' })}
+          >
             Close
           </Button>
         </div>
@@ -366,10 +440,15 @@ function ProjectDetailPage() {
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md">
               <h3 className="text-lg font-semibold mb-2">Delete Project</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Are you sure you want to delete "{project.name}"? This action cannot be undone and will also delete all associated time entries ({projectTimeEntries.length} entries).
+                Are you sure you want to delete "{project.name}"? This action
+                cannot be undone and will also delete all associated time
+                entries ({projectTimeEntries.length} entries).
               </p>
               <div className="flex gap-3 justify-end">
-                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
                   Cancel
                 </Button>
                 <Button variant="destructive" onClick={handleDelete}>

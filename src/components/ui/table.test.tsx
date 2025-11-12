@@ -73,7 +73,9 @@ describe('Table', () => {
         </Table>
       )
 
-      expect(container.querySelector('[data-slot="table-header"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="table-header"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('Header')).toBeInTheDocument()
     })
 
@@ -88,7 +90,9 @@ describe('Table', () => {
         </Table>
       )
 
-      expect(container.querySelector('[data-slot="table-body"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="table-body"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('Body cell')).toBeInTheDocument()
     })
 
@@ -103,7 +107,9 @@ describe('Table', () => {
         </Table>
       )
 
-      expect(container.querySelector('[data-slot="table-footer"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="table-footer"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('Footer cell')).toBeInTheDocument()
     })
 
@@ -114,7 +120,9 @@ describe('Table', () => {
         </Table>
       )
 
-      expect(container.querySelector('[data-slot="table-caption"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="table-caption"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('Table caption')).toBeInTheDocument()
     })
   })

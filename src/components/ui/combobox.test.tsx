@@ -76,7 +76,9 @@ describe('Combobox', () => {
       await user.click(screen.getByRole('combobox'))
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Search fruits...')).toBeInTheDocument()
+        expect(
+          screen.getByPlaceholderText('Search fruits...')
+        ).toBeInTheDocument()
       })
     })
 
@@ -111,7 +113,9 @@ describe('Combobox', () => {
       await user.click(screen.getByText('Banana'))
 
       await waitFor(() => {
-        expect(screen.queryByPlaceholderText('Search...')).not.toBeInTheDocument()
+        expect(
+          screen.queryByPlaceholderText('Search...')
+        ).not.toBeInTheDocument()
       })
     })
   })
@@ -147,7 +151,11 @@ describe('Combobox', () => {
       await user.click(screen.getByText('Cherry'))
 
       rerender(
-        <Combobox options={mockOptions} value="cherry" onChange={handleChange} />
+        <Combobox
+          options={mockOptions}
+          value="cherry"
+          onChange={handleChange}
+        />
       )
 
       expect(screen.getByText('Cherry')).toBeInTheDocument()
@@ -281,7 +289,9 @@ describe('Combobox', () => {
 
     it('handles single option', async () => {
       const handleChange = vi.fn()
-      const singleOption: ComboboxOption[] = [{ value: 'only', label: 'Only Option' }]
+      const singleOption: ComboboxOption[] = [
+        { value: 'only', label: 'Only Option' },
+      ]
       const { user } = render(
         <Combobox options={singleOption} onChange={handleChange} />
       )
@@ -295,10 +305,13 @@ describe('Combobox', () => {
 
     it('handles many options', async () => {
       const handleChange = vi.fn()
-      const manyOptions: ComboboxOption[] = Array.from({ length: 50 }, (_, i) => ({
-        value: `option-${i}`,
-        label: `Option ${i}`,
-      }))
+      const manyOptions: ComboboxOption[] = Array.from(
+        { length: 50 },
+        (_, i) => ({
+          value: `option-${i}`,
+          label: `Option ${i}`,
+        })
+      )
 
       const { user } = render(
         <Combobox options={manyOptions} onChange={handleChange} />
@@ -495,7 +508,11 @@ describe('Combobox', () => {
       expect(screen.getByText('Apple')).toBeInTheDocument()
 
       rerender(
-        <Combobox options={mockOptions} value="banana" onChange={handleChange} />
+        <Combobox
+          options={mockOptions}
+          value="banana"
+          onChange={handleChange}
+        />
       )
 
       expect(screen.getByText('Banana')).toBeInTheDocument()
@@ -510,7 +527,11 @@ describe('Combobox', () => {
       expect(screen.getByText('Select option...')).toBeInTheDocument()
 
       rerender(
-        <Combobox options={mockOptions} value="cherry" onChange={handleChange} />
+        <Combobox
+          options={mockOptions}
+          value="cherry"
+          onChange={handleChange}
+        />
       )
 
       expect(screen.getByText('Cherry')).toBeInTheDocument()

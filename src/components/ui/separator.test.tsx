@@ -19,7 +19,9 @@ describe('Separator', () => {
   describe('Orientation', () => {
     it('renders horizontal by default', () => {
       const { container } = render(<Separator />)
-      const separator = container.querySelector('[data-orientation="horizontal"]')
+      const separator = container.querySelector(
+        '[data-orientation="horizontal"]'
+      )
       expect(separator).toBeInTheDocument()
     })
 
@@ -58,7 +60,9 @@ describe('Separator', () => {
     })
 
     it('has correct aria-orientation for horizontal', () => {
-      const { container } = render(<Separator decorative={false} orientation="horizontal" />)
+      const { container } = render(
+        <Separator decorative={false} orientation="horizontal" />
+      )
       const separator = container.querySelector('[role="separator"]')
       expect(separator).toBeInTheDocument()
       // Radix UI may or may not set aria-orientation depending on browser support
@@ -66,7 +70,9 @@ describe('Separator', () => {
     })
 
     it('has correct aria-orientation for vertical', () => {
-      const { container } = render(<Separator decorative={false} orientation="vertical" />)
+      const { container } = render(
+        <Separator decorative={false} orientation="vertical" />
+      )
       const separator = container.querySelector('[role="separator"]')
       expect(separator).toBeInTheDocument()
       // Radix UI may or may not set aria-orientation depending on browser support

@@ -56,7 +56,9 @@ bun --version
 #### Troubleshooting
 
 **Issue**: `bun: command not found` after installing mise
+
 - **Solution**: Ensure mise is activated in your shell. Add to your shell profile:
+
   ```bash
   # Bash: add to ~/.bashrc
   eval "$(mise activate bash)"
@@ -69,11 +71,13 @@ bun --version
   ```
 
 **Issue**: Wrong Bun version being used
+
 - **Solution**: Run `mise install` to ensure the correct version is installed, then restart your shell
 
 ## Commands
 
 ### Development
+
 ```bash
 bun install          # Install dependencies
 bun run dev          # Start development server (runs on port 3000)
@@ -81,6 +85,7 @@ bun run build        # Build for production
 ```
 
 ### Testing
+
 ```bash
 bun test             # Run all tests
 bun test --watch     # Run tests in watch mode
@@ -89,24 +94,28 @@ bun test <file>      # Run specific test file
 ```
 
 **Testing Strategy:**
+
 - We use **Bun's native test runner** for backend and core functionality
 - **296 tests** covering schemas, repositories, hooks, and utilities
 - **~97% code coverage** on tested modules
 - Tests run in ~700-900ms for the full suite
 
 **What we test:**
+
 - ✅ Zod validation schemas (business rules)
 - ✅ Repository layer (database operations)
 - ✅ Utility functions
 - ✅ Custom React hooks
 
 **What we DON'T test with unit tests:**
+
 - ❌ UI Components (we use Storybook for component documentation and visual testing)
 - ❌ Routes (integration/E2E tests would be more appropriate)
 
 **See [docs/testing.md](docs/testing.md) for comprehensive testing guide.**
 
 ### Database Management
+
 ```bash
 bun run db:generate  # Generate migration files from schema changes
 bun run db:migrate   # Run migrations
@@ -116,6 +125,7 @@ bun run db:studio    # Open Drizzle Studio for database visualization
 
 **CRITICAL MIGRATION WORKFLOW:**
 When making schema changes, ALWAYS follow this exact workflow:
+
 1. Modify `src/db/schema.ts`
 2. Run `bun run db:generate` to create migration
 3. Review the generated SQL in `drizzle/` folder
@@ -129,11 +139,13 @@ When making schema changes, ALWAYS follow this exact workflow:
 ## Git Workflow
 
 ### Commit Convention
+
 This project follows **Conventional Commits** with the **Angular preset**.
 
 **Note**: Keep commit messages concise. Do not include Claude Code attribution footers or Co-Authored-By tags.
 
 #### Format
+
 ```
 <type>(<scope>): <subject>
 
@@ -141,6 +153,7 @@ This project follows **Conventional Commits** with the **Angular preset**.
 ```
 
 #### Types
+
 - **feat**: A new feature
 - **fix**: A bug fix
 - **docs**: Documentation only changes
@@ -151,6 +164,7 @@ This project follows **Conventional Commits** with the **Angular preset**.
 - **chore**: Changes to the build process or auxiliary tools
 
 #### Examples
+
 ```bash
 # Bug fix
 fix(theme): prevent flash of unstyled content on page load
@@ -176,6 +190,7 @@ This project uses **git worktrees** for parallel development. Worktrees allow mu
 4. **Experiments** - Exploratory work that might be discarded
 
 **Detection Logic for Claude Code**:
+
 ```
 IF user requests:
   - "I want to work on..."
@@ -225,6 +240,7 @@ bun run dev  # Note: Use different port if main repo is also running
 ```
 
 **Branch Naming Convention**:
+
 - `feature/*` - New features
 - `fix/*` - Bug fixes
 - `db/*` - Database schema changes
@@ -241,12 +257,14 @@ cp ../orilla-budget/data.db ./data.db
 ```
 
 **Why This Matters**:
+
 - Schema changes in worktree don't affect main repo
 - Migration testing is isolated and safe
 - Data corruption in one worktree doesn't affect others
 - Each branch can have different schema versions
 
 **Database Migration Workflow in Worktrees**:
+
 ```bash
 # In your worktree
 1. Edit src/db/schema.ts
@@ -268,6 +286,7 @@ Migrations are portable - they're committed to git and will apply cleanly when m
 - **If unsure**: Always run `bun install` (safer, uses ~500MB disk per worktree)
 
 **Claude Code Detection**:
+
 - Before suggesting `bun install`, check if package.json differs from main
 - If identical, mention: "Dependencies should be compatible, but run `bun install` if you encounter issues"
 - If different, require: "Run `bun install` to install dependencies"
@@ -314,18 +333,23 @@ git worktree list
 #### Common Issues and Solutions
 
 **Issue**: Port 3000 already in use
+
 - **Solution**: Use `PORT=3001 bun run dev` in worktree
 
 **Issue**: Database changes appear in main repo
+
 - **Solution**: Verify you copied `data.db` to worktree (should be separate file)
 
 **Issue**: node_modules conflicts after package.json change
+
 - **Solution**: Run `bun install` in worktree to create isolated dependencies
 
 **Issue**: Migration applied twice or conflicts
+
 - **Solution**: Each worktree has isolated `data.db`, migrations only affect that database
 
 **Issue**: Can't switch branches (uncommitted changes)
+
 - **Solution**: This is why worktrees exist - create worktree instead of switching
 
 #### Example Claude Code Workflow
@@ -361,6 +385,7 @@ Claude: Feature complete! When you're ready to merge:
 ## Architecture
 
 ### Tech Stack
+
 - **Runtime**: Bun
 - **Framework**: TanStack Start (React-based full-stack framework)
 - **Routing**: TanStack Router with file-based routing
@@ -373,19 +398,24 @@ Claude: Feature complete! When you're ready to merge:
 ### Project Structure
 
 #### Database Layer (`src/db/`)
+
 - `schema.ts`: Drizzle schema definitions for organisations, accounts, projects, and time entries
 - `index.ts`: Database connection using Bun SQLite driver
 - Database file: `data.db` at project root
 
 #### Repository Layer (`src/repositories/`)
+
 Repository pattern for data access:
+
 - `organisation.repository.ts`: Organisation CRUD operations
 - `account.repository.ts`: Account management including access code lookup
 - `project.repository.ts`: Project management
 - `timeEntry.repository.ts`: Time entry tracking
 
 #### Routes (`src/routes/`)
+
 File-based routing with TanStack Start:
+
 - `__root.tsx`: Root layout with theme provider and HTML structure
 - `index.tsx`: Landing/home page
 - `dashboard.tsx`: Main layout with sidebar navigation
@@ -402,12 +432,14 @@ File-based routing with TanStack Start:
 - `portal.tsx`: Client portal with access code authentication
 
 #### Types and Schemas
+
 - `src/types.ts`: TypeScript interfaces for domain models and view models
 - `src/schemas.ts`: Zod validation schemas for all entities, including special `quickTimeEntrySchema` for rapid data entry
 
 ### Key Concepts
 
 #### Server Functions
+
 Routes use `createServerFn()` from TanStack Start to define server-side logic that can be called from client components. These functions handle database operations via repositories.
 
 **IMPORTANT**: Server functions should use static imports at the top of the file, not dynamic imports inside the handler. TanStack Start's build process automatically handles code-splitting to ensure repository code only runs on the server.
@@ -418,18 +450,19 @@ import { userRepository } from '@/repositories/user.repository'
 
 const getUsersFn = createServerFn({ method: 'GET' }).handler(async () => {
   const users = await userRepository.findAll()
-  return { users }  // No need for JSON.parse(JSON.stringify())
+  return { users } // No need for JSON.parse(JSON.stringify())
 })
 
 // ❌ Incorrect: Dynamic import inside handler
 const getUsersFn = createServerFn({ method: 'GET' }).handler(async () => {
   const { userRepository } = await import('@/repositories/user.repository')
   const users = await userRepository.findAll()
-  return { users: JSON.parse(JSON.stringify(users)) }  // Unnecessary
+  return { users: JSON.parse(JSON.stringify(users)) } // Unnecessary
 })
 ```
 
 **Calling Server Functions**: Server functions should be called in one of these ways:
+
 1. **In Route Loaders**: Use the loader option in `createFileRoute()` to fetch data during navigation
 2. **From Client Components**: Use `useQuery` for data fetching or `useMutation` for mutations
 
@@ -472,32 +505,40 @@ function UsersPage() {
 **Note on Serialization**: Since all date fields in our schemas use `z.string().datetime()` (ISO strings, not Date objects), data from repositories is already serializable. There's no need to use `JSON.parse(JSON.stringify())` for serialization.
 
 #### Repository Pattern
+
 All database access goes through repository modules that encapsulate Drizzle ORM queries. Repositories provide standard CRUD operations and domain-specific queries. Repositories are meant to be used on the server only and should be imported using static imports in server functions.
 
 #### Dual Interface Architecture
+
 - **Dashboard (`/dashboard`)**: Full CRUD interface with sidebar navigation organized by organisations, projects, and accounts
 - **Portal (`/portal`)**: Read-only client view authenticated via access codes
 
 #### Theme System
+
 - Theme preference stored in cookies (`orilla-ui-theme`)
 - Server-side theme detection in `__root.tsx` to prevent flash of unstyled content
 - Supports dark/light/system modes via `ThemeProvider`
 
 #### Time Entry Flexibility
+
 The app supports both:
+
 - Quick time entries (only title and hours required) via `quickTimeEntrySchema`
 - Detailed time entries with project associations and descriptions via `createTimeEntrySchema`
 
 Time entries can be associated with either a project or directly with an organisation.
 
 #### Project Categories
+
 Projects have a `category` field that can be either:
+
 - **budget**: Time & Materials projects tracked by hours
 - **fixed**: Fixed Price projects with predetermined costs
 
 ### Coding Patterns & Best Practices
 
 #### Data Refresh Pattern
+
 **ALWAYS use `router.invalidate()` instead of `window.location.reload()`** to refresh data after mutations. This provides a smoother UX by updating cached data without full page reload.
 
 ```typescript
@@ -505,11 +546,12 @@ import { useRouter } from '@tanstack/react-router'
 
 const router = useRouter()
 // After a mutation:
-router.invalidate()  // ✅ Correct
-window.location.reload()  // ❌ Never use this
+router.invalidate() // ✅ Correct
+window.location.reload() // ❌ Never use this
 ```
 
 #### CRUD UI Pattern
+
 All entity management follows this consistent pattern:
 
 1. **List Page** (`entity.tsx`):
@@ -532,6 +574,7 @@ All entity management follows this consistent pattern:
    - Uses `router.invalidate()` after updates
 
 #### Click-to-Edit Implementation
+
 ```typescript
 const [editingField, setEditingField] = useState<string | null>(null)
 const [editedValues, setEditedValues] = useState<Partial<Entity>>({})
@@ -558,9 +601,11 @@ const handleFieldBlur = async () => {
 ```
 
 ### Path Aliases
+
 TypeScript is configured with `@/*` path alias mapping to `./src/*` (see `tsconfig.json`).
 
 ### Code Generation
+
 - `src/routeTree.gen.ts`: Auto-generated by TanStack Router, do not edit manually
 - make commits as atomic as possible
 - Repositories are meant to be used on the server only.

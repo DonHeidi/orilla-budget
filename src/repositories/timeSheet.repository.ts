@@ -1,6 +1,13 @@
-import { db, timeSheets, timeSheetEntries, timeEntries, organisations, projects } from '@/db'
-import { eq, sql, and, notInArray, isNull, or } from 'drizzle-orm'
-import type { TimeSheet, TimeSheetEntry, TimeEntry } from '@/schemas'
+import {
+  db,
+  timeSheets,
+  timeSheetEntries,
+  timeEntries,
+  organisations,
+  projects,
+} from '@/db'
+import { eq, sql, and, notInArray } from 'drizzle-orm'
+import type { TimeSheet, TimeEntry } from '@/schemas'
 import type { TimeSheetWithEntries } from '@/types'
 
 export const timeSheetRepository = {
@@ -10,16 +17,35 @@ export const timeSheetRepository = {
   },
 
   async findById(id: string): Promise<TimeSheet | undefined> {
-    const result = await db.select().from(timeSheets).where(eq(timeSheets.id, id)).limit(1)
+    const result = await db
+      .select()
+      .from(timeSheets)
+      .where(eq(timeSheets.id, id))
+      .limit(1)
     return result[0]
   },
 
-  async findByStatus(status: 'draft' | 'submitted' | 'approved' | 'rejected'): Promise<TimeSheet[]> {
-    return await db.select().from(timeSheets).where(eq(timeSheets.status, status))
+  async findByStatus(
+    status: 'draft' | 'submitted' | 'approved' | 'rejected'
+  ): Promise<TimeSheet[]> {
+    return await db
+      .select()
+      .from(timeSheets)
+      .where(eq(timeSheets.status, status))
   },
 
   async findByOrganisation(organisationId: string): Promise<TimeSheet[]> {
-    return await db.select().from(timeSheets).where(eq(timeSheets.organisationId, organisationId))
+    return await db
+      .select()
+      .from(timeSheets)
+      .where(eq(timeSheets.organisationId, organisationId))
+  },
+
+  async findByProject(projectId: string): Promise<TimeSheet[]> {
+    return await db
+      .select()
+      .from(timeSheets)
+      .where(eq(timeSheets.projectId, projectId))
   },
 
   async create(sheet: TimeSheet): Promise<TimeSheet> {
@@ -51,7 +77,7 @@ export const timeSheetRepository = {
       .from(timeSheetEntries)
       .where(eq(timeSheetEntries.timeSheetId, id))
 
-    const entryIds = sheetEntryRecords.map(se => se.timeEntryId)
+    const entryIds = sheetEntryRecords.map((se) => se.timeEntryId)
 
     let entries: TimeEntry[] = []
     if (entryIds.length > 0) {
@@ -63,8 +89,9 @@ export const timeSheetRepository = {
 
     const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0)
 
-    // Get organisation if it exists
+    // Get organisation and project if they exist
     let organisation = undefined
+    let project = undefined
 
     if (sheet.organisationId) {
       const orgResult = await db
@@ -75,28 +102,28 @@ export const timeSheetRepository = {
       organisation = orgResult[0]
     }
 
-    // Get all unique projects from entries
-    const uniqueProjectIds = [...new Set(entries.map(e => e.projectId).filter(Boolean))] as string[]
-    const projectsList = uniqueProjectIds.length > 0
-      ? await db
-          .select()
-          .from(projects)
-          .where(sql`${projects.id} IN ${uniqueProjectIds}`)
-      : []
+    if (sheet.projectId) {
+      const projResult = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.id, sheet.projectId))
+        .limit(1)
+      project = projResult[0]
+    }
 
     return {
       timeSheet: sheet,
       entries,
       totalHours,
       organisation,
-      projects: projectsList,
+      project,
     }
   },
 
   // Entry management
   async addEntries(sheetId: string, entryIds: string[]): Promise<void> {
     const now = new Date().toISOString()
-    const entries = entryIds.map(entryId => ({
+    const entries = entryIds.map((entryId) => ({
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       timeSheetId: sheetId,
       timeEntryId: entryId,
@@ -131,7 +158,7 @@ export const timeSheetRepository = {
   }): Promise<TimeEntry[]> {
     // Get IDs of entries that are in approved sheets
     const approvedSheets = await this.findByStatus('approved')
-    const approvedSheetIds = approvedSheets.map(s => s.id)
+    const approvedSheetIds = approvedSheets.map((s) => s.id)
 
     let entriesInApprovedSheets: string[] = []
     if (approvedSheetIds.length > 0) {
@@ -140,7 +167,7 @@ export const timeSheetRepository = {
         .from(timeSheetEntries)
         .where(sql`${timeSheetEntries.timeSheetId} IN ${approvedSheetIds}`)
 
-      entriesInApprovedSheets = sheetEntryRecords.map(se => se.timeEntryId)
+      entriesInApprovedSheets = sheetEntryRecords.map((se) => se.timeEntryId)
     }
 
     // Build query conditions
@@ -174,7 +201,7 @@ export const timeSheetRepository = {
       .from(timeSheetEntries)
       .where(eq(timeSheetEntries.timeSheetId, sheetId))
 
-    const entryIds = sheetEntryRecords.map(se => se.timeEntryId)
+    const entryIds = sheetEntryRecords.map((se) => se.timeEntryId)
 
     if (entryIds.length === 0) return []
 

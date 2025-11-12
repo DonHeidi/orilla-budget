@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'bun:test'
-import { createTestDb, cleanDatabase, seed, testFactories } from '@/test/db-utils'
+import {
+  createTestDb,
+  cleanDatabase,
+  seed,
+  testFactories,
+} from '@/test/db-utils'
 import { timeEntryRepository } from './timeEntry.repository'
 import * as schema from '@/db/schema'
 import { eq } from 'drizzle-orm'
@@ -30,8 +35,8 @@ describe('timeEntryRepository', () => {
 
       // Assert
       expect(results).toHaveLength(2)
-      expect(results.map(e => e.title)).toContain('Bug fix')
-      expect(results.map(e => e.title)).toContain('Feature dev')
+      expect(results.map((e) => e.title)).toContain('Bug fix')
+      expect(results.map((e) => e.title)).toContain('Feature dev')
     })
 
     it('should return empty array when no time entries exist', async () => {
@@ -46,11 +51,18 @@ describe('timeEntryRepository', () => {
   describe('findById', () => {
     it('should retrieve time entry by id', async () => {
       // Arrange
-      const entry = testFactories.timeEntry({ id: 'entry-123', title: 'Test Entry' })
+      const entry = testFactories.timeEntry({
+        id: 'entry-123',
+        title: 'Test Entry',
+      })
       await db.insert(schema.timeEntries).values(entry)
 
       // Act
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, 'entry-123')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, 'entry-123'))
+        .limit(1)
 
       // Assert
       expect(result[0]).toBeDefined()
@@ -60,7 +72,11 @@ describe('timeEntryRepository', () => {
 
     it('should return undefined when time entry not found', async () => {
       // Act
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, 'nonexistent')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, 'nonexistent'))
+        .limit(1)
 
       // Assert
       expect(result[0]).toBeUndefined()
@@ -74,20 +90,32 @@ describe('timeEntryRepository', () => {
       const project1 = await seed.project(db, org.id, { id: 'proj-1' })
       const project2 = await seed.project(db, org.id, { id: 'proj-2' })
 
-      const entry1 = testFactories.timeEntry({ projectId: 'proj-1', title: 'Proj1 Entry 1' })
-      const entry2 = testFactories.timeEntry({ projectId: 'proj-1', title: 'Proj1 Entry 2' })
-      const entry3 = testFactories.timeEntry({ projectId: 'proj-2', title: 'Proj2 Entry 1' })
+      const entry1 = testFactories.timeEntry({
+        projectId: 'proj-1',
+        title: 'Proj1 Entry 1',
+      })
+      const entry2 = testFactories.timeEntry({
+        projectId: 'proj-1',
+        title: 'Proj1 Entry 2',
+      })
+      const entry3 = testFactories.timeEntry({
+        projectId: 'proj-2',
+        title: 'Proj2 Entry 1',
+      })
 
       await db.insert(schema.timeEntries).values([entry1, entry2, entry3])
 
       // Act
-      const results = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.projectId, 'proj-1'))
+      const results = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.projectId, 'proj-1'))
 
       // Assert
       expect(results).toHaveLength(2)
-      expect(results.map(e => e.title)).toContain('Proj1 Entry 1')
-      expect(results.map(e => e.title)).toContain('Proj1 Entry 2')
-      expect(results.map(e => e.title)).not.toContain('Proj2 Entry 1')
+      expect(results.map((e) => e.title)).toContain('Proj1 Entry 1')
+      expect(results.map((e) => e.title)).toContain('Proj1 Entry 2')
+      expect(results.map((e) => e.title)).not.toContain('Proj2 Entry 1')
     })
 
     it('should return empty array when project has no time entries', async () => {
@@ -96,7 +124,10 @@ describe('timeEntryRepository', () => {
       await seed.project(db, org.id, { id: 'proj-1' })
 
       // Act
-      const results = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.projectId, 'proj-1'))
+      const results = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.projectId, 'proj-1'))
 
       // Assert
       expect(results).toEqual([])
@@ -109,20 +140,32 @@ describe('timeEntryRepository', () => {
       const org1 = await seed.organisation(db, { id: 'org-1' })
       const org2 = await seed.organisation(db, { id: 'org-2' })
 
-      const entry1 = testFactories.timeEntry({ organisationId: 'org-1', title: 'Org1 Entry 1' })
-      const entry2 = testFactories.timeEntry({ organisationId: 'org-1', title: 'Org1 Entry 2' })
-      const entry3 = testFactories.timeEntry({ organisationId: 'org-2', title: 'Org2 Entry 1' })
+      const entry1 = testFactories.timeEntry({
+        organisationId: 'org-1',
+        title: 'Org1 Entry 1',
+      })
+      const entry2 = testFactories.timeEntry({
+        organisationId: 'org-1',
+        title: 'Org1 Entry 2',
+      })
+      const entry3 = testFactories.timeEntry({
+        organisationId: 'org-2',
+        title: 'Org2 Entry 1',
+      })
 
       await db.insert(schema.timeEntries).values([entry1, entry2, entry3])
 
       // Act
-      const results = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.organisationId, 'org-1'))
+      const results = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.organisationId, 'org-1'))
 
       // Assert
       expect(results).toHaveLength(2)
-      expect(results.map(e => e.title)).toContain('Org1 Entry 1')
-      expect(results.map(e => e.title)).toContain('Org1 Entry 2')
-      expect(results.map(e => e.title)).not.toContain('Org2 Entry 1')
+      expect(results.map((e) => e.title)).toContain('Org1 Entry 1')
+      expect(results.map((e) => e.title)).toContain('Org1 Entry 2')
+      expect(results.map((e) => e.title)).not.toContain('Org2 Entry 1')
     })
 
     it('should return empty array when organisation has no time entries', async () => {
@@ -130,7 +173,10 @@ describe('timeEntryRepository', () => {
       await seed.organisation(db, { id: 'org-1' })
 
       // Act
-      const results = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.organisationId, 'org-1'))
+      const results = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.organisationId, 'org-1'))
 
       // Assert
       expect(results).toEqual([])
@@ -153,7 +199,11 @@ describe('timeEntryRepository', () => {
       await db.insert(schema.timeEntries).values(newEntry)
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, newEntry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, newEntry.id))
+        .limit(1)
       expect(result[0]).toBeDefined()
       expect(result[0].title).toBe('New Task')
       expect(result[0].hours).toBe(3.5)
@@ -174,7 +224,11 @@ describe('timeEntryRepository', () => {
       await db.insert(schema.timeEntries).values(newEntry)
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, newEntry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, newEntry.id))
+        .limit(1)
       expect(result[0].description).toBe('Detailed description')
       expect(result[0].billed).toBe(true)
     })
@@ -194,7 +248,11 @@ describe('timeEntryRepository', () => {
       await db.insert(schema.timeEntries).values(newEntry)
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, newEntry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, newEntry.id))
+        .limit(1)
       expect(result[0].projectId).toBeNull()
       expect(result[0].organisationId).toBe('org-1')
     })
@@ -206,10 +264,17 @@ describe('timeEntryRepository', () => {
       const entry = await seed.timeEntry(db, { title: 'Old Title' })
 
       // Act
-      await db.update(schema.timeEntries).set({ title: 'New Title' }).where(eq(schema.timeEntries.id, entry.id))
+      await db
+        .update(schema.timeEntries)
+        .set({ title: 'New Title' })
+        .where(eq(schema.timeEntries.id, entry.id))
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0].title).toBe('New Title')
     })
 
@@ -218,10 +283,17 @@ describe('timeEntryRepository', () => {
       const entry = await seed.timeEntry(db, { hours: 2 })
 
       // Act
-      await db.update(schema.timeEntries).set({ hours: 5.5 }).where(eq(schema.timeEntries.id, entry.id))
+      await db
+        .update(schema.timeEntries)
+        .set({ hours: 5.5 })
+        .where(eq(schema.timeEntries.id, entry.id))
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0].hours).toBe(5.5)
     })
 
@@ -230,10 +302,17 @@ describe('timeEntryRepository', () => {
       const entry = await seed.timeEntry(db, { description: 'Old description' })
 
       // Act
-      await db.update(schema.timeEntries).set({ description: 'New description' }).where(eq(schema.timeEntries.id, entry.id))
+      await db
+        .update(schema.timeEntries)
+        .set({ description: 'New description' })
+        .where(eq(schema.timeEntries.id, entry.id))
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0].description).toBe('New description')
     })
 
@@ -242,10 +321,17 @@ describe('timeEntryRepository', () => {
       const entry = await seed.timeEntry(db, { billed: false })
 
       // Act
-      await db.update(schema.timeEntries).set({ billed: true }).where(eq(schema.timeEntries.id, entry.id))
+      await db
+        .update(schema.timeEntries)
+        .set({ billed: true })
+        .where(eq(schema.timeEntries.id, entry.id))
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0].billed).toBe(true)
     })
 
@@ -255,10 +341,17 @@ describe('timeEntryRepository', () => {
       const entry = await seed.timeEntry(db, { approvedDate: undefined })
 
       // Act
-      await db.update(schema.timeEntries).set({ approvedDate }).where(eq(schema.timeEntries.id, entry.id))
+      await db
+        .update(schema.timeEntries)
+        .set({ approvedDate })
+        .where(eq(schema.timeEntries.id, entry.id))
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0].approvedDate).toBe(approvedDate)
     })
 
@@ -267,15 +360,22 @@ describe('timeEntryRepository', () => {
       const entry = await seed.timeEntry(db)
 
       // Act
-      await db.update(schema.timeEntries).set({
-        title: 'Updated Title',
-        description: 'Updated description',
-        hours: 10,
-        billed: true
-      }).where(eq(schema.timeEntries.id, entry.id))
+      await db
+        .update(schema.timeEntries)
+        .set({
+          title: 'Updated Title',
+          description: 'Updated description',
+          hours: 10,
+          billed: true,
+        })
+        .where(eq(schema.timeEntries.id, entry.id))
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0].title).toBe('Updated Title')
       expect(result[0].description).toBe('Updated description')
       expect(result[0].hours).toBe(10)
@@ -288,10 +388,17 @@ describe('timeEntryRepository', () => {
       const entry2 = await seed.timeEntry(db, { title: 'Entry 2' })
 
       // Act
-      await db.update(schema.timeEntries).set({ title: 'Updated' }).where(eq(schema.timeEntries.id, entry1.id))
+      await db
+        .update(schema.timeEntries)
+        .set({ title: 'Updated' })
+        .where(eq(schema.timeEntries.id, entry1.id))
 
       // Assert
-      const result2 = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry2.id)).limit(1)
+      const result2 = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry2.id))
+        .limit(1)
       expect(result2[0].title).toBe('Entry 2')
     })
   })
@@ -302,10 +409,16 @@ describe('timeEntryRepository', () => {
       const entry = await seed.timeEntry(db)
 
       // Act
-      await db.delete(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id))
+      await db
+        .delete(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0]).toBeUndefined()
     })
 
@@ -319,7 +432,11 @@ describe('timeEntryRepository', () => {
       await db.delete(schema.projects).where(eq(schema.projects.id, 'proj-1'))
 
       // Assert - Time entry should be deleted due to cascade
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0]).toBeUndefined()
     })
 
@@ -329,10 +446,16 @@ describe('timeEntryRepository', () => {
       const entry = await seed.timeEntry(db, { organisationId: 'org-1' })
 
       // Act - Delete organisation
-      await db.delete(schema.organisations).where(eq(schema.organisations.id, 'org-1'))
+      await db
+        .delete(schema.organisations)
+        .where(eq(schema.organisations.id, 'org-1'))
 
       // Assert - Time entry should be deleted due to cascade
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0]).toBeUndefined()
     })
 
@@ -342,7 +465,9 @@ describe('timeEntryRepository', () => {
       const entry2 = await seed.timeEntry(db)
 
       // Act
-      await db.delete(schema.timeEntries).where(eq(schema.timeEntries.id, entry1.id))
+      await db
+        .delete(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry1.id))
 
       // Assert
       const remaining = await db.select().from(schema.timeEntries)
@@ -357,7 +482,11 @@ describe('timeEntryRepository', () => {
       const entry = await seed.timeEntry(db, { billed: false })
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0].billed).toBe(false)
     })
 
@@ -366,7 +495,11 @@ describe('timeEntryRepository', () => {
       const entry = await seed.timeEntry(db, { billed: true })
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0].billed).toBe(true)
     })
 
@@ -375,7 +508,11 @@ describe('timeEntryRepository', () => {
       const entry = await seed.timeEntry(db, { approvedDate: undefined })
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0].approvedDate).toBeNull()
     })
 
@@ -387,7 +524,11 @@ describe('timeEntryRepository', () => {
       // Act - Entry is already created with approvedDate
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0].approvedDate).toBe(approvedDate)
     })
   })
@@ -398,7 +539,11 @@ describe('timeEntryRepository', () => {
       const entry = await seed.timeEntry(db, { hours: 5 })
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0].hours).toBe(5)
     })
 
@@ -407,7 +552,11 @@ describe('timeEntryRepository', () => {
       const entry = await seed.timeEntry(db, { hours: 2.5 })
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0].hours).toBe(2.5)
     })
 
@@ -416,7 +565,11 @@ describe('timeEntryRepository', () => {
       const entry = await seed.timeEntry(db, { hours: 1.75 })
 
       // Assert
-      const result = await db.select().from(schema.timeEntries).where(eq(schema.timeEntries.id, entry.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
       expect(result[0].hours).toBe(1.75)
     })
   })

@@ -42,21 +42,22 @@ describe('useIsMobile', () => {
       })
 
       const listeners: Array<() => void> = []
-      window.matchMedia = (query: string) => ({
-        matches: window.innerWidth < 768,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: window.innerWidth < 768,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       // Act
       const { result } = renderHook(() => useIsMobile())
@@ -74,21 +75,22 @@ describe('useIsMobile', () => {
       })
 
       const listeners: Array<() => void> = []
-      window.matchMedia = (query: string) => ({
-        matches: window.innerWidth < 768,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: window.innerWidth < 768,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       // Act
       const { result } = renderHook(() => useIsMobile())
@@ -106,21 +108,22 @@ describe('useIsMobile', () => {
       })
 
       const listeners: Array<() => void> = []
-      window.matchMedia = (query: string) => ({
-        matches: window.innerWidth < 768,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: window.innerWidth < 768,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       // Act
       const { result } = renderHook(() => useIsMobile())
@@ -138,21 +141,22 @@ describe('useIsMobile', () => {
       })
 
       const listeners: Array<() => void> = []
-      window.matchMedia = (query: string) => ({
-        matches: window.innerWidth < 768,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: window.innerWidth < 768,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       // Act
       const { result } = renderHook(() => useIsMobile())
@@ -172,21 +176,22 @@ describe('useIsMobile', () => {
       })
 
       const listeners: Array<() => void> = []
-      window.matchMedia = (query: string) => ({
-        matches: window.innerWidth < 768,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: window.innerWidth < 768,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       // Act
       const { result } = renderHook(() => useIsMobile())
@@ -204,21 +209,22 @@ describe('useIsMobile', () => {
       })
 
       const listeners: Array<() => void> = []
-      window.matchMedia = (query: string) => ({
-        matches: window.innerWidth < 768,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: window.innerWidth < 768,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       // Act
       const { result } = renderHook(() => useIsMobile())
@@ -236,21 +242,22 @@ describe('useIsMobile', () => {
       })
 
       const listeners: Array<() => void> = []
-      window.matchMedia = (query: string) => ({
-        matches: window.innerWidth < 768,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: window.innerWidth < 768,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       // Act
       const { result } = renderHook(() => useIsMobile())
@@ -268,21 +275,22 @@ describe('useIsMobile', () => {
       })
 
       const listeners: Array<() => void> = []
-      window.matchMedia = (query: string) => ({
-        matches: window.innerWidth < 768,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: window.innerWidth < 768,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       // Act
       const { result } = renderHook(() => useIsMobile())
@@ -300,21 +308,22 @@ describe('useIsMobile', () => {
       })
 
       const listeners: Array<() => void> = []
-      window.matchMedia = (query: string) => ({
-        matches: window.innerWidth < 768,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: window.innerWidth < 768,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       // Act
       const { result } = renderHook(() => useIsMobile())
@@ -336,22 +345,23 @@ describe('useIsMobile', () => {
         value: 1024,
       })
 
-      window.matchMedia = (query: string) => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          addEventListenerCalled = true
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            addEventListenerCalled = true
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       // Act
       renderHook(() => useIsMobile())
@@ -402,21 +412,22 @@ describe('useIsMobile', () => {
         value: 1024, // Start desktop
       })
 
-      window.matchMedia = (query: string) => ({
-        matches: window.innerWidth < 768,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: window.innerWidth < 768,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       const { result, rerender } = renderHook(() => useIsMobile())
 
@@ -431,7 +442,7 @@ describe('useIsMobile', () => {
       })
 
       // Trigger the change listener
-      listeners.forEach(listener => listener())
+      listeners.forEach((listener) => listener())
       rerender()
 
       // Assert - Should now be mobile
@@ -451,22 +462,23 @@ describe('useIsMobile', () => {
         value: 1024,
       })
 
-      window.matchMedia = (query: string) => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          removeEventListenerCalled = true
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            removeEventListenerCalled = true
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       // Act
       const { unmount } = renderHook(() => useIsMobile())
@@ -487,21 +499,22 @@ describe('useIsMobile', () => {
         value: 1024,
       })
 
-      window.matchMedia = (query: string) => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       // Act - Mount and unmount multiple times
       for (let i = 0; i < 5; i++) {
@@ -524,21 +537,22 @@ describe('useIsMobile', () => {
       })
 
       const listeners: Array<() => void> = []
-      window.matchMedia = (query: string) => ({
-        matches: window.innerWidth < 768,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: window.innerWidth < 768,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       // Act
       const { result } = renderHook(() => useIsMobile())
@@ -556,21 +570,22 @@ describe('useIsMobile', () => {
       })
 
       const listeners: Array<() => void> = []
-      window.matchMedia = (query: string) => ({
-        matches: window.innerWidth < 768,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: window.innerWidth < 768,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       // Act
       const { result } = renderHook(() => useIsMobile())
@@ -588,21 +603,22 @@ describe('useIsMobile', () => {
       })
 
       const listeners: Array<() => void> = []
-      window.matchMedia = (query: string) => ({
-        matches: window.innerWidth < 768,
-        media: query,
-        onchange: null,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (_event: string, listener: () => void) => {
-          listeners.push(listener)
-        },
-        removeEventListener: (_event: string, listener: () => void) => {
-          const index = listeners.indexOf(listener)
-          if (index > -1) listeners.splice(index, 1)
-        },
-        dispatchEvent: () => true,
-      }) as MediaQueryList
+      window.matchMedia = (query: string) =>
+        ({
+          matches: window.innerWidth < 768,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: (_event: string, listener: () => void) => {
+            listeners.push(listener)
+          },
+          removeEventListener: (_event: string, listener: () => void) => {
+            const index = listeners.indexOf(listener)
+            if (index > -1) listeners.splice(index, 1)
+          },
+          dispatchEvent: () => true,
+        }) as MediaQueryList
 
       // Act
       const { result } = renderHook(() => useIsMobile())

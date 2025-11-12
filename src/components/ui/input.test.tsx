@@ -180,7 +180,10 @@ describe('Input', () => {
           <span id="helper-text">Enter your username</span>
         </div>
       )
-      expect(screen.getByRole('textbox')).toHaveAttribute('aria-describedby', 'helper-text')
+      expect(screen.getByRole('textbox')).toHaveAttribute(
+        'aria-describedby',
+        'helper-text'
+      )
     })
   })
 
@@ -192,7 +195,10 @@ describe('Input', () => {
 
     it('accepts custom id', () => {
       render(<Input id="username-input" />)
-      expect(screen.getByRole('textbox')).toHaveAttribute('id', 'username-input')
+      expect(screen.getByRole('textbox')).toHaveAttribute(
+        'id',
+        'username-input'
+      )
     })
 
     it('accepts custom name', () => {

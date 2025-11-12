@@ -8,7 +8,11 @@ export const organisationRepository = {
   },
 
   async findById(id: string): Promise<Organisation | undefined> {
-    const result = await db.select().from(organisations).where(eq(organisations.id, id)).limit(1)
+    const result = await db
+      .select()
+      .from(organisations)
+      .where(eq(organisations.id, id))
+      .limit(1)
     return result[0]
   },
 

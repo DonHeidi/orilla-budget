@@ -493,7 +493,9 @@ describe('Sheet', () => {
 
       await user.click(screen.getByText('Settings'))
       await waitFor(() => {
-        expect(screen.getByText('Configure your preferences')).toBeInTheDocument()
+        expect(
+          screen.getByText('Configure your preferences')
+        ).toBeInTheDocument()
       })
 
       await user.click(screen.getByRole('button', { name: 'Save' }))

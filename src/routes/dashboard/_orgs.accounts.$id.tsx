@@ -1,4 +1,9 @@
-import { createFileRoute, getRouteApi, useNavigate, useRouter } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  getRouteApi,
+  useNavigate,
+  useRouter,
+} from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState, useRef, useEffect } from 'react'
 import { Users, Mail, Building2, Key, UserCog } from 'lucide-react'
@@ -23,7 +28,7 @@ function formatDateTime(isoString: string): string {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true
+    hour12: true,
   }
   return date.toLocaleString('en-US', options)
 }
@@ -69,23 +74,39 @@ function AccountDetailPage() {
 
   const account = accounts.find((a: any) => a.id === id)
 
+  // Auto-open select when role field becomes editable
+  // Note: This hook must be called before any conditional returns to follow React's Rules of Hooks
+  useEffect(() => {
+    if (account && editingField === 'role' && roleSelectRef.current) {
+      roleSelectRef.current.showPicker?.()
+    }
+  }, [account, editingField])
+
   if (!account) {
     return (
-      <Sheet open={true} onOpenChange={(open) => {
-        if (!open) {
-          navigate({ to: '/dashboard/accounts' })
-        }
-      }}>
+      <Sheet
+        open={true}
+        onOpenChange={(open) => {
+          if (!open) {
+            navigate({ to: '/dashboard/accounts' })
+          }
+        }}
+      >
         <SheetContent className="w-full sm:max-w-[600px]">
           <SheetHeader>
             <SheetTitle>Error</SheetTitle>
             <SheetDescription>Account not found</SheetDescription>
           </SheetHeader>
           <div className="py-6">
-            <p className="text-gray-500">The requested account could not be found.</p>
+            <p className="text-gray-500">
+              The requested account could not be found.
+            </p>
           </div>
           <div className="flex gap-3 justify-end pt-6 border-t">
-            <Button variant="outline" onClick={() => navigate({ to: '/dashboard/accounts' })}>
+            <Button
+              variant="outline"
+              onClick={() => navigate({ to: '/dashboard/accounts' })}
+            >
               Back to List
             </Button>
           </div>
@@ -94,7 +115,9 @@ function AccountDetailPage() {
     )
   }
 
-  const organisation = organisations.find((o: any) => o.id === account.organisationId)
+  const organisation = organisations.find(
+    (o: any) => o.id === account.organisationId
+  )
 
   const currentValues = { ...account, ...editedValues }
 
@@ -132,22 +155,18 @@ function AccountDetailPage() {
   }
 
   const handleFieldChange = (fieldName: string, value: any) => {
-    setEditedValues(prev => ({ ...prev, [fieldName]: value }))
+    setEditedValues((prev) => ({ ...prev, [fieldName]: value }))
   }
 
-  // Auto-open select when role field becomes editable
-  useEffect(() => {
-    if (editingField === 'role' && roleSelectRef.current) {
-      roleSelectRef.current.showPicker?.()
-    }
-  }, [editingField])
-
   return (
-    <Sheet open={true} onOpenChange={(open) => {
-      if (!open) {
-        navigate({ to: '/dashboard/accounts' })
-      }
-    }}>
+    <Sheet
+      open={true}
+      onOpenChange={(open) => {
+        if (!open) {
+          navigate({ to: '/dashboard/accounts' })
+        }
+      }}
+    >
       <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
         <SheetHeader className="space-y-3 pb-6 border-b">
           <SheetTitle>Account Details</SheetTitle>
@@ -229,7 +248,8 @@ function AccountDetailPage() {
                   onClick={() => handleFieldClick('role')}
                 >
                   {currentValues.role === 'contact' && 'Contact'}
-                  {currentValues.role === 'project_manager' && 'Project Manager'}
+                  {currentValues.role === 'project_manager' &&
+                    'Project Manager'}
                   {currentValues.role === 'finance' && 'Finance/Controller'}
                 </p>
               )}
@@ -265,14 +285,21 @@ function AccountDetailPage() {
             </div>
 
             <div className="pt-4 border-t">
-              <label className="text-sm font-medium text-gray-500">Created</label>
-              <p className="text-base mt-1">{formatDateTime(account.createdAt)}</p>
+              <label className="text-sm font-medium text-gray-500">
+                Created
+              </label>
+              <p className="text-base mt-1">
+                {formatDateTime(account.createdAt)}
+              </p>
             </div>
           </div>
         </div>
 
         <div className="flex gap-3 justify-end pt-6 border-t">
-          <Button variant="outline" onClick={() => navigate({ to: '/dashboard/accounts' })}>
+          <Button
+            variant="outline"
+            onClick={() => navigate({ to: '/dashboard/accounts' })}
+          >
             Close
           </Button>
         </div>

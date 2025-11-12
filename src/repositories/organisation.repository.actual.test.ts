@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'bun:test'
-import { createTestDb, cleanDatabase, seed, testFactories } from '@/test/db-utils'
+import {
+  createTestDb,
+  cleanDatabase,
+  seed,
+  testFactories,
+} from '@/test/db-utils'
 import { organisationRepository } from './organisation.repository'
 import * as schema from '@/db/schema'
 import { eq, sum, sql } from 'drizzle-orm'
@@ -30,8 +35,8 @@ describe('organisationRepository', () => {
 
       // Assert
       expect(results).toHaveLength(2)
-      expect(results.map(o => o.name)).toContain('Acme Corp')
-      expect(results.map(o => o.name)).toContain('Tech Inc')
+      expect(results.map((o) => o.name)).toContain('Acme Corp')
+      expect(results.map((o) => o.name)).toContain('Tech Inc')
     })
 
     it('should return empty array when no organisations exist', async () => {
@@ -46,11 +51,18 @@ describe('organisationRepository', () => {
   describe('findById', () => {
     it('should retrieve organisation by id', async () => {
       // Arrange
-      const org = testFactories.organisation({ id: 'org-123', name: 'Test Org' })
+      const org = testFactories.organisation({
+        id: 'org-123',
+        name: 'Test Org',
+      })
       await db.insert(schema.organisations).values(org)
 
       // Act
-      const result = await db.select().from(schema.organisations).where(eq(schema.organisations.id, 'org-123')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.organisations)
+        .where(eq(schema.organisations.id, 'org-123'))
+        .limit(1)
 
       // Assert
       expect(result[0]).toBeDefined()
@@ -60,7 +72,11 @@ describe('organisationRepository', () => {
 
     it('should return undefined when organisation not found', async () => {
       // Act
-      const result = await db.select().from(schema.organisations).where(eq(schema.organisations.id, 'nonexistent')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.organisations)
+        .where(eq(schema.organisations.id, 'nonexistent'))
+        .limit(1)
 
       // Assert
       expect(result[0]).toBeUndefined()
@@ -76,7 +92,11 @@ describe('organisationRepository', () => {
       await db.insert(schema.organisations).values(newOrg)
 
       // Assert
-      const result = await db.select().from(schema.organisations).where(eq(schema.organisations.id, newOrg.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.organisations)
+        .where(eq(schema.organisations.id, newOrg.id))
+        .limit(1)
       expect(result[0]).toBeDefined()
       expect(result[0].name).toBe('New Corp')
     })
@@ -94,7 +114,11 @@ describe('organisationRepository', () => {
       await db.insert(schema.organisations).values(newOrg)
 
       // Assert
-      const result = await db.select().from(schema.organisations).where(eq(schema.organisations.id, newOrg.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.organisations)
+        .where(eq(schema.organisations.id, newOrg.id))
+        .limit(1)
       expect(result[0].contactName).toBe('John Doe')
       expect(result[0].contactEmail).toBe('john@acme.com')
       expect(result[0].contactPhone).toBe('555-1234')
@@ -107,10 +131,17 @@ describe('organisationRepository', () => {
       const org = await seed.organisation(db, { name: 'Old Name' })
 
       // Act
-      await db.update(schema.organisations).set({ name: 'New Name' }).where(eq(schema.organisations.id, org.id))
+      await db
+        .update(schema.organisations)
+        .set({ name: 'New Name' })
+        .where(eq(schema.organisations.id, org.id))
 
       // Assert
-      const result = await db.select().from(schema.organisations).where(eq(schema.organisations.id, org.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.organisations)
+        .where(eq(schema.organisations.id, org.id))
+        .limit(1)
       expect(result[0].name).toBe('New Name')
     })
 
@@ -119,14 +150,21 @@ describe('organisationRepository', () => {
       const org = await seed.organisation(db)
 
       // Act
-      await db.update(schema.organisations).set({
-        contactName: 'Jane Smith',
-        contactEmail: 'jane@example.com',
-        contactPhone: '555-9999'
-      }).where(eq(schema.organisations.id, org.id))
+      await db
+        .update(schema.organisations)
+        .set({
+          contactName: 'Jane Smith',
+          contactEmail: 'jane@example.com',
+          contactPhone: '555-9999',
+        })
+        .where(eq(schema.organisations.id, org.id))
 
       // Assert
-      const result = await db.select().from(schema.organisations).where(eq(schema.organisations.id, org.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.organisations)
+        .where(eq(schema.organisations.id, org.id))
+        .limit(1)
       expect(result[0].contactName).toBe('Jane Smith')
       expect(result[0].contactEmail).toBe('jane@example.com')
       expect(result[0].contactPhone).toBe('555-9999')
@@ -138,10 +176,17 @@ describe('organisationRepository', () => {
       const org2 = await seed.organisation(db, { name: 'Org 2' })
 
       // Act
-      await db.update(schema.organisations).set({ name: 'Updated' }).where(eq(schema.organisations.id, org1.id))
+      await db
+        .update(schema.organisations)
+        .set({ name: 'Updated' })
+        .where(eq(schema.organisations.id, org1.id))
 
       // Assert
-      const result2 = await db.select().from(schema.organisations).where(eq(schema.organisations.id, org2.id)).limit(1)
+      const result2 = await db
+        .select()
+        .from(schema.organisations)
+        .where(eq(schema.organisations.id, org2.id))
+        .limit(1)
       expect(result2[0].name).toBe('Org 2')
     })
   })
@@ -152,10 +197,16 @@ describe('organisationRepository', () => {
       const org = await seed.organisation(db)
 
       // Act
-      await db.delete(schema.organisations).where(eq(schema.organisations.id, org.id))
+      await db
+        .delete(schema.organisations)
+        .where(eq(schema.organisations.id, org.id))
 
       // Assert
-      const result = await db.select().from(schema.organisations).where(eq(schema.organisations.id, org.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.organisations)
+        .where(eq(schema.organisations.id, org.id))
+        .limit(1)
       expect(result[0]).toBeUndefined()
     })
 
@@ -165,10 +216,16 @@ describe('organisationRepository', () => {
       const account = await seed.account(db, 'org-1')
 
       // Act
-      await db.delete(schema.organisations).where(eq(schema.organisations.id, 'org-1'))
+      await db
+        .delete(schema.organisations)
+        .where(eq(schema.organisations.id, 'org-1'))
 
       // Assert - Account should be deleted due to cascade
-      const accountResult = await db.select().from(schema.accounts).where(eq(schema.accounts.id, account.id)).limit(1)
+      const accountResult = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.id, account.id))
+        .limit(1)
       expect(accountResult[0]).toBeUndefined()
     })
 
@@ -178,10 +235,16 @@ describe('organisationRepository', () => {
       const project = await seed.project(db, 'org-1')
 
       // Act
-      await db.delete(schema.organisations).where(eq(schema.organisations.id, 'org-1'))
+      await db
+        .delete(schema.organisations)
+        .where(eq(schema.organisations.id, 'org-1'))
 
       // Assert - Project should be deleted due to cascade
-      const projectResult = await db.select().from(schema.projects).where(eq(schema.projects.id, project.id)).limit(1)
+      const projectResult = await db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, project.id))
+        .limit(1)
       expect(projectResult[0]).toBeUndefined()
     })
 
@@ -191,7 +254,9 @@ describe('organisationRepository', () => {
       const org2 = await seed.organisation(db)
 
       // Act
-      await db.delete(schema.organisations).where(eq(schema.organisations.id, org1.id))
+      await db
+        .delete(schema.organisations)
+        .where(eq(schema.organisations.id, org1.id))
 
       // Assert
       const remaining = await db.select().from(schema.organisations)
@@ -211,7 +276,9 @@ describe('organisationRepository', () => {
       const result = await db
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
-        .where(sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`)
+        .where(
+          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+        )
 
       // Assert
       expect(Number(result[0]?.total)).toBe(150)
@@ -227,7 +294,9 @@ describe('organisationRepository', () => {
       const result = await db
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
-        .where(sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`)
+        .where(
+          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+        )
 
       // Assert - Should only count budget project
       expect(Number(result[0]?.total)).toBe(100)
@@ -242,7 +311,9 @@ describe('organisationRepository', () => {
       const result = await db
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
-        .where(sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`)
+        .where(
+          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+        )
 
       // Assert
       const total = result[0]?.total ? Number(result[0].total) : 0
@@ -257,7 +328,9 @@ describe('organisationRepository', () => {
       const result = await db
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
-        .where(sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`)
+        .where(
+          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+        )
 
       // Assert
       const total = result[0]?.total ? Number(result[0].total) : 0
@@ -274,7 +347,9 @@ describe('organisationRepository', () => {
       const result = await db
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
-        .where(sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`)
+        .where(
+          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+        )
 
       // Assert
       expect(Number(result[0]?.total)).toBe(100)
@@ -291,7 +366,9 @@ describe('organisationRepository', () => {
       const result = await db
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
-        .where(sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`)
+        .where(
+          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+        )
 
       // Assert - Should only sum org-1's projects
       expect(Number(result[0]?.total)).toBe(100)
@@ -309,7 +386,9 @@ describe('organisationRepository', () => {
       const result = await db
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
-        .where(sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`)
+        .where(
+          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+        )
 
       // Assert - Should only sum budget projects (50 + 75 = 125)
       expect(Number(result[0]?.total)).toBe(125)

@@ -111,7 +111,10 @@ describe('Button', () => {
     it('should apply disabled styles when disabled', () => {
       render(<Button disabled>Disabled</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('disabled:pointer-events-none', 'disabled:opacity-50')
+      expect(button).toHaveClass(
+        'disabled:pointer-events-none',
+        'disabled:opacity-50'
+      )
       expect(button).toBeDisabled()
     })
   })
@@ -124,7 +127,10 @@ describe('Button', () => {
 
     it('should accept and apply aria attributes', () => {
       render(<Button aria-label="Close dialog">X</Button>)
-      expect(screen.getByRole('button')).toHaveAttribute('aria-label', 'Close dialog')
+      expect(screen.getByRole('button')).toHaveAttribute(
+        'aria-label',
+        'Close dialog'
+      )
     })
 
     it('should have data-slot attribute', () => {

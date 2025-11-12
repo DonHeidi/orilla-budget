@@ -56,7 +56,9 @@ describe('Checkbox', () => {
 
     it('does not call onCheckedChange when disabled', async () => {
       const handleChange = vi.fn()
-      const { user } = render(<Checkbox onCheckedChange={handleChange} disabled />)
+      const { user } = render(
+        <Checkbox onCheckedChange={handleChange} disabled />
+      )
 
       await user.click(screen.getByRole('checkbox'))
       expect(handleChange).not.toHaveBeenCalled()
@@ -92,7 +94,9 @@ describe('Checkbox', () => {
       // This is acceptable per ARIA spec
       await user.keyboard('{Enter}')
       // Accept either behavior
-      expect(handleChange).toHaveBeenCalledTimes(handleChange.mock.calls.length >= 0 ? 0 : 1)
+      expect(handleChange).toHaveBeenCalledTimes(
+        handleChange.mock.calls.length >= 0 ? 0 : 1
+      )
     })
   })
 
@@ -118,17 +122,26 @@ describe('Checkbox', () => {
 
     it('has correct aria-checked attribute when unchecked', () => {
       render(<Checkbox checked={false} />)
-      expect(screen.getByRole('checkbox')).toHaveAttribute('aria-checked', 'false')
+      expect(screen.getByRole('checkbox')).toHaveAttribute(
+        'aria-checked',
+        'false'
+      )
     })
 
     it('has correct aria-checked attribute when checked', () => {
       render(<Checkbox checked={true} />)
-      expect(screen.getByRole('checkbox')).toHaveAttribute('aria-checked', 'true')
+      expect(screen.getByRole('checkbox')).toHaveAttribute(
+        'aria-checked',
+        'true'
+      )
     })
 
     it('has correct aria-checked attribute when indeterminate', () => {
       render(<Checkbox checked="indeterminate" />)
-      expect(screen.getByRole('checkbox')).toHaveAttribute('aria-checked', 'mixed')
+      expect(screen.getByRole('checkbox')).toHaveAttribute(
+        'aria-checked',
+        'mixed'
+      )
     })
   })
 
@@ -151,10 +164,16 @@ describe('Checkbox', () => {
         <Checkbox checked={false} onCheckedChange={handleChange} />
       )
 
-      expect(screen.getByRole('checkbox')).toHaveAttribute('data-state', 'unchecked')
+      expect(screen.getByRole('checkbox')).toHaveAttribute(
+        'data-state',
+        'unchecked'
+      )
 
       rerender(<Checkbox checked={true} onCheckedChange={handleChange} />)
-      expect(screen.getByRole('checkbox')).toHaveAttribute('data-state', 'checked')
+      expect(screen.getByRole('checkbox')).toHaveAttribute(
+        'data-state',
+        'checked'
+      )
     })
   })
 })

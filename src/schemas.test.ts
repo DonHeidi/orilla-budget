@@ -34,7 +34,7 @@ describe('userSchema', () => {
     it('should accept handle with letters, numbers, underscores, and hyphens', () => {
       const validHandles = ['user123', 'user_123', 'user-123', 'User-Name_01']
 
-      validHandles.forEach(handle => {
+      validHandles.forEach((handle) => {
         const result = userSchema.safeParse({
           id: 'user-1',
           handle,
@@ -62,9 +62,15 @@ describe('userSchema', () => {
     })
 
     it('should reject handle with special characters', () => {
-      const invalidHandles = ['user@123', 'user!name', 'user name', 'user#123', 'user$']
+      const invalidHandles = [
+        'user@123',
+        'user!name',
+        'user name',
+        'user#123',
+        'user$',
+      ]
 
-      invalidHandles.forEach(handle => {
+      invalidHandles.forEach((handle) => {
         const result = userSchema.safeParse({
           id: 'user-1',
           handle,
@@ -160,7 +166,9 @@ describe('organisationSchema', () => {
 
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe('Organisation name is required')
+        expect(result.error.issues[0].message).toBe(
+          'Organisation name is required'
+        )
       }
     })
 
@@ -245,7 +253,7 @@ describe('accountSchema', () => {
     it('should accept all valid role values', () => {
       const roles = ['contact', 'project_manager', 'finance'] as const
 
-      roles.forEach(role => {
+      roles.forEach((role) => {
         const result = accountSchema.safeParse({
           id: 'acc-1',
           organisationId: 'org-1',
@@ -460,7 +468,9 @@ describe('projectSchema', () => {
 
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe('Budget must be a positive number')
+        expect(result.error.issues[0].message).toBe(
+          'Budget must be a positive number'
+        )
       }
     })
 
@@ -476,7 +486,9 @@ describe('projectSchema', () => {
 
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe('Budget must be a positive number')
+        expect(result.error.issues[0].message).toBe(
+          'Budget must be a positive number'
+        )
       }
     })
   })
@@ -620,7 +632,9 @@ describe('timeEntrySchema', () => {
 
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe('Hours must be a positive number')
+        expect(result.error.issues[0].message).toBe(
+          'Hours must be a positive number'
+        )
       }
     })
 
@@ -636,14 +650,21 @@ describe('timeEntrySchema', () => {
 
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe('Hours must be a positive number')
+        expect(result.error.issues[0].message).toBe(
+          'Hours must be a positive number'
+        )
       }
     })
 
     it('should reject invalid date format', () => {
-      const invalidDates = ['2024/11/11', '11-11-2024', '2024-11-11T10:00:00Z', 'Nov 11, 2024']
+      const invalidDates = [
+        '2024/11/11',
+        '11-11-2024',
+        '2024-11-11T10:00:00Z',
+        'Nov 11, 2024',
+      ]
 
-      invalidDates.forEach(date => {
+      invalidDates.forEach((date) => {
         const result = timeEntrySchema.safeParse({
           id: 'entry-1',
           projectId: 'proj-1',
@@ -800,7 +821,7 @@ describe('timeSheetSchema', () => {
     it('should accept all valid status values', () => {
       const statuses = ['draft', 'submitted', 'approved', 'rejected'] as const
 
-      statuses.forEach(status => {
+      statuses.forEach((status) => {
         const result = timeSheetSchema.safeParse({
           id: 'sheet-1',
           title: 'Week 45',
@@ -871,7 +892,9 @@ describe('timeSheetSchema', () => {
 
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe('End date must be after start date')
+        expect(result.error.issues[0].message).toBe(
+          'End date must be after start date'
+        )
         expect(result.error.issues[0].path).toEqual(['endDate'])
       }
     })
