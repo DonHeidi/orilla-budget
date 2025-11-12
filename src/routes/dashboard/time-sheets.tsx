@@ -525,7 +525,7 @@ function AddTimeSheetDialog({
               {(field) => (
                 <div className="space-y-2">
                   <label htmlFor={field.name} className="text-sm font-medium">
-                    Start Date
+                    Start Date *
                   </label>
                   <Input
                     id={field.name}
@@ -554,7 +554,7 @@ function AddTimeSheetDialog({
               {(field) => (
                 <div className="space-y-2">
                   <label htmlFor={field.name} className="text-sm font-medium">
-                    End Date
+                    End Date *
                   </label>
                   <Input
                     id={field.name}
@@ -604,6 +604,7 @@ function AddTimeSheetDialog({
                     placeholder="Select organisation..."
                     searchPlaceholder="Search organisations..."
                     emptyText="No organisation found."
+                    className="w-full"
                   />
                   {field.state.meta.errors && field.state.meta.errors.length > 0 && (field.state.meta.isTouched || form.state.isSubmitted) && (
                     <p className="text-sm text-destructive">
