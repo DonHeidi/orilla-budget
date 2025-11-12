@@ -10,7 +10,7 @@ import { timeSheetRepository } from '@/repositories/timeSheet.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
-import { createTimeSheetSchema, addEntriesToSheetSchema, type TimeSheet, type Organisation, type Project, type TimeEntry } from '@/schemas'
+import { createTimeSheetSchema, type TimeSheet, type Organisation, type Project, type TimeEntry } from '@/schemas'
 import type { TimeSheetSummary } from '@/types'
 import { DataTable } from '@/components/DataTable'
 import {
@@ -73,7 +73,14 @@ const createTimeSheetFn = createServerFn({ method: 'POST' })
       createdAt: now,
       updatedAt: now,
     }
-    return await timeSheetRepository.create(sheet)
+    const createdSheet = await timeSheetRepository.create(sheet)
+
+    // Add entries if provided
+    if (data.entryIds && data.entryIds.length > 0) {
+      await timeSheetRepository.addEntries(sheet.id, data.entryIds)
+    }
+
+    return createdSheet
   })
 
 const deleteTimeSheetFn = createServerFn({ method: 'POST' }).handler(
@@ -81,12 +88,6 @@ const deleteTimeSheetFn = createServerFn({ method: 'POST' }).handler(
     return await timeSheetRepository.delete(id)
   }
 )
-
-const addEntriesToSheetFn = createServerFn({ method: 'POST' })
-  .inputValidator(addEntriesToSheetSchema)
-  .handler(async ({ data }) => {
-    return await timeSheetRepository.addEntries(data.sheetId, data.entryIds)
-  })
 
 export const Route = createFileRoute('/dashboard/time-sheets')({
   component: TimeSheetsPage,
@@ -372,8 +373,6 @@ function AddTimeSheetDialog({
   timeEntries: any[]
 }) {
   const [open, setOpen] = useState(false)
-  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set())
-  const [selectedOrgId, setSelectedOrgId] = useState<string>('')
   const [submitError, setSubmitError] = useState<string | null>(null)
   const router = useRouter()
 
@@ -384,6 +383,7 @@ function AddTimeSheetDialog({
       startDate: '',
       endDate: '',
       organisationId: '',
+      entryIds: [] as string[],
     },
     validatorAdapter: zodValidator(),
     validators: {
@@ -393,29 +393,19 @@ function AddTimeSheetDialog({
     onSubmit: async ({ value }) => {
       try {
         setSubmitError(null)
-        const sheet = await createTimeSheetFn({
+        await createTimeSheetFn({
           data: {
             title: value.title,
             description: value.description,
             startDate: value.startDate || undefined,
             endDate: value.endDate || undefined,
             organisationId: value.organisationId,
+            entryIds: value.entryIds,
           },
         })
 
-        // Add selected entries to the sheet
-        if (selectedEntryIds.size > 0 && sheet) {
-          await addEntriesToSheetFn({
-            data: {
-              sheetId: sheet.id,
-              entryIds: Array.from(selectedEntryIds),
-            },
-          })
-        }
-
         setOpen(false)
         form.reset()
-        setSelectedEntryIds(new Set())
         router.invalidate()
       } catch (error) {
         console.error('Error creating time sheet:', error)
@@ -424,25 +414,11 @@ function AddTimeSheetDialog({
     },
   })
 
-  const availableEntries = useMemo(() => {
-    return timeEntries.filter((entry: any) => {
-      // Only show entries that aren't already in a sheet
-      if (entry.timeSheetId) return false
-
-      // Filter by organisation if one is selected
-      if (selectedOrgId && entry.organisationId !== selectedOrgId) return false
-
-      return true
-    })
-  }, [timeEntries, selectedOrgId])
-
   return (
     <Dialog open={open} onOpenChange={(open) => {
       if (!open) {
         setOpen(false)
         form.reset()
-        setSelectedOrgId('')
-        setSelectedEntryIds(new Set())
         setSubmitError(null)
       } else {
         setOpen(open)
@@ -606,8 +582,7 @@ function AddTimeSheetDialog({
                     value={field.state.value}
                     onChange={(value) => {
                       field.handleChange(value)
-                      setSelectedOrgId(value)
-                      setSelectedEntryIds(new Set())
+                      form.setFieldValue('entryIds', [])
                     }}
                     onBlur={field.handleBlur}
                     placeholder="Select organisation..."
@@ -628,84 +603,100 @@ function AddTimeSheetDialog({
           </form.Field>
 
           {/* Time Entry Selection */}
-          {selectedOrgId && (
-            <div className="space-y-3 pt-4 border-t">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">
-                  Select Time Entries ({availableEntries.length} available)
-                </label>
-                {availableEntries.length > 0 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      if (selectedEntryIds.size === availableEntries.length) {
-                        setSelectedEntryIds(new Set())
-                      } else {
-                        setSelectedEntryIds(new Set(availableEntries.map((e: any) => e.id)))
-                      }
-                    }}
-                  >
-                    {selectedEntryIds.size === availableEntries.length ? 'Deselect All' : 'Select All'}
-                  </Button>
-                )}
-              </div>
+          <form.Subscribe
+            selector={(state) => ({
+              organisationId: state.values.organisationId,
+              entryIds: state.values.entryIds,
+            })}
+          >
+            {({ organisationId, entryIds }) => {
+              const availableEntries = timeEntries.filter((entry: any) => {
+                // Only show entries that aren't already in a sheet
+                if (entry.timeSheetId) return false
+                // Filter by organisation if one is selected
+                if (organisationId && entry.organisationId !== organisationId) return false
+                return true
+              })
 
-              {availableEntries.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4">
-                  No available time entries for this organisation.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {availableEntries.map((entry: any) => {
-                    const toggleEntry = () => {
-                      const newSet = new Set(selectedEntryIds)
-                      if (newSet.has(entry.id)) {
-                        newSet.delete(entry.id)
-                      } else {
-                        newSet.add(entry.id)
-                      }
-                      setSelectedEntryIds(newSet)
-                    }
-
-                    return (
-                      <div
-                        key={entry.id}
-                        className="flex items-start gap-3 p-3 bg-background rounded-md border hover:bg-accent/50 cursor-pointer transition-colors"
-                        onClick={toggleEntry}
+              return organisationId ? (
+                <div className="space-y-3 pt-4 border-t">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">
+                      Select Time Entries ({availableEntries.length} available)
+                    </label>
+                    {availableEntries.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (entryIds.length === availableEntries.length) {
+                            form.setFieldValue('entryIds', [])
+                          } else {
+                            form.setFieldValue('entryIds', availableEntries.map((e: any) => e.id))
+                          }
+                        }}
                       >
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selectedEntryIds.has(entry.id)}
-                            onCheckedChange={toggleEntry}
-                          />
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-baseline gap-2">
-                            <span className="font-medium text-sm">{entry.title}</span>
-                            <span className="text-xs text-muted-foreground">{entry.date}</span>
-                          </div>
-                          {entry.description && (
-                            <p className="text-xs text-muted-foreground">{entry.description}</p>
-                          )}
-                        </div>
-                        <div className="text-sm font-medium tabular-nums whitespace-nowrap">
-                          {entry.hours}h
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+                        {entryIds.length === availableEntries.length ? 'Deselect All' : 'Select All'}
+                      </Button>
+                    )}
+                  </div>
 
-              {selectedEntryIds.size > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  {selectedEntryIds.size} {selectedEntryIds.size === 1 ? 'entry' : 'entries'} selected
-                </p>
-              )}
-            </div>
-          )}
+                  {availableEntries.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4">
+                      No available time entries for this organisation.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {availableEntries.map((entry: any) => {
+                        const isChecked = entryIds.includes(entry.id)
+                        const toggleEntry = () => {
+                          if (isChecked) {
+                            form.setFieldValue('entryIds', entryIds.filter((id: string) => id !== entry.id))
+                          } else {
+                            form.setFieldValue('entryIds', [...entryIds, entry.id])
+                          }
+                        }
+
+                        return (
+                          <div
+                            key={entry.id}
+                            className="flex items-start gap-3 p-3 bg-background rounded-md border hover:bg-accent/50 cursor-pointer transition-colors"
+                            onClick={toggleEntry}
+                          >
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={isChecked}
+                                onCheckedChange={toggleEntry}
+                              />
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-baseline gap-2">
+                                <span className="font-medium text-sm">{entry.title}</span>
+                                <span className="text-xs text-muted-foreground">{entry.date}</span>
+                              </div>
+                              {entry.description && (
+                                <p className="text-xs text-muted-foreground">{entry.description}</p>
+                              )}
+                            </div>
+                            <div className="text-sm font-medium tabular-nums whitespace-nowrap">
+                              {entry.hours}h
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {entryIds.length > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      {entryIds.length} {entryIds.length === 1 ? 'entry' : 'entries'} selected
+                    </p>
+                  )}
+                </div>
+              ) : null
+            }}
+          </form.Subscribe>
             </div>
           </div>
         </ScrollArea>
