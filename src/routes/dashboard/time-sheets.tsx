@@ -39,6 +39,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Combobox } from '@/components/ui/combobox'
 
 // Server Functions
 const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
@@ -519,8 +520,7 @@ function AddTimeSheetDialog({
               <form.Field
                 name="title"
                 validators={{
-                  onChange: ({ value }) =>
-                    !value ? 'Title is required' : undefined,
+                  onBlur: createTimeSheetSchema.shape.title,
                 }}
               >
                 {(field) => (
@@ -536,9 +536,13 @@ function AddTimeSheetDialog({
                       placeholder="e.g., Week 1 - Feature Development"
                     />
                     {field.state.meta.errors &&
-                      field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">
-                          {field.state.meta.errors[0]}
+                      field.state.meta.errors.length > 0 &&
+                      (field.state.meta.isTouched ||
+                        form.state.isSubmitted) && (
+                        <p className="text-sm text-destructive">
+                          {typeof field.state.meta.errors[0] === 'string'
+                            ? field.state.meta.errors[0]
+                            : field.state.meta.errors[0].message}
                         </p>
                       )}
                   </div>
@@ -564,7 +568,12 @@ function AddTimeSheetDialog({
               </form.Field>
 
               <div className="grid grid-cols-2 gap-4">
-                <form.Field name="startDate">
+                <form.Field
+                  name="startDate"
+                  validators={{
+                    onBlur: createTimeSheetSchema.shape.startDate,
+                  }}
+                >
                   {(field) => (
                     <div className="space-y-2">
                       <label
@@ -577,13 +586,29 @@ function AddTimeSheetDialog({
                         id={field.name}
                         type="date"
                         value={field.state.value}
+                        onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
                       />
+                      {field.state.meta.errors &&
+                        field.state.meta.errors.length > 0 &&
+                        (field.state.meta.isTouched ||
+                          form.state.isSubmitted) && (
+                          <p className="text-sm text-destructive">
+                            {typeof field.state.meta.errors[0] === 'string'
+                              ? field.state.meta.errors[0]
+                              : field.state.meta.errors[0].message}
+                          </p>
+                        )}
                     </div>
                   )}
                 </form.Field>
 
-                <form.Field name="endDate">
+                <form.Field
+                  name="endDate"
+                  validators={{
+                    onBlur: createTimeSheetSchema.shape.endDate,
+                  }}
+                >
                   {(field) => (
                     <div className="space-y-2">
                       <label
@@ -596,14 +621,30 @@ function AddTimeSheetDialog({
                         id={field.name}
                         type="date"
                         value={field.state.value}
+                        onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
                       />
+                      {field.state.meta.errors &&
+                        field.state.meta.errors.length > 0 &&
+                        (field.state.meta.isTouched ||
+                          form.state.isSubmitted) && (
+                          <p className="text-sm text-destructive">
+                            {typeof field.state.meta.errors[0] === 'string'
+                              ? field.state.meta.errors[0]
+                              : field.state.meta.errors[0].message}
+                          </p>
+                        )}
                     </div>
                   )}
                 </form.Field>
               </div>
 
-              <form.Field name="organisationId">
+              <form.Field
+                name="organisationId"
+                validators={{
+                  onBlur: createTimeSheetSchema.shape.organisationId,
+                }}
+              >
                 {(field) => {
                   const organisationOptions = organisations.map((org: any) => ({
                     value: org.id,
@@ -626,14 +667,19 @@ function AddTimeSheetDialog({
                           setSelectedOrgId(value)
                           setSelectedEntryIds(new Set())
                         }}
+                        onBlur={field.handleBlur}
                         placeholder="Select organisation..."
                         searchPlaceholder="Search organisations..."
                         emptyText="No organisation found."
                       />
                       {field.state.meta.errors &&
-                        field.state.meta.errors.length > 0 && (
+                        field.state.meta.errors.length > 0 &&
+                        (field.state.meta.isTouched ||
+                          form.state.isSubmitted) && (
                           <p className="text-sm text-destructive">
-                            {field.state.meta.errors[0]}
+                            {typeof field.state.meta.errors[0] === 'string'
+                              ? field.state.meta.errors[0]
+                              : field.state.meta.errors[0].message}
                           </p>
                         )}
                     </div>
@@ -678,53 +724,50 @@ function AddTimeSheetDialog({
                     </p>
                   ) : (
                     <div className="space-y-2">
-                      {availableEntries.map((entry: any) => (
-                        <div
-                          key={entry.id}
-                          className="flex items-start gap-3 p-3 bg-background rounded-md border hover:bg-accent/50 cursor-pointer transition-colors"
-                          onClick={() => {
-                            const newSet = new Set(selectedEntryIds)
-                            if (newSet.has(entry.id)) {
-                              newSet.delete(entry.id)
-                            } else {
-                              newSet.add(entry.id)
-                            }
-                            setSelectedEntryIds(newSet)
-                          }}
-                        >
-                          <Checkbox
-                            checked={selectedEntryIds.has(entry.id)}
-                            onCheckedChange={(checked) => {
-                              const newSet = new Set(selectedEntryIds)
-                              if (checked) {
-                                newSet.add(entry.id)
-                              } else {
-                                newSet.delete(entry.id)
-                              }
-                              setSelectedEntryIds(newSet)
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <div className="flex-1 space-y-1">
-                            <div className="flex items-baseline gap-2">
-                              <span className="font-medium text-sm">
-                                {entry.title}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {entry.date}
-                              </span>
+                      {availableEntries.map((entry: any) => {
+                        const toggleEntry = () => {
+                          const newSet = new Set(selectedEntryIds)
+                          if (newSet.has(entry.id)) {
+                            newSet.delete(entry.id)
+                          } else {
+                            newSet.add(entry.id)
+                          }
+                          setSelectedEntryIds(newSet)
+                        }
+
+                        return (
+                          <div
+                            key={entry.id}
+                            className="flex items-start gap-3 p-3 bg-background rounded-md border hover:bg-accent/50 cursor-pointer transition-colors"
+                            onClick={toggleEntry}
+                          >
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={selectedEntryIds.has(entry.id)}
+                                onCheckedChange={toggleEntry}
+                              />
                             </div>
-                            {entry.description && (
-                              <p className="text-xs text-muted-foreground">
-                                {entry.description}
-                              </p>
-                            )}
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-baseline gap-2">
+                                <span className="font-medium text-sm">
+                                  {entry.title}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {entry.date}
+                                </span>
+                              </div>
+                              {entry.description && (
+                                <p className="text-xs text-muted-foreground">
+                                  {entry.description}
+                                </p>
+                              )}
+                            </div>
+                            <div className="text-sm font-medium tabular-nums whitespace-nowrap">
+                              {entry.hours}h
+                            </div>
                           </div>
-                          <div className="text-sm font-medium tabular-nums whitespace-nowrap">
-                            {entry.hours}h
-                          </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
 
