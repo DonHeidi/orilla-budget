@@ -459,6 +459,9 @@ function AddTimeSheetDialog({
         router.invalidate()
       } catch (error) {
         console.error('Error creating time sheet:', error)
+        alert(
+          `Error creating time sheet: ${error instanceof Error ? error.message : String(error)}`
+        )
       }
     },
   })
@@ -600,45 +603,42 @@ function AddTimeSheetDialog({
                 </form.Field>
               </div>
 
-              <form.Field
-                name="organisationId"
-                validators={{
-                  onChange: ({ value }) =>
-                    !value ? 'Organisation is required' : undefined,
+              <form.Field name="organisationId">
+                {(field) => {
+                  const organisationOptions = organisations.map((org: any) => ({
+                    value: org.id,
+                    label: org.name,
+                  }))
+
+                  return (
+                    <div className="space-y-2">
+                      <label
+                        htmlFor={field.name}
+                        className="text-sm font-medium"
+                      >
+                        Organisation *
+                      </label>
+                      <Combobox
+                        options={organisationOptions}
+                        value={field.state.value}
+                        onChange={(value) => {
+                          field.handleChange(value)
+                          setSelectedOrgId(value)
+                          setSelectedEntryIds(new Set())
+                        }}
+                        placeholder="Select organisation..."
+                        searchPlaceholder="Search organisations..."
+                        emptyText="No organisation found."
+                      />
+                      {field.state.meta.errors &&
+                        field.state.meta.errors.length > 0 && (
+                          <p className="text-sm text-destructive">
+                            {field.state.meta.errors[0]}
+                          </p>
+                        )}
+                    </div>
+                  )
                 }}
-              >
-                {(field) => (
-                  <div className="space-y-2">
-                    <label htmlFor={field.name} className="text-sm font-medium">
-                      Organisation *
-                    </label>
-                    <select
-                      id={field.name}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        field.handleChange(value)
-                        setSelectedOrgId(value)
-                        setSelectedEntryIds(new Set())
-                      }}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                    >
-                      <option value="">Select organisation...</option>
-                      {organisations.map((org: any) => (
-                        <option key={org.id} value={org.id}>
-                          {org.name}
-                        </option>
-                      ))}
-                    </select>
-                    {field.state.meta.errors &&
-                      field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">
-                          {field.state.meta.errors[0]}
-                        </p>
-                      )}
-                  </div>
-                )}
               </form.Field>
 
               {/* Time Entry Selection */}
@@ -674,58 +674,57 @@ function AddTimeSheetDialog({
 
                   {availableEntries.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4">
-                      No available time entries for the selected filters.
+                      No available time entries for this organisation.
                     </p>
                   ) : (
-                    <div className="border rounded-md">
-                      <table className="w-full text-sm">
-                        <thead className="bg-muted/50">
-                          <tr>
-                            <th className="w-10 p-2"></th>
-                            <th className="text-left p-2">Title</th>
-                            <th className="text-left p-2">Date</th>
-                            <th className="text-right p-2">Hours</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {availableEntries.map((entry: any) => (
-                            <tr
-                              key={entry.id}
-                              className="border-t hover:bg-muted/30 cursor-pointer"
-                              onClick={() => {
-                                const newSet = new Set(selectedEntryIds)
-                                if (newSet.has(entry.id)) {
-                                  newSet.delete(entry.id)
-                                } else {
-                                  newSet.add(entry.id)
-                                }
-                                setSelectedEntryIds(newSet)
-                              }}
-                            >
-                              <td
-                                className="p-2"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Checkbox
-                                  checked={selectedEntryIds.has(entry.id)}
-                                  onCheckedChange={(checked) => {
-                                    const newSet = new Set(selectedEntryIds)
-                                    if (checked) {
-                                      newSet.add(entry.id)
-                                    } else {
-                                      newSet.delete(entry.id)
-                                    }
-                                    setSelectedEntryIds(newSet)
-                                  }}
-                                />
-                              </td>
-                              <td className="p-2">{entry.title}</td>
-                              <td className="p-2">{entry.date || '-'}</td>
-                              <td className="p-2 text-right">{entry.hours}h</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    <div className="space-y-2">
+                      {availableEntries.map((entry: any) => (
+                        <div
+                          key={entry.id}
+                          className="flex items-start gap-3 p-3 bg-background rounded-md border hover:bg-accent/50 cursor-pointer transition-colors"
+                          onClick={() => {
+                            const newSet = new Set(selectedEntryIds)
+                            if (newSet.has(entry.id)) {
+                              newSet.delete(entry.id)
+                            } else {
+                              newSet.add(entry.id)
+                            }
+                            setSelectedEntryIds(newSet)
+                          }}
+                        >
+                          <Checkbox
+                            checked={selectedEntryIds.has(entry.id)}
+                            onCheckedChange={(checked) => {
+                              const newSet = new Set(selectedEntryIds)
+                              if (checked) {
+                                newSet.add(entry.id)
+                              } else {
+                                newSet.delete(entry.id)
+                              }
+                              setSelectedEntryIds(newSet)
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-baseline gap-2">
+                              <span className="font-medium text-sm">
+                                {entry.title}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {entry.date}
+                              </span>
+                            </div>
+                            {entry.description && (
+                              <p className="text-xs text-muted-foreground">
+                                {entry.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-sm font-medium tabular-nums whitespace-nowrap">
+                            {entry.hours}h
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
 
