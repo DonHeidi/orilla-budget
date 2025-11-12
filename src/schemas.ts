@@ -104,7 +104,6 @@ export const timeSheetSchema = z.object({
   rejectedDate: z.string().datetime().optional(),
   rejectionReason: z.string().optional(),
   organisationId: z.string().optional(),
-  projectId: z.string().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 }).superRefine((data, ctx) => {

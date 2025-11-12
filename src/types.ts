@@ -44,7 +44,7 @@ export interface TimeSheetWithEntries {
   entries: TimeEntry[]
   totalHours: number
   organisation?: Organisation
-  project?: Project
+  projects: Project[]
 }
 
 export interface TimeSheetSummary {
@@ -57,7 +57,7 @@ export interface TimeSheetSummary {
   entryCount: number
   totalHours: number
   organisationName?: string
-  projectName?: string
+  projectNames?: string
   createdAt: string
   updatedAt: string
   entries: TimeEntry[]
