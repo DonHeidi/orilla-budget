@@ -244,6 +244,12 @@ function TimeSheetsPage() {
         columns={columns}
         data={filteredSheets}
         getRowId={(row) => row.id}
+        renderExpandedRow={(row) => (
+          <ExpandedTimeEntries
+            entries={row.original.entries}
+            projects={data.projects}
+          />
+        )}
       />
 
       <Outlet />
@@ -277,6 +283,76 @@ function StatusBadge({ status }: { status: string }) {
     <Badge variant="outline" className={cn('font-medium', variant.className)}>
       {variant.label}
     </Badge>
+  )
+}
+
+function ExpandedTimeEntries({ entries, projects }: { entries: any[]; projects: any[] }) {
+  if (!entries || entries.length === 0) {
+    return (
+      <div className="p-4 text-sm text-muted-foreground bg-muted/30">
+        No time entries in this sheet.
+      </div>
+    )
+  }
+
+  // Group entries by project
+  const groupedEntries = entries.reduce((acc, entry) => {
+    const projectId = entry.projectId || 'no-project'
+    if (!acc[projectId]) {
+      acc[projectId] = []
+    }
+    acc[projectId].push(entry)
+    return acc
+  }, {} as Record<string, any[]>)
+
+  const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0)
+
+  return (
+    <div className="bg-muted/30 p-4">
+      <div className="space-y-4">
+        {Object.entries(groupedEntries).map(([projectId, projectEntries]) => {
+          const project = projects.find((p: any) => p.id === projectId)
+          const projectName = project?.name || 'No Project'
+          const projectHours = projectEntries.reduce((sum, entry) => sum + entry.hours, 0)
+
+          return (
+            <div key={projectId} className="space-y-2">
+              <div className="flex items-center justify-between px-2 py-1">
+                <h4 className="text-sm font-semibold">{projectName}</h4>
+                <span className="text-sm text-muted-foreground tabular-nums">
+                  {projectHours.toFixed(2)}h
+                </span>
+              </div>
+              <div className="space-y-2">
+                {projectEntries.map((entry: any) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-start gap-3 p-3 bg-background rounded-md border hover:bg-muted/20 transition-colors"
+                  >
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-medium text-sm">{entry.title}</span>
+                        <span className="text-xs text-muted-foreground">{entry.date}</span>
+                      </div>
+                      {entry.description && (
+                        <p className="text-sm text-muted-foreground">{entry.description}</p>
+                      )}
+                    </div>
+                    <div className="text-sm font-medium tabular-nums whitespace-nowrap">
+                      {entry.hours.toFixed(2)}h
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md border border-border/50">
+          <span className="text-sm font-medium">Total Hours</span>
+          <span className="text-sm font-bold tabular-nums">{totalHours.toFixed(2)}h</span>
+        </div>
+      </div>
+    </div>
   )
 }
 
