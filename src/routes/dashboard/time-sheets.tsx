@@ -430,7 +430,22 @@ function AddTimeSheetDialog({
     },
     validatorAdapter: zodValidator(),
     validators: {
-      onSubmit: createTimeSheetSchema,
+      onSubmitAsync: async ({ value }) => {
+        const result = createTimeSheetSchema.safeParse(value)
+        if (!result.success) {
+          const fieldErrors: Record<string, string> = {}
+          result.error.errors.forEach((err) => {
+            if (err.path.length > 0) {
+              fieldErrors[err.path[0] as string] = err.message
+            }
+          })
+          return {
+            form: 'Please fix the errors below',
+            fields: fieldErrors,
+          }
+        }
+        return undefined
+      },
     },
     onSubmit: async ({ value }) => {
       try {
@@ -538,7 +553,7 @@ function AddTimeSheetDialog({
                     {field.state.meta.errors &&
                       field.state.meta.errors.length > 0 &&
                       (field.state.meta.isTouched ||
-                        form.state.isSubmitted) && (
+                        form.state.submissionAttempts > 0) && (
                         <p className="text-sm text-destructive">
                           {typeof field.state.meta.errors[0] === 'string'
                             ? field.state.meta.errors[0]
@@ -592,7 +607,7 @@ function AddTimeSheetDialog({
                       {field.state.meta.errors &&
                         field.state.meta.errors.length > 0 &&
                         (field.state.meta.isTouched ||
-                          form.state.isSubmitted) && (
+                          form.state.submissionAttempts > 0) && (
                           <p className="text-sm text-destructive">
                             {typeof field.state.meta.errors[0] === 'string'
                               ? field.state.meta.errors[0]
@@ -627,7 +642,7 @@ function AddTimeSheetDialog({
                       {field.state.meta.errors &&
                         field.state.meta.errors.length > 0 &&
                         (field.state.meta.isTouched ||
-                          form.state.isSubmitted) && (
+                          form.state.submissionAttempts > 0) && (
                           <p className="text-sm text-destructive">
                             {typeof field.state.meta.errors[0] === 'string'
                               ? field.state.meta.errors[0]
@@ -676,7 +691,7 @@ function AddTimeSheetDialog({
                       {field.state.meta.errors &&
                         field.state.meta.errors.length > 0 &&
                         (field.state.meta.isTouched ||
-                          form.state.isSubmitted) && (
+                          form.state.submissionAttempts > 0) && (
                           <p className="text-sm text-destructive">
                             {typeof field.state.meta.errors[0] === 'string'
                               ? field.state.meta.errors[0]

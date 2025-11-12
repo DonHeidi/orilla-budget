@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -103,9 +104,8 @@ export function DataTable<TData, TValue>({
         >
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <>
+              <Fragment key={row.id}>
                 <TableRow
-                  key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
                   data-row-id={row.id}
                   className={
@@ -131,7 +131,7 @@ export function DataTable<TData, TValue>({
                     </TableCell>
                   </TableRow>
                 )}
-              </>
+              </Fragment>
             ))
           ) : (
             <TableRow>
