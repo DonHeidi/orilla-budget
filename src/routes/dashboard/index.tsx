@@ -14,9 +14,16 @@ function AgentIndexPage() {
         Select a section from the sidebar to get started:
       </p>
       <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-        <li><strong>Time Entries</strong> - View and manage all time entries</li>
-        <li><strong>Organisations & Accounts</strong> - Manage organisations and their accounts</li>
-        <li><strong>Projects</strong> - Create and manage projects</li>
+        <li>
+          <strong>Time Entries</strong> - View and manage all time entries
+        </li>
+        <li>
+          <strong>Organisations & Accounts</strong> - Manage organisations and
+          their accounts
+        </li>
+        <li>
+          <strong>Projects</strong> - Create and manage projects
+        </li>
       </ul>
     </div>
   )

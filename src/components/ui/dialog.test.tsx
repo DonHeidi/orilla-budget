@@ -275,7 +275,9 @@ describe('Dialog', () => {
 
       await user.click(screen.getByText('Open'))
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument()
+        expect(
+          screen.getByRole('button', { name: /close/i })
+        ).toBeInTheDocument()
       })
     })
 
@@ -294,7 +296,9 @@ describe('Dialog', () => {
       await waitFor(() => {
         expect(screen.getByText('Content')).toBeInTheDocument()
       })
-      expect(screen.queryByRole('button', { name: /close/i })).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: /close/i })
+      ).not.toBeInTheDocument()
     })
   })
 
@@ -425,7 +429,9 @@ describe('Dialog', () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Are you sure?</DialogTitle>
-              <DialogDescription>This action cannot be undone.</DialogDescription>
+              <DialogDescription>
+                This action cannot be undone.
+              </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <DialogClose asChild>

@@ -1,5 +1,11 @@
 import { db } from '../src/db'
-import { users, organisations, accounts, projects, timeEntries } from '../src/db/schema'
+import {
+  users,
+  organisations,
+  accounts,
+  projects,
+  timeEntries,
+} from '../src/db/schema'
 
 // Clear existing data
 await db.delete(timeEntries)

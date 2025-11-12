@@ -12,7 +12,14 @@ const meta = {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['default', 'destructive', 'outline', 'secondary', 'ghost', 'link'],
+      options: [
+        'default',
+        'destructive',
+        'outline',
+        'secondary',
+        'ghost',
+        'link',
+      ],
     },
     size: {
       control: 'select',
@@ -126,9 +133,15 @@ export const AllVariants: Story = {
         <Button size="lg">Large</Button>
       </div>
       <div className="flex gap-2">
-        <Button size="icon"><Plus /></Button>
-        <Button size="icon-sm"><Plus /></Button>
-        <Button size="icon-lg"><Plus /></Button>
+        <Button size="icon">
+          <Plus />
+        </Button>
+        <Button size="icon-sm">
+          <Plus />
+        </Button>
+        <Button size="icon-lg">
+          <Plus />
+        </Button>
       </div>
     </div>
   ),

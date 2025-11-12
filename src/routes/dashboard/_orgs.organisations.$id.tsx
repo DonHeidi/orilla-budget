@@ -1,4 +1,9 @@
-import { createFileRoute, getRouteApi, useNavigate, useRouter } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  getRouteApi,
+  useNavigate,
+  useRouter,
+} from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { Users, Mail, Building2 } from 'lucide-react'
@@ -23,7 +28,7 @@ function formatDateTime(isoString: string): string {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true
+    hour12: true,
   }
   return date.toLocaleString('en-US', options)
 }
@@ -69,21 +74,29 @@ function OrganisationDetailPage() {
 
   if (!organisation) {
     return (
-      <Sheet open={true} onOpenChange={(open) => {
-        if (!open) {
-          navigate({ to: '/dashboard/organisations' })
-        }
-      }}>
+      <Sheet
+        open={true}
+        onOpenChange={(open) => {
+          if (!open) {
+            navigate({ to: '/dashboard/organisations' })
+          }
+        }}
+      >
         <SheetContent className="w-full sm:max-w-[600px]">
           <SheetHeader>
             <SheetTitle>Error</SheetTitle>
             <SheetDescription>Organisation not found</SheetDescription>
           </SheetHeader>
           <div className="py-6">
-            <p className="text-gray-500">The requested organisation could not be found.</p>
+            <p className="text-gray-500">
+              The requested organisation could not be found.
+            </p>
           </div>
           <div className="flex gap-3 justify-end pt-6 border-t">
-            <Button variant="outline" onClick={() => navigate({ to: '/dashboard/organisations' })}>
+            <Button
+              variant="outline"
+              onClick={() => navigate({ to: '/dashboard/organisations' })}
+            >
               Back to List
             </Button>
           </div>
@@ -92,7 +105,9 @@ function OrganisationDetailPage() {
     )
   }
 
-  const organisationAccounts = accounts.filter((a: any) => a.organisationId === organisation.id)
+  const organisationAccounts = accounts.filter(
+    (a: any) => a.organisationId === organisation.id
+  )
 
   const currentValues = { ...organisation, ...editedValues }
 
@@ -128,15 +143,18 @@ function OrganisationDetailPage() {
   }
 
   const handleFieldChange = (fieldName: string, value: any) => {
-    setEditedValues(prev => ({ ...prev, [fieldName]: value }))
+    setEditedValues((prev) => ({ ...prev, [fieldName]: value }))
   }
 
   return (
-    <Sheet open={true} onOpenChange={(open) => {
-      if (!open) {
-        navigate({ to: '/dashboard/organisations' })
-      }
-    }}>
+    <Sheet
+      open={true}
+      onOpenChange={(open) => {
+        if (!open) {
+          navigate({ to: '/dashboard/organisations' })
+        }
+      }}
+    >
       <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
         <SheetHeader className="space-y-3 pb-6 border-b">
           <SheetTitle>Organisation Details</SheetTitle>
@@ -179,7 +197,9 @@ function OrganisationDetailPage() {
                 <Input
                   autoFocus
                   value={currentValues.contactName}
-                  onChange={(e) => handleFieldChange('contactName', e.target.value)}
+                  onChange={(e) =>
+                    handleFieldChange('contactName', e.target.value)
+                  }
                   onBlur={handleFieldBlur}
                   className="mt-1"
                 />
@@ -203,7 +223,9 @@ function OrganisationDetailPage() {
                   autoFocus
                   type="email"
                   value={currentValues.contactEmail}
-                  onChange={(e) => handleFieldChange('contactEmail', e.target.value)}
+                  onChange={(e) =>
+                    handleFieldChange('contactEmail', e.target.value)
+                  }
                   onBlur={handleFieldBlur}
                   className="mt-1"
                 />
@@ -227,11 +249,16 @@ function OrganisationDetailPage() {
               ) : (
                 <div className="space-y-3">
                   {organisationAccounts.map((account: any) => (
-                    <div key={account.id} className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+                    <div
+                      key={account.id}
+                      className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3"
+                    >
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <p className="font-medium">{account.name}</p>
-                          <p className="text-sm text-gray-500">{account.email}</p>
+                          <p className="text-sm text-gray-500">
+                            {account.email}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
@@ -247,14 +274,21 @@ function OrganisationDetailPage() {
             </div>
 
             <div className="pt-4 border-t">
-              <label className="text-sm font-medium text-gray-500">Created</label>
-              <p className="text-base mt-1">{formatDateTime(organisation.createdAt)}</p>
+              <label className="text-sm font-medium text-gray-500">
+                Created
+              </label>
+              <p className="text-base mt-1">
+                {formatDateTime(organisation.createdAt)}
+              </p>
             </div>
           </div>
         </div>
 
         <div className="flex gap-3 justify-end pt-6 border-t">
-          <Button variant="outline" onClick={() => navigate({ to: '/dashboard/organisations' })}>
+          <Button
+            variant="outline"
+            onClick={() => navigate({ to: '/dashboard/organisations' })}
+          >
             Close
           </Button>
         </div>

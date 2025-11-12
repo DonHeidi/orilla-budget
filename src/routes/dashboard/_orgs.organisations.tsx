@@ -1,4 +1,11 @@
-import { createFileRoute, getRouteApi, Link, Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  getRouteApi,
+  Link,
+  Outlet,
+  useMatchRoute,
+  useNavigate,
+} from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
@@ -7,7 +14,11 @@ import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { accountRepository } from '@/repositories/account.repository'
-import { createOrganisationSchema, type Organisation, type Account } from '@/schemas'
+import {
+  createOrganisationSchema,
+  type Organisation,
+  type Account,
+} from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -73,27 +84,41 @@ function OrganisationsPage() {
   const parentData = parentRouteApi.useLoaderData()
   const navigate = useNavigate({ from: Route.fullPath })
   const matchRoute = useMatchRoute()
-  const isOrganisations = matchRoute({ to: '/dashboard/organisations', fuzzy: true })
+  const isOrganisations = matchRoute({
+    to: '/dashboard/organisations',
+    fuzzy: true,
+  })
   const isAccounts = matchRoute({ to: '/dashboard/accounts', fuzzy: true })
 
   const organisationsWithDetails = useMemo(() => {
     return parentData.organisations.map((org: any) => {
-      const accountCount = parentData.accounts.filter((a: any) => a.organisationId === org.id).length
-      const orgProjects = parentData.projects.filter((p: any) => p.organisationId === org.id)
+      const accountCount = parentData.accounts.filter(
+        (a: any) => a.organisationId === org.id
+      ).length
+      const orgProjects = parentData.projects.filter(
+        (p: any) => p.organisationId === org.id
+      )
       // Only sum budget hours from Time & Materials (budget) projects, not fixed price projects
       const totalBudgetHours = orgProjects
         .filter((p: any) => p.category === 'budget')
         .reduce((sum: number, p: any) => sum + (p.budgetHours || 0), 0)
 
       // Get all time entries for this organisation
-      const orgTimeEntries = parentData.timeEntries.filter((t: any) => t.organisationId === org.id)
-      const usedHours = orgTimeEntries.reduce((sum: number, t: any) => sum + t.hours, 0)
+      const orgTimeEntries = parentData.timeEntries.filter(
+        (t: any) => t.organisationId === org.id
+      )
+      const usedHours = orgTimeEntries.reduce(
+        (sum: number, t: any) => sum + t.hours,
+        0
+      )
       const billedHours = orgTimeEntries
         .filter((t: any) => t.billed === true)
         .reduce((sum: number, t: any) => sum + t.hours, 0)
 
-      const usedPercentage = totalBudgetHours > 0 ? (usedHours / totalBudgetHours) * 100 : 0
-      const billedPercentage = totalBudgetHours > 0 ? (billedHours / totalBudgetHours) * 100 : 0
+      const usedPercentage =
+        totalBudgetHours > 0 ? (usedHours / totalBudgetHours) * 100 : 0
+      const billedPercentage =
+        totalBudgetHours > 0 ? (billedHours / totalBudgetHours) * 100 : 0
 
       return {
         id: org.id,
@@ -158,16 +183,20 @@ function OrganisationsPage() {
 
         return (
           <div className="flex items-center gap-2">
-            <span className={
-              percentage > 100
-                ? 'text-red-600 dark:text-red-400 font-semibold'
-                : percentage > 75
-                ? 'text-orange-600 dark:text-orange-400 font-medium'
-                : 'text-gray-900 dark:text-gray-100'
-            }>
+            <span
+              className={
+                percentage > 100
+                  ? 'text-red-600 dark:text-red-400 font-semibold'
+                  : percentage > 75
+                    ? 'text-orange-600 dark:text-orange-400 font-medium'
+                    : 'text-gray-900 dark:text-gray-100'
+              }
+            >
               {percentage.toFixed(1)}%
             </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">({hours.toFixed(1)}h)</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              ({hours.toFixed(1)}h)
+            </span>
           </div>
         )
       },
@@ -189,7 +218,9 @@ function OrganisationsPage() {
             <span className="text-green-600 dark:text-green-400 font-medium">
               {percentage.toFixed(1)}%
             </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">({hours.toFixed(1)}h)</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              ({hours.toFixed(1)}h)
+            </span>
           </div>
         )
       },
@@ -241,7 +272,10 @@ function OrganisationsPage() {
         data={organisationsWithDetails}
         getRowId={(row) => row.id}
         onRowClick={(row) => {
-          navigate({ to: '/dashboard/organisations/$id', params: { id: row.original.id } })
+          navigate({
+            to: '/dashboard/organisations/$id',
+            params: { id: row.original.id },
+          })
         }}
       />
 
@@ -270,7 +304,7 @@ function AddOrganisationSheet() {
           name: value.name,
           contactName: value.contactName,
           contactEmail: value.contactEmail,
-        }
+        },
       })
       setOpen(false)
       form.reset()
@@ -284,10 +318,13 @@ function AddOrganisationSheet() {
   }
 
   return (
-    <Sheet open={open} onOpenChange={(open) => {
-      if (!open) handleClose()
-      else setOpen(open)
-    }}>
+    <Sheet
+      open={open}
+      onOpenChange={(open) => {
+        if (!open) handleClose()
+        else setOpen(open)
+      }}
+    >
       <SheetTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
@@ -323,13 +360,18 @@ function AddOrganisationSheet() {
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="e.g., Google Inc."
                 />
-                {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-red-500">
-                    {field.state.meta.errors.map((err) =>
-                      typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                    ).join(', ')}
-                  </p>
-                )}
+                {field.state.meta.errors &&
+                  field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-red-500">
+                      {field.state.meta.errors
+                        .map((err) =>
+                          typeof err === 'string'
+                            ? err
+                            : err.message || JSON.stringify(err)
+                        )
+                        .join(', ')}
+                    </p>
+                  )}
               </div>
             )}
           </form.Field>
@@ -347,13 +389,18 @@ function AddOrganisationSheet() {
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="e.g., Sundar Pichai"
                 />
-                {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-red-500">
-                    {field.state.meta.errors.map((err) =>
-                      typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                    ).join(', ')}
-                  </p>
-                )}
+                {field.state.meta.errors &&
+                  field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-red-500">
+                      {field.state.meta.errors
+                        .map((err) =>
+                          typeof err === 'string'
+                            ? err
+                            : err.message || JSON.stringify(err)
+                        )
+                        .join(', ')}
+                    </p>
+                  )}
               </div>
             )}
           </form.Field>
@@ -372,13 +419,18 @@ function AddOrganisationSheet() {
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="e.g., sundar@google.com"
                 />
-                {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-red-500">
-                    {field.state.meta.errors.map((err) =>
-                      typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                    ).join(', ')}
-                  </p>
-                )}
+                {field.state.meta.errors &&
+                  field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-red-500">
+                      {field.state.meta.errors
+                        .map((err) =>
+                          typeof err === 'string'
+                            ? err
+                            : err.message || JSON.stringify(err)
+                        )
+                        .join(', ')}
+                    </p>
+                  )}
               </div>
             )}
           </form.Field>
@@ -387,9 +439,7 @@ function AddOrganisationSheet() {
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit">
-              Create Organisation
-            </Button>
+            <Button type="submit">Create Organisation</Button>
           </div>
         </form>
       </SheetContent>

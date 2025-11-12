@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'bun:test'
-import { createTestDb, cleanDatabase, seed, testFactories } from '@/test/db-utils'
+import {
+  createTestDb,
+  cleanDatabase,
+  seed,
+  testFactories,
+} from '@/test/db-utils'
 import { accountRepository } from './account.repository'
 import * as schema from '@/db/schema'
 import { eq } from 'drizzle-orm'
@@ -31,8 +36,8 @@ describe('accountRepository', () => {
 
       // Assert
       expect(results).toHaveLength(2)
-      expect(results.map(a => a.name)).toContain('Account 1')
-      expect(results.map(a => a.name)).toContain('Account 2')
+      expect(results.map((a) => a.name)).toContain('Account 1')
+      expect(results.map((a) => a.name)).toContain('Account 2')
     })
 
     it('should return empty array when no accounts exist', async () => {
@@ -48,11 +53,18 @@ describe('accountRepository', () => {
     it('should retrieve account by id', async () => {
       // Arrange
       const org = await seed.organisation(db)
-      const account = testFactories.account(org.id, { id: 'acc-123', name: 'Test Account' })
+      const account = testFactories.account(org.id, {
+        id: 'acc-123',
+        name: 'Test Account',
+      })
       await db.insert(schema.accounts).values(account)
 
       // Act
-      const result = await db.select().from(schema.accounts).where(eq(schema.accounts.id, 'acc-123')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.id, 'acc-123'))
+        .limit(1)
 
       // Assert
       expect(result[0]).toBeDefined()
@@ -62,7 +74,11 @@ describe('accountRepository', () => {
 
     it('should return undefined when account not found', async () => {
       // Act
-      const result = await db.select().from(schema.accounts).where(eq(schema.accounts.id, 'nonexistent')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.id, 'nonexistent'))
+        .limit(1)
 
       // Assert
       expect(result[0]).toBeUndefined()
@@ -82,13 +98,16 @@ describe('accountRepository', () => {
       await db.insert(schema.accounts).values([acc1, acc2, acc3])
 
       // Act
-      const results = await db.select().from(schema.accounts).where(eq(schema.accounts.organisationId, 'org-1'))
+      const results = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.organisationId, 'org-1'))
 
       // Assert
       expect(results).toHaveLength(2)
-      expect(results.map(a => a.name)).toContain('Org1 Account 1')
-      expect(results.map(a => a.name)).toContain('Org1 Account 2')
-      expect(results.map(a => a.name)).not.toContain('Org2 Account 1')
+      expect(results.map((a) => a.name)).toContain('Org1 Account 1')
+      expect(results.map((a) => a.name)).toContain('Org1 Account 2')
+      expect(results.map((a) => a.name)).not.toContain('Org2 Account 1')
     })
 
     it('should return empty array when organisation has no accounts', async () => {
@@ -96,7 +115,10 @@ describe('accountRepository', () => {
       await seed.organisation(db, { id: 'org-1' })
 
       // Act
-      const results = await db.select().from(schema.accounts).where(eq(schema.accounts.organisationId, 'org-1'))
+      const results = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.organisationId, 'org-1'))
 
       // Assert
       expect(results).toEqual([])
@@ -111,7 +133,11 @@ describe('accountRepository', () => {
       await db.insert(schema.accounts).values(account)
 
       // Act
-      const result = await db.select().from(schema.accounts).where(eq(schema.accounts.accessCode, 'SECURE123')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.accessCode, 'SECURE123'))
+        .limit(1)
 
       // Assert
       expect(result[0]).toBeDefined()
@@ -121,7 +147,11 @@ describe('accountRepository', () => {
 
     it('should return undefined when access code not found', async () => {
       // Act
-      const result = await db.select().from(schema.accounts).where(eq(schema.accounts.accessCode, 'INVALID')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.accessCode, 'INVALID'))
+        .limit(1)
 
       // Assert
       expect(result[0]).toBeUndefined()
@@ -134,9 +164,21 @@ describe('accountRepository', () => {
       await db.insert(schema.accounts).values(account)
 
       // Act
-      const resultExact = await db.select().from(schema.accounts).where(eq(schema.accounts.accessCode, 'AbC123')).limit(1)
-      const resultLower = await db.select().from(schema.accounts).where(eq(schema.accounts.accessCode, 'abc123')).limit(1)
-      const resultUpper = await db.select().from(schema.accounts).where(eq(schema.accounts.accessCode, 'ABC123')).limit(1)
+      const resultExact = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.accessCode, 'AbC123'))
+        .limit(1)
+      const resultLower = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.accessCode, 'abc123'))
+        .limit(1)
+      const resultUpper = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.accessCode, 'ABC123'))
+        .limit(1)
 
       // Assert
       expect(resultExact[0]).toBeDefined()
@@ -147,11 +189,17 @@ describe('accountRepository', () => {
     it('should find account with special characters in access code', async () => {
       // Arrange
       const org = await seed.organisation(db)
-      const account = testFactories.account(org.id, { accessCode: 'CODE-123_XYZ' })
+      const account = testFactories.account(org.id, {
+        accessCode: 'CODE-123_XYZ',
+      })
       await db.insert(schema.accounts).values(account)
 
       // Act
-      const result = await db.select().from(schema.accounts).where(eq(schema.accounts.accessCode, 'CODE-123_XYZ')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.accessCode, 'CODE-123_XYZ'))
+        .limit(1)
 
       // Assert
       expect(result[0]).toBeDefined()
@@ -161,11 +209,15 @@ describe('accountRepository', () => {
     it('should enforce unique access codes', async () => {
       // Arrange
       const org = await seed.organisation(db)
-      const account1 = testFactories.account(org.id, { accessCode: 'UNIQUE123' })
+      const account1 = testFactories.account(org.id, {
+        accessCode: 'UNIQUE123',
+      })
       await db.insert(schema.accounts).values(account1)
 
       // Act & Assert - Should fail to insert duplicate access code
-      const account2 = testFactories.account(org.id, { accessCode: 'UNIQUE123' })
+      const account2 = testFactories.account(org.id, {
+        accessCode: 'UNIQUE123',
+      })
       try {
         await db.insert(schema.accounts).values(account2)
         expect(true).toBe(false) // Should not reach here
@@ -185,7 +237,11 @@ describe('accountRepository', () => {
       await db.insert(schema.accounts).values(newAccount)
 
       // Assert
-      const result = await db.select().from(schema.accounts).where(eq(schema.accounts.id, newAccount.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.id, newAccount.id))
+        .limit(1)
       expect(result[0]).toBeDefined()
       expect(result[0].name).toBe('New Account')
     })
@@ -203,7 +259,11 @@ describe('accountRepository', () => {
       await db.insert(schema.accounts).values(newAccount)
 
       // Assert
-      const result = await db.select().from(schema.accounts).where(eq(schema.accounts.id, newAccount.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.id, newAccount.id))
+        .limit(1)
       expect(result[0].role).toBe('project_manager')
       expect(result[0].email).toBe('pm@example.com')
     })
@@ -217,7 +277,11 @@ describe('accountRepository', () => {
       await db.insert(schema.accounts).values(newAccount)
 
       // Assert
-      const result = await db.select().from(schema.accounts).where(eq(schema.accounts.id, newAccount.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.id, newAccount.id))
+        .limit(1)
       expect(result[0].userId).toBeNull()
     })
   })
@@ -229,10 +293,17 @@ describe('accountRepository', () => {
       const account = await seed.account(db, org.id, { name: 'Old Name' })
 
       // Act
-      await db.update(schema.accounts).set({ name: 'New Name' }).where(eq(schema.accounts.id, account.id))
+      await db
+        .update(schema.accounts)
+        .set({ name: 'New Name' })
+        .where(eq(schema.accounts.id, account.id))
 
       // Assert
-      const result = await db.select().from(schema.accounts).where(eq(schema.accounts.id, account.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.id, account.id))
+        .limit(1)
       expect(result[0].name).toBe('New Name')
     })
 
@@ -242,10 +313,17 @@ describe('accountRepository', () => {
       const account = await seed.account(db, org.id, { role: 'contact' })
 
       // Act
-      await db.update(schema.accounts).set({ role: 'finance' }).where(eq(schema.accounts.id, account.id))
+      await db
+        .update(schema.accounts)
+        .set({ role: 'finance' })
+        .where(eq(schema.accounts.id, account.id))
 
       // Assert
-      const result = await db.select().from(schema.accounts).where(eq(schema.accounts.id, account.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.id, account.id))
+        .limit(1)
       expect(result[0].role).toBe('finance')
     })
 
@@ -255,14 +333,21 @@ describe('accountRepository', () => {
       const account = await seed.account(db, org.id)
 
       // Act
-      await db.update(schema.accounts).set({
-        name: 'Updated Name',
-        email: 'updated@example.com',
-        role: 'project_manager'
-      }).where(eq(schema.accounts.id, account.id))
+      await db
+        .update(schema.accounts)
+        .set({
+          name: 'Updated Name',
+          email: 'updated@example.com',
+          role: 'project_manager',
+        })
+        .where(eq(schema.accounts.id, account.id))
 
       // Assert
-      const result = await db.select().from(schema.accounts).where(eq(schema.accounts.id, account.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.id, account.id))
+        .limit(1)
       expect(result[0].name).toBe('Updated Name')
       expect(result[0].email).toBe('updated@example.com')
       expect(result[0].role).toBe('project_manager')
@@ -275,10 +360,17 @@ describe('accountRepository', () => {
       const account2 = await seed.account(db, org.id, { name: 'Account 2' })
 
       // Act
-      await db.update(schema.accounts).set({ name: 'Updated' }).where(eq(schema.accounts.id, account1.id))
+      await db
+        .update(schema.accounts)
+        .set({ name: 'Updated' })
+        .where(eq(schema.accounts.id, account1.id))
 
       // Assert
-      const result2 = await db.select().from(schema.accounts).where(eq(schema.accounts.id, account2.id)).limit(1)
+      const result2 = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.id, account2.id))
+        .limit(1)
       expect(result2[0].name).toBe('Account 2')
     })
   })
@@ -293,7 +385,11 @@ describe('accountRepository', () => {
       await db.delete(schema.accounts).where(eq(schema.accounts.id, account.id))
 
       // Assert
-      const result = await db.select().from(schema.accounts).where(eq(schema.accounts.id, account.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.id, account.id))
+        .limit(1)
       expect(result[0]).toBeUndefined()
     })
 
@@ -303,10 +399,16 @@ describe('accountRepository', () => {
       const account = await seed.account(db, 'org-1')
 
       // Act - Delete organisation
-      await db.delete(schema.organisations).where(eq(schema.organisations.id, 'org-1'))
+      await db
+        .delete(schema.organisations)
+        .where(eq(schema.organisations.id, 'org-1'))
 
       // Assert - Account should be deleted due to cascade
-      const result = await db.select().from(schema.accounts).where(eq(schema.accounts.id, account.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.id, account.id))
+        .limit(1)
       expect(result[0]).toBeUndefined()
     })
 
@@ -317,7 +419,9 @@ describe('accountRepository', () => {
       const account2 = await seed.account(db, org.id)
 
       // Act
-      await db.delete(schema.accounts).where(eq(schema.accounts.id, account1.id))
+      await db
+        .delete(schema.accounts)
+        .where(eq(schema.accounts.id, account1.id))
 
       // Assert
       const remaining = await db.select().from(schema.accounts)
@@ -351,7 +455,11 @@ describe('accountRepository', () => {
       await db.insert(schema.accounts).values(account)
 
       // Assert
-      const result = await db.select().from(schema.accounts).where(eq(schema.accounts.id, account.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.id, account.id))
+        .limit(1)
       expect(result[0].userId).toBe('user-1')
     })
 
@@ -365,7 +473,11 @@ describe('accountRepository', () => {
       await db.delete(schema.users).where(eq(schema.users.id, 'user-1'))
 
       // Assert - Account userId should be set to null (onDelete: 'set null')
-      const result = await db.select().from(schema.accounts).where(eq(schema.accounts.id, account.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.accounts)
+        .where(eq(schema.accounts.id, account.id))
+        .limit(1)
       expect(result[0].userId).toBeNull()
     })
   })

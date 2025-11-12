@@ -1,4 +1,11 @@
-import { createFileRoute, getRouteApi, Link, Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  getRouteApi,
+  Link,
+  Outlet,
+  useMatchRoute,
+  useNavigate,
+} from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
@@ -57,12 +64,17 @@ function AccountsPage() {
   const parentData = parentRouteApi.useLoaderData()
   const navigate = useNavigate({ from: Route.fullPath })
   const matchRoute = useMatchRoute()
-  const isOrganisations = matchRoute({ to: '/dashboard/organisations', fuzzy: true })
+  const isOrganisations = matchRoute({
+    to: '/dashboard/organisations',
+    fuzzy: true,
+  })
   const isAccounts = matchRoute({ to: '/dashboard/accounts', fuzzy: true })
 
   const accountsWithDetails = useMemo(() => {
     return parentData.accounts.map((account: any) => {
-      const organisation = parentData.organisations.find((o: any) => o.id === account.organisationId)
+      const organisation = parentData.organisations.find(
+        (o: any) => o.id === account.organisationId
+      )
       return {
         id: account.id,
         organisationId: account.organisationId,
@@ -169,7 +181,10 @@ function AccountsPage() {
         data={accountsWithDetails}
         getRowId={(row) => row.id}
         onRowClick={(row) => {
-          navigate({ to: '/dashboard/accounts/$id', params: { id: row.original.id } })
+          navigate({
+            to: '/dashboard/accounts/$id',
+            params: { id: row.original.id },
+          })
         }}
       />
 
@@ -180,7 +195,9 @@ function AccountsPage() {
 
 function AddAccountSheet({ organisations }: { organisations: any[] }) {
   const [open, setOpen] = useState(false)
-  const [createdAccessCode, setCreatedAccessCode] = useState<string | null>(null)
+  const [createdAccessCode, setCreatedAccessCode] = useState<string | null>(
+    null
+  )
   const navigate = useNavigate()
 
   const form = useForm({
@@ -201,7 +218,7 @@ function AddAccountSheet({ organisations }: { organisations: any[] }) {
           name: value.name,
           email: value.email,
           role: value.role,
-        }
+        },
       })
       setCreatedAccessCode(result.accessCode)
       navigate({ to: '/dashboard/accounts' })
@@ -215,10 +232,13 @@ function AddAccountSheet({ organisations }: { organisations: any[] }) {
   }
 
   return (
-    <Sheet open={open} onOpenChange={(open) => {
-      if (!open) handleClose()
-      else setOpen(open)
-    }}>
+    <Sheet
+      open={open}
+      onOpenChange={(open) => {
+        if (!open) handleClose()
+        else setOpen(open)
+      }}
+    >
       <SheetTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
@@ -249,9 +269,7 @@ function AddAccountSheet({ organisations }: { organisations: any[] }) {
               </div>
             </div>
             <div className="flex gap-3 justify-end pt-6 border-t">
-              <Button onClick={handleClose}>
-                Done
-              </Button>
+              <Button onClick={handleClose}>Done</Button>
             </div>
           </div>
         ) : (
@@ -282,13 +300,18 @@ function AddAccountSheet({ organisations }: { organisations: any[] }) {
                       </option>
                     ))}
                   </select>
-                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors.map((err) =>
-                        typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                      ).join(', ')}
-                    </p>
-                  )}
+                  {field.state.meta.errors &&
+                    field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">
+                        {field.state.meta.errors
+                          .map((err) =>
+                            typeof err === 'string'
+                              ? err
+                              : err.message || JSON.stringify(err)
+                          )
+                          .join(', ')}
+                      </p>
+                    )}
                 </div>
               )}
             </form.Field>
@@ -306,13 +329,18 @@ function AddAccountSheet({ organisations }: { organisations: any[] }) {
                     onChange={(e) => field.handleChange(e.target.value)}
                     placeholder="e.g., Larry Page"
                   />
-                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors.map((err) =>
-                        typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                      ).join(', ')}
-                    </p>
-                  )}
+                  {field.state.meta.errors &&
+                    field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">
+                        {field.state.meta.errors
+                          .map((err) =>
+                            typeof err === 'string'
+                              ? err
+                              : err.message || JSON.stringify(err)
+                          )
+                          .join(', ')}
+                      </p>
+                    )}
                 </div>
               )}
             </form.Field>
@@ -331,13 +359,18 @@ function AddAccountSheet({ organisations }: { organisations: any[] }) {
                     onChange={(e) => field.handleChange(e.target.value)}
                     placeholder="e.g., larry@google.com"
                   />
-                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors.map((err) =>
-                        typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                      ).join(', ')}
-                    </p>
-                  )}
+                  {field.state.meta.errors &&
+                    field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">
+                        {field.state.meta.errors
+                          .map((err) =>
+                            typeof err === 'string'
+                              ? err
+                              : err.message || JSON.stringify(err)
+                          )
+                          .join(', ')}
+                      </p>
+                    )}
                 </div>
               )}
             </form.Field>
@@ -351,20 +384,32 @@ function AddAccountSheet({ organisations }: { organisations: any[] }) {
                   <select
                     id={field.name}
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value as 'contact' | 'project_manager' | 'finance')}
+                    onChange={(e) =>
+                      field.handleChange(
+                        e.target.value as
+                          | 'contact'
+                          | 'project_manager'
+                          | 'finance'
+                      )
+                    }
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                   >
                     <option value="contact">Contact</option>
                     <option value="project_manager">Project Manager</option>
                     <option value="finance">Finance/Controller</option>
                   </select>
-                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors.map((err) =>
-                        typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                      ).join(', ')}
-                    </p>
-                  )}
+                  {field.state.meta.errors &&
+                    field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">
+                        {field.state.meta.errors
+                          .map((err) =>
+                            typeof err === 'string'
+                              ? err
+                              : err.message || JSON.stringify(err)
+                          )
+                          .join(', ')}
+                      </p>
+                    )}
                 </div>
               )}
             </form.Field>
@@ -373,9 +418,7 @@ function AddAccountSheet({ organisations }: { organisations: any[] }) {
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button type="submit">
-                Create Account
-              </Button>
+              <Button type="submit">Create Account</Button>
             </div>
           </form>
         )}

@@ -22,17 +22,19 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 
-const getProjectsDataFn = createServerFn({ method: 'GET' }).handler(async () => {
-  const organisations = await organisationRepository.findAll()
-  const projects = await projectRepository.findAll()
-  const timeEntries = await timeEntryRepository.findAll()
+const getProjectsDataFn = createServerFn({ method: 'GET' }).handler(
+  async () => {
+    const organisations = await organisationRepository.findAll()
+    const projects = await projectRepository.findAll()
+    const timeEntries = await timeEntryRepository.findAll()
 
-  return {
-    organisations: organisations,
-    projects: projects,
-    timeEntries: timeEntries,
+    return {
+      organisations: organisations,
+      projects: projects,
+      timeEntries: timeEntries,
+    }
   }
-})
+)
 
 const createProjectFn = createServerFn({ method: 'POST' })
   .inputValidator(createProjectSchema)
@@ -43,7 +45,8 @@ const createProjectFn = createServerFn({ method: 'POST' })
       name: data.name,
       description: data.description || '',
       category: data.category,
-      budgetHours: data.category === 'fixed' ? null : (data.budgetHours ?? null),
+      budgetHours:
+        data.category === 'fixed' ? null : (data.budgetHours ?? null),
       createdAt: new Date().toISOString(),
     }
     return await projectRepository.create(project)
@@ -71,9 +74,16 @@ function ProjectsPage() {
 
   const projectsWithDetails = useMemo(() => {
     return data.projects.map((project: any) => {
-      const organisation = data.organisations.find((o: any) => o.id === project.organisationId)
-      const projectTimeEntries = data.timeEntries.filter((t: any) => t.projectId === project.id)
-      const totalHours = projectTimeEntries.reduce((sum: number, t: any) => sum + t.hours, 0)
+      const organisation = data.organisations.find(
+        (o: any) => o.id === project.organisationId
+      )
+      const projectTimeEntries = data.timeEntries.filter(
+        (t: any) => t.projectId === project.id
+      )
+      const totalHours = projectTimeEntries.reduce(
+        (sum: number, t: any) => sum + t.hours,
+        0
+      )
 
       return {
         id: project.id,
@@ -117,12 +127,14 @@ function ProjectsPage() {
       cell: ({ getValue }) => {
         const category = getValue() as 'budget' | 'fixed'
         return (
-          <span className={cn(
-            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-            category === 'budget'
-              ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-              : "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-          )}>
+          <span
+            className={cn(
+              'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+              category === 'budget'
+                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+            )}
+          >
             {category === 'budget' ? 'Budget' : 'Fixed Price'}
           </span>
         )
@@ -137,7 +149,11 @@ function ProjectsPage() {
         if (category === 'fixed') {
           return <span className="text-gray-400 italic">Fixed price</span>
         }
-        return budget !== null ? `${budget}h` : <span className="text-gray-400">-</span>
+        return budget !== null ? (
+          `${budget}h`
+        ) : (
+          <span className="text-gray-400">-</span>
+        )
       },
     },
     {
@@ -156,16 +172,20 @@ function ProjectsPage() {
 
         return (
           <div className="flex items-center gap-2">
-            <span className={
-              percentage > 100
-                ? 'text-red-600 dark:text-red-400 font-semibold'
-                : percentage > 75
-                ? 'text-orange-600 dark:text-orange-400 font-medium'
-                : 'text-gray-900 dark:text-gray-100'
-            }>
+            <span
+              className={
+                percentage > 100
+                  ? 'text-red-600 dark:text-red-400 font-semibold'
+                  : percentage > 75
+                    ? 'text-orange-600 dark:text-orange-400 font-medium'
+                    : 'text-gray-900 dark:text-gray-100'
+              }
+            >
               {percentage.toFixed(1)}%
             </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">({hours.toFixed(1)}h)</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              ({hours.toFixed(1)}h)
+            </span>
           </div>
         )
       },
@@ -186,14 +206,18 @@ function ProjectsPage() {
 
         return (
           <div className="flex items-center gap-2">
-            <span className={
-              remaining < 0
-                ? 'text-red-600 dark:text-red-400 font-semibold'
-                : 'text-green-600 dark:text-green-400 font-medium'
-            }>
+            <span
+              className={
+                remaining < 0
+                  ? 'text-red-600 dark:text-red-400 font-semibold'
+                  : 'text-green-600 dark:text-green-400 font-medium'
+              }
+            >
               {percentage.toFixed(1)}%
             </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">({remaining.toFixed(1)}h)</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              ({remaining.toFixed(1)}h)
+            </span>
           </div>
         )
       },
@@ -215,7 +239,10 @@ function ProjectsPage() {
         data={projectsWithDetails}
         getRowId={(row) => row.id}
         onRowClick={(row) => {
-          navigate({ to: '/dashboard/projects/$id', params: { id: row.original.id } })
+          navigate({
+            to: '/dashboard/projects/$id',
+            params: { id: row.original.id },
+          })
         }}
       />
 
@@ -248,7 +275,7 @@ function AddProjectSheet({ organisations }: { organisations: any[] }) {
           description: value.description,
           category: value.category,
           budgetHours: value.category === 'fixed' ? null : value.budgetHours,
-        }
+        },
       })
       setOpen(false)
       form.reset()
@@ -262,10 +289,13 @@ function AddProjectSheet({ organisations }: { organisations: any[] }) {
   }
 
   return (
-    <Sheet open={open} onOpenChange={(open) => {
-      if (!open) handleClose()
-      else setOpen(open)
-    }}>
+    <Sheet
+      open={open}
+      onOpenChange={(open) => {
+        if (!open) handleClose()
+        else setOpen(open)
+      }}
+    >
       <SheetTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
@@ -313,13 +343,19 @@ function AddProjectSheet({ organisations }: { organisations: any[] }) {
                     </option>
                   ))}
                 </select>
-                {field.state.meta.isTouched && field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-red-500">
-                    {field.state.meta.errors.map((err) =>
-                      typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                    ).join(', ')}
-                  </p>
-                )}
+                {field.state.meta.isTouched &&
+                  field.state.meta.errors &&
+                  field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-red-500">
+                      {field.state.meta.errors
+                        .map((err) =>
+                          typeof err === 'string'
+                            ? err
+                            : err.message || JSON.stringify(err)
+                        )
+                        .join(', ')}
+                    </p>
+                  )}
               </div>
             )}
           </form.Field>
@@ -342,13 +378,19 @@ function AddProjectSheet({ organisations }: { organisations: any[] }) {
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="e.g., Website Redesign"
                 />
-                {field.state.meta.isTouched && field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-red-500">
-                    {field.state.meta.errors.map((err) =>
-                      typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                    ).join(', ')}
-                  </p>
-                )}
+                {field.state.meta.isTouched &&
+                  field.state.meta.errors &&
+                  field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-red-500">
+                      {field.state.meta.errors
+                        .map((err) =>
+                          typeof err === 'string'
+                            ? err
+                            : err.message || JSON.stringify(err)
+                        )
+                        .join(', ')}
+                    </p>
+                  )}
               </div>
             )}
           </form.Field>
@@ -368,13 +410,19 @@ function AddProjectSheet({ organisations }: { organisations: any[] }) {
                   placeholder="Describe the project..."
                   rows={3}
                 />
-                {field.state.meta.isTouched && field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-red-500">
-                    {field.state.meta.errors.map((err) =>
-                      typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                    ).join(', ')}
-                  </p>
-                )}
+                {field.state.meta.isTouched &&
+                  field.state.meta.errors &&
+                  field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-red-500">
+                      {field.state.meta.errors
+                        .map((err) =>
+                          typeof err === 'string'
+                            ? err
+                            : err.message || JSON.stringify(err)
+                        )
+                        .join(', ')}
+                    </p>
+                  )}
               </div>
             )}
           </form.Field>
@@ -389,64 +437,87 @@ function AddProjectSheet({ organisations }: { organisations: any[] }) {
                   id={field.name}
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value as 'budget' | 'fixed')}
+                  onChange={(e) =>
+                    field.handleChange(e.target.value as 'budget' | 'fixed')
+                  }
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                 >
                   <option value="budget">Budget (Time & Materials)</option>
                   <option value="fixed">Fixed Price</option>
                 </select>
-                {field.state.meta.isTouched && field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-red-500">
-                    {field.state.meta.errors.map((err) =>
-                      typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                    ).join(', ')}
-                  </p>
-                )}
+                {field.state.meta.isTouched &&
+                  field.state.meta.errors &&
+                  field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-red-500">
+                      {field.state.meta.errors
+                        .map((err) =>
+                          typeof err === 'string'
+                            ? err
+                            : err.message || JSON.stringify(err)
+                        )
+                        .join(', ')}
+                    </p>
+                  )}
               </div>
             )}
           </form.Field>
 
           <form.Subscribe selector={(state) => state.values.category}>
-            {(category) => category === 'budget' && (
-              <form.Field
-                name="budgetHours"
-                validators={{
-                  onChange: createProjectSchema.shape.budgetHours,
-                }}
-              >
-                {(field) => (
-                  <div className="space-y-2">
-                    <label htmlFor={field.name} className="text-sm font-medium">
-                      Budget (hours) *
-                    </label>
-                    <Input
-                      id={field.name}
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      value={field.state.value || 0}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
-                      placeholder="e.g., 40"
-                    />
-                    {field.state.meta.isTouched && field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                      <p className="text-sm text-red-500">
-                        {field.state.meta.errors.map((err) =>
-                          typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                        ).join(', ')}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </form.Field>
-            )}
+            {(category) =>
+              category === 'budget' && (
+                <form.Field
+                  name="budgetHours"
+                  validators={{
+                    onChange: createProjectSchema.shape.budgetHours,
+                  }}
+                >
+                  {(field) => (
+                    <div className="space-y-2">
+                      <label
+                        htmlFor={field.name}
+                        className="text-sm font-medium"
+                      >
+                        Budget (hours) *
+                      </label>
+                      <Input
+                        id={field.name}
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        value={field.state.value || 0}
+                        onBlur={field.handleBlur}
+                        onChange={(e) =>
+                          field.handleChange(parseFloat(e.target.value) || 0)
+                        }
+                        placeholder="e.g., 40"
+                      />
+                      {field.state.meta.isTouched &&
+                        field.state.meta.errors &&
+                        field.state.meta.errors.length > 0 && (
+                          <p className="text-sm text-red-500">
+                            {field.state.meta.errors
+                              .map((err) =>
+                                typeof err === 'string'
+                                  ? err
+                                  : err.message || JSON.stringify(err)
+                              )
+                              .join(', ')}
+                          </p>
+                        )}
+                    </div>
+                  )}
+                </form.Field>
+              )
+            }
           </form.Subscribe>
 
           <div className="flex gap-3 justify-end pt-6 border-t">
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+            <form.Subscribe
+              selector={(state) => [state.canSubmit, state.isSubmitting]}
+            >
               {([canSubmit, isSubmitting]) => (
                 <Button type="submit" disabled={!canSubmit || isSubmitting}>
                   {isSubmitting ? 'Creating...' : 'Create Project'}

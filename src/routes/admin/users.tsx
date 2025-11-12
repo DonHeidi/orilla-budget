@@ -109,7 +109,7 @@ function AddUserSheet() {
         data: {
           handle: value.handle,
           email: value.email,
-        }
+        },
       })
       setOpen(false)
       form.reset()
@@ -123,10 +123,13 @@ function AddUserSheet() {
   }
 
   return (
-    <Sheet open={open} onOpenChange={(open) => {
-      if (!open) handleClose()
-      else setOpen(open)
-    }}>
+    <Sheet
+      open={open}
+      onOpenChange={(open) => {
+        if (!open) handleClose()
+        else setOpen(open)
+      }}
+    >
       <SheetTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
@@ -136,9 +139,7 @@ function AddUserSheet() {
       <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
         <SheetHeader className="space-y-3 pb-6 border-b">
           <SheetTitle>Add User</SheetTitle>
-          <SheetDescription>
-            Create a new user account
-          </SheetDescription>
+          <SheetDescription>Create a new user account</SheetDescription>
         </SheetHeader>
 
         <form
@@ -161,7 +162,9 @@ function AddUserSheet() {
                   Handle *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">@</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                    @
+                  </span>
                   <Input
                     id={field.name}
                     value={field.state.value}
@@ -171,13 +174,19 @@ function AddUserSheet() {
                     className="pl-7"
                   />
                 </div>
-                {field.state.meta.isTouched && field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-red-500">
-                    {field.state.meta.errors.map((err) =>
-                      typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                    ).join(', ')}
-                  </p>
-                )}
+                {field.state.meta.isTouched &&
+                  field.state.meta.errors &&
+                  field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-red-500">
+                      {field.state.meta.errors
+                        .map((err) =>
+                          typeof err === 'string'
+                            ? err
+                            : err.message || JSON.stringify(err)
+                        )
+                        .join(', ')}
+                    </p>
+                  )}
               </div>
             )}
           </form.Field>
@@ -201,13 +210,19 @@ function AddUserSheet() {
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="e.g., john@example.com"
                 />
-                {field.state.meta.isTouched && field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-red-500">
-                    {field.state.meta.errors.map((err) =>
-                      typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                    ).join(', ')}
-                  </p>
-                )}
+                {field.state.meta.isTouched &&
+                  field.state.meta.errors &&
+                  field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-red-500">
+                      {field.state.meta.errors
+                        .map((err) =>
+                          typeof err === 'string'
+                            ? err
+                            : err.message || JSON.stringify(err)
+                        )
+                        .join(', ')}
+                    </p>
+                  )}
               </div>
             )}
           </form.Field>
@@ -216,7 +231,9 @@ function AddUserSheet() {
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+            <form.Subscribe
+              selector={(state) => [state.canSubmit, state.isSubmitting]}
+            >
               {([canSubmit, isSubmitting]) => (
                 <Button type="submit" disabled={!canSubmit || isSubmitting}>
                   {isSubmitting ? 'Creating...' : 'Create User'}

@@ -8,12 +8,19 @@ export const projectRepository = {
   },
 
   async findById(id: string): Promise<Project | undefined> {
-    const result = await db.select().from(projects).where(eq(projects.id, id)).limit(1)
+    const result = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, id))
+      .limit(1)
     return result[0]
   },
 
   async findByOrganisationId(organisationId: string): Promise<Project[]> {
-    return await db.select().from(projects).where(eq(projects.organisationId, organisationId))
+    return await db
+      .select()
+      .from(projects)
+      .where(eq(projects.organisationId, organisationId))
   },
 
   async create(project: Project): Promise<Project> {

@@ -35,6 +35,7 @@ bun run db:studio    # Open Drizzle Studio to view/edit data
 ### Migration Reset (Current Status)
 
 The database was reset on 2025-11-04 with a fresh initial migration:
+
 - `drizzle/0000_odd_masked_marvel.sql` - Initial schema with all 5 tables
 
 All previous migration history was cleared to resolve inconsistencies.

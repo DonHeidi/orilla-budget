@@ -23,7 +23,7 @@ function formatDateTime(isoString: string): string {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true
+    hour12: true,
   }
   return date.toLocaleString('en-US', options)
 }
@@ -53,10 +53,12 @@ const deleteUserFn = createServerFn({ method: 'POST' }).handler(
   }
 )
 
-const getUserDetailDataFn = createServerFn({ method: 'GET' }).handler(async () => {
-  const users = await userRepository.findAll()
-  return { users }
-})
+const getUserDetailDataFn = createServerFn({ method: 'GET' }).handler(
+  async () => {
+    const users = await userRepository.findAll()
+    return { users }
+  }
+)
 
 // Route definition
 export const Route = createFileRoute('/admin/users/$id')({
@@ -81,21 +83,29 @@ function UserDetailPage() {
 
   if (!user) {
     return (
-      <Sheet open={true} onOpenChange={(open) => {
-        if (!open) {
-          navigate({ to: '/admin/users' })
-        }
-      }}>
+      <Sheet
+        open={true}
+        onOpenChange={(open) => {
+          if (!open) {
+            navigate({ to: '/admin/users' })
+          }
+        }}
+      >
         <SheetContent className="w-full sm:max-w-[600px]">
           <SheetHeader>
             <SheetTitle>Error</SheetTitle>
             <SheetDescription>User not found</SheetDescription>
           </SheetHeader>
           <div className="py-6">
-            <p className="text-gray-500">The requested user could not be found.</p>
+            <p className="text-gray-500">
+              The requested user could not be found.
+            </p>
           </div>
           <div className="flex gap-3 justify-end pt-6 border-t">
-            <Button variant="outline" onClick={() => navigate({ to: '/admin/users' })}>
+            <Button
+              variant="outline"
+              onClick={() => navigate({ to: '/admin/users' })}
+            >
               Back to List
             </Button>
           </div>
@@ -138,7 +148,7 @@ function UserDetailPage() {
   }
 
   const handleFieldChange = (fieldName: string, value: any) => {
-    setEditedValues(prev => ({ ...prev, [fieldName]: value }))
+    setEditedValues((prev) => ({ ...prev, [fieldName]: value }))
   }
 
   const handleDelete = async () => {
@@ -153,11 +163,14 @@ function UserDetailPage() {
   }
 
   return (
-    <Sheet open={true} onOpenChange={(open) => {
-      if (!open) {
-        navigate({ to: '/admin/users' })
-      }
-    }}>
+    <Sheet
+      open={true}
+      onOpenChange={(open) => {
+        if (!open) {
+          navigate({ to: '/admin/users' })
+        }
+      }}
+    >
       <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
         <SheetHeader className="space-y-3 pb-6 border-b">
           <SheetTitle>User Details</SheetTitle>
@@ -169,14 +182,20 @@ function UserDetailPage() {
         <div className="space-y-6 py-6">
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-500">Handle</label>
+              <label className="text-sm font-medium text-gray-500">
+                Handle
+              </label>
               {editingField === 'handle' ? (
                 <div className="relative mt-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">@</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                    @
+                  </span>
                   <Input
                     autoFocus
                     value={currentValues.handle}
-                    onChange={(e) => handleFieldChange('handle', e.target.value)}
+                    onChange={(e) =>
+                      handleFieldChange('handle', e.target.value)
+                    }
                     onBlur={handleFieldBlur}
                     className="pl-7"
                   />
@@ -215,7 +234,9 @@ function UserDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Created</label>
+              <label className="text-sm font-medium text-gray-500">
+                Created
+              </label>
               <p className="text-base mt-1">{formatDateTime(user.createdAt)}</p>
             </div>
           </div>
@@ -228,7 +249,10 @@ function UserDetailPage() {
           >
             Delete User
           </Button>
-          <Button variant="outline" onClick={() => navigate({ to: '/admin/users' })}>
+          <Button
+            variant="outline"
+            onClick={() => navigate({ to: '/admin/users' })}
+          >
             Close
           </Button>
         </div>
@@ -238,10 +262,14 @@ function UserDetailPage() {
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md">
               <h3 className="text-lg font-semibold mb-2">Delete User</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Are you sure you want to delete "{user.name}"? This action cannot be undone.
+                Are you sure you want to delete "{user.name}"? This action
+                cannot be undone.
               </p>
               <div className="flex gap-3 justify-end">
-                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
                   Cancel
                 </Button>
                 <Button variant="destructive" onClick={handleDelete}>

@@ -49,12 +49,14 @@ bun test --watch
 ```
 
 **What we test:**
+
 - ✅ Zod validation schemas (business rules)
 - ✅ Repository layer (database operations)
 - ✅ Utility functions
 - ✅ Custom React hooks
 
 **What we use Storybook for:**
+
 - UI component documentation and visual testing
 
 See [docs/testing.md](docs/testing.md) for comprehensive testing guide.

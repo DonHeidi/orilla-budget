@@ -17,7 +17,14 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from './sidebar'
-import { Home, Settings, Users, FileText, ChevronRight, Search } from 'lucide-react'
+import {
+  Home,
+  Settings,
+  Users,
+  FileText,
+  ChevronRight,
+  Search,
+} from 'lucide-react'
 import { Separator } from './separator'
 import { Input } from './input'
 

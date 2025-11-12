@@ -20,7 +20,9 @@ describe('Command', () => {
           <CommandInput placeholder="Search..." />
         </Command>
       )
-      expect(container.querySelector('[data-slot="command"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="command"]')
+      ).toBeInTheDocument()
     })
 
     it('renders command input', () => {
@@ -29,7 +31,9 @@ describe('Command', () => {
           <CommandInput placeholder="Type a command..." />
         </Command>
       )
-      expect(screen.getByPlaceholderText('Type a command...')).toBeInTheDocument()
+      expect(
+        screen.getByPlaceholderText('Type a command...')
+      ).toBeInTheDocument()
     })
 
     it('renders command list', () => {
@@ -40,7 +44,9 @@ describe('Command', () => {
           </CommandList>
         </Command>
       )
-      expect(container.querySelector('[data-slot="command-list"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="command-list"]')
+      ).toBeInTheDocument()
     })
   })
 
@@ -93,7 +99,9 @@ describe('Command', () => {
         </Command>
       )
 
-      expect(container.querySelector('[data-slot="command-empty"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="command-empty"]')
+      ).toBeInTheDocument()
     })
 
     it('renders command separator', () => {
@@ -107,7 +115,9 @@ describe('Command', () => {
         </Command>
       )
 
-      expect(container.querySelector('[data-slot="command-separator"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="command-separator"]')
+      ).toBeInTheDocument()
     })
   })
 
@@ -224,7 +234,9 @@ describe('Command', () => {
         </CommandDialog>
       )
 
-      expect(screen.getByPlaceholderText('Type a command...')).toBeInTheDocument()
+      expect(
+        screen.getByPlaceholderText('Type a command...')
+      ).toBeInTheDocument()
       expect(screen.getByText('Item 1')).toBeInTheDocument()
     })
 
@@ -235,7 +247,9 @@ describe('Command', () => {
         </CommandDialog>
       )
 
-      expect(screen.queryByPlaceholderText('Type a command...')).not.toBeInTheDocument()
+      expect(
+        screen.queryByPlaceholderText('Type a command...')
+      ).not.toBeInTheDocument()
     })
 
     it('renders with custom title', () => {
@@ -269,7 +283,9 @@ describe('Command', () => {
         </CommandDialog>
       )
 
-      expect(screen.queryByRole('button', { name: /close/i })).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: /close/i })
+      ).not.toBeInTheDocument()
     })
 
     it('handles onOpenChange callback', async () => {
@@ -378,7 +394,9 @@ describe('Command', () => {
         </CommandDialog>
       )
 
-      expect(screen.getByPlaceholderText('Type a command or search...')).toBeInTheDocument()
+      expect(
+        screen.getByPlaceholderText('Type a command or search...')
+      ).toBeInTheDocument()
       expect(screen.getByText('Suggestions')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
       expect(screen.getByText('New File')).toBeInTheDocument()
@@ -410,9 +428,15 @@ describe('Command', () => {
         <Command>
           <CommandList>
             <CommandGroup heading="Actions">
-              <CommandItem onSelect={() => handleAction('edit')}>Edit</CommandItem>
-              <CommandItem onSelect={() => handleAction('delete')}>Delete</CommandItem>
-              <CommandItem onSelect={() => handleAction('share')}>Share</CommandItem>
+              <CommandItem onSelect={() => handleAction('edit')}>
+                Edit
+              </CommandItem>
+              <CommandItem onSelect={() => handleAction('delete')}>
+                Delete
+              </CommandItem>
+              <CommandItem onSelect={() => handleAction('share')}>
+                Share
+              </CommandItem>
             </CommandGroup>
           </CommandList>
         </Command>

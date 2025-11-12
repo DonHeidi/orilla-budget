@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@/test-utils'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './tooltip'
 import { Button } from './button'
 
 describe('Tooltip', () => {
@@ -200,9 +205,7 @@ describe('Tooltip', () => {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger>Offset</TooltipTrigger>
-            <TooltipContent sideOffset={10}>
-              Offset content
-            </TooltipContent>
+            <TooltipContent sideOffset={10}>Offset content</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       )

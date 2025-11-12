@@ -1,4 +1,9 @@
-import { createFileRoute, useNavigate, useRouter, Outlet } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  useNavigate,
+  useRouter,
+  Outlet,
+} from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
@@ -42,7 +47,7 @@ function formatDateTime(isoString: string): string {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true
+    hour12: true,
   }
   return date.toLocaleString('en-US', options)
 }
@@ -118,7 +123,9 @@ function TimeEntriesPage() {
 
   const timeEntriesWithDetails = useMemo(() => {
     return data.timeEntries.map((entry: any) => {
-      const organisation = data.organisations.find((c: any) => c.id === entry.organisationId)
+      const organisation = data.organisations.find(
+        (c: any) => c.id === entry.organisationId
+      )
       const project = data.projects.find((p: any) => p.id === entry.projectId)
       return {
         id: entry.id,
@@ -138,11 +145,13 @@ function TimeEntriesPage() {
     let filtered = timeEntriesWithDetails
 
     if (filterOrganisationId) {
-      filtered = filtered.filter(entry => entry.organisationId === filterOrganisationId)
+      filtered = filtered.filter(
+        (entry) => entry.organisationId === filterOrganisationId
+      )
     }
 
     if (filterProjectId) {
-      filtered = filtered.filter(entry => entry.projectId === filterProjectId)
+      filtered = filtered.filter((entry) => entry.projectId === filterProjectId)
     }
 
     return filtered
@@ -157,7 +166,9 @@ function TimeEntriesPage() {
 
   const projectOptions: ComboboxOption[] = useMemo(() => {
     const projects = filterOrganisationId
-      ? data.projects.filter((p: any) => p.organisationId === filterOrganisationId)
+      ? data.projects.filter(
+          (p: any) => p.organisationId === filterOrganisationId
+        )
       : data.projects
 
     return projects.map((proj: any) => ({
@@ -170,7 +181,9 @@ function TimeEntriesPage() {
     setFilterOrganisationId(value)
     // Clear project filter if organisation changes
     if (filterProjectId) {
-      const selectedProject = data.projects.find((p: any) => p.id === filterProjectId)
+      const selectedProject = data.projects.find(
+        (p: any) => p.id === filterProjectId
+      )
       if (selectedProject && selectedProject.organisationId !== value) {
         setFilterProjectId('')
       }
@@ -241,7 +254,10 @@ function TimeEntriesPage() {
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Time Entries</h1>
-        <QuickTimeEntrySheet organisations={data.organisations} projects={data.projects} />
+        <QuickTimeEntrySheet
+          organisations={data.organisations}
+          projects={data.projects}
+        />
       </div>
 
       <div className="flex items-center gap-3 mb-6">
@@ -278,7 +294,8 @@ function TimeEntriesPage() {
           </Button>
         )}
         <div className="text-sm text-muted-foreground ml-auto">
-          Showing {filteredTimeEntries.length} of {timeEntriesWithDetails.length} entries
+          Showing {filteredTimeEntries.length} of{' '}
+          {timeEntriesWithDetails.length} entries
         </div>
       </div>
 
@@ -287,7 +304,10 @@ function TimeEntriesPage() {
         data={filteredTimeEntries}
         getRowId={(row) => row.id}
         onRowDoubleClick={(row) => {
-          navigate({ to: '/dashboard/time-entries/$id', params: { id: row.original.id } })
+          navigate({
+            to: '/dashboard/time-entries/$id',
+            params: { id: row.original.id },
+          })
         }}
       />
 
@@ -296,7 +316,13 @@ function TimeEntriesPage() {
   )
 }
 
-function QuickTimeEntrySheet({ organisations, projects }: { organisations: any[]; projects: any[] }) {
+function QuickTimeEntrySheet({
+  organisations,
+  projects,
+}: {
+  organisations: any[]
+  projects: any[]
+}) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
 
@@ -319,7 +345,7 @@ function QuickTimeEntrySheet({ organisations, projects }: { organisations: any[]
           description: value.description,
           organisationId: value.organisationId,
           projectId: value.projectId,
-        }
+        },
       })
       setOpen(false)
       router.invalidate()
@@ -337,9 +363,7 @@ function QuickTimeEntrySheet({ organisations, projects }: { organisations: any[]
       <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
         <SheetHeader className="space-y-3 pb-6 border-b">
           <SheetTitle>Add Time Entry</SheetTitle>
-          <SheetDescription>
-            Log your time with full details
-          </SheetDescription>
+          <SheetDescription>Log your time with full details</SheetDescription>
         </SheetHeader>
 
         <form
@@ -363,13 +387,18 @@ function QuickTimeEntrySheet({ organisations, projects }: { organisations: any[]
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="What did you work on?"
                 />
-                {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-red-500">
-                    {field.state.meta.errors.map((err) =>
-                      typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                    ).join(', ')}
-                  </p>
-                )}
+                {field.state.meta.errors &&
+                  field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-red-500">
+                      {field.state.meta.errors
+                        .map((err) =>
+                          typeof err === 'string'
+                            ? err
+                            : err.message || JSON.stringify(err)
+                        )
+                        .join(', ')}
+                    </p>
+                  )}
               </div>
             )}
           </form.Field>
@@ -408,7 +437,9 @@ function QuickTimeEntrySheet({ organisations, projects }: { organisations: any[]
                       onChange={(e) => {
                         const hours = e.target.value || '0'
                         const minutes = field.state.value.split(':')[1] || '00'
-                        field.handleChange(`${hours.padStart(2, '0')}:${minutes}`)
+                        field.handleChange(
+                          `${hours.padStart(2, '0')}:${minutes}`
+                        )
                       }}
                       className="w-20"
                       placeholder="1"
@@ -424,20 +455,27 @@ function QuickTimeEntrySheet({ organisations, projects }: { organisations: any[]
                       onChange={(e) => {
                         const hours = field.state.value.split(':')[0] || '00'
                         const minutes = e.target.value || '0'
-                        field.handleChange(`${hours}:${minutes.padStart(2, '0')}`)
+                        field.handleChange(
+                          `${hours}:${minutes.padStart(2, '0')}`
+                        )
                       }}
                       className="w-20"
                       placeholder="00"
                     />
                     <span className="text-sm">min</span>
                   </div>
-                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors.map((err) =>
-                        typeof err === 'string' ? err : err.message || JSON.stringify(err)
-                      ).join(', ')}
-                    </p>
-                  )}
+                  {field.state.meta.errors &&
+                    field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">
+                        {field.state.meta.errors
+                          .map((err) =>
+                            typeof err === 'string'
+                              ? err
+                              : err.message || JSON.stringify(err)
+                          )
+                          .join(', ')}
+                      </p>
+                    )}
                 </div>
               )}
             </form.Field>
@@ -505,7 +543,9 @@ function QuickTimeEntrySheet({ organisations, projects }: { organisations: any[]
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="">
-                      {selectedOrg ? 'Select project (optional)' : 'Select organisation first'}
+                      {selectedOrg
+                        ? 'Select project (optional)'
+                        : 'Select organisation first'}
                     </option>
                     {availableProjects.map((proj: any) => (
                       <option key={proj.id} value={proj.id}>
@@ -519,16 +559,17 @@ function QuickTimeEntrySheet({ organisations, projects }: { organisations: any[]
           </form.Field>
 
           <div className="flex gap-3 justify-end pt-6 border-t">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit">
-              Save Entry
-            </Button>
+            <Button type="submit">Save Entry</Button>
           </div>
         </form>
       </SheetContent>
     </Sheet>
   )
 }
-

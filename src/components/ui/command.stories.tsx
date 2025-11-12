@@ -11,7 +11,14 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from './command'
-import { Calendar, Settings, User, CreditCard, Mail, MessageSquare } from 'lucide-react'
+import {
+  Calendar,
+  Settings,
+  User,
+  CreditCard,
+  Mail,
+  MessageSquare,
+} from 'lucide-react'
 import { Button } from './button'
 
 const meta = {
@@ -155,7 +162,9 @@ export const EmptyState: Story = {
     <Command className="rounded-lg border shadow-md w-[450px]">
       <CommandInput placeholder="Search for something..." />
       <CommandList>
-        <CommandEmpty>No results found. Try searching for something else.</CommandEmpty>
+        <CommandEmpty>
+          No results found. Try searching for something else.
+        </CommandEmpty>
       </CommandList>
     </Command>
   ),

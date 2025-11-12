@@ -4,7 +4,13 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { useState } from 'react'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from './ui/sheet'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from './ui/sheet'
 
 const meta = {
   title: 'Components/DataTable',
@@ -52,16 +58,65 @@ const sampleUsers: User[] = [
 ]
 
 const sampleTimeEntries: TimeEntry[] = [
-  { id: '1', date: '2025-11-08', title: 'Client Meeting', project: 'Website Redesign', hours: 2.5, approved: true },
-  { id: '2', date: '2025-11-08', title: 'Code Review', project: 'Mobile App', hours: 1.75, approved: true },
-  { id: '3', date: '2025-11-07', title: 'Documentation', project: 'API Integration', hours: 3.0, approved: false },
-  { id: '4', date: '2025-11-07', title: 'Bug Fixes', project: 'Website Redesign', hours: 4.25, approved: true },
+  {
+    id: '1',
+    date: '2025-11-08',
+    title: 'Client Meeting',
+    project: 'Website Redesign',
+    hours: 2.5,
+    approved: true,
+  },
+  {
+    id: '2',
+    date: '2025-11-08',
+    title: 'Code Review',
+    project: 'Mobile App',
+    hours: 1.75,
+    approved: true,
+  },
+  {
+    id: '3',
+    date: '2025-11-07',
+    title: 'Documentation',
+    project: 'API Integration',
+    hours: 3.0,
+    approved: false,
+  },
+  {
+    id: '4',
+    date: '2025-11-07',
+    title: 'Bug Fixes',
+    project: 'Website Redesign',
+    hours: 4.25,
+    approved: true,
+  },
 ]
 
 const sampleProjects: Project[] = [
-  { id: '1', name: 'Website Redesign', category: 'budget', budgetHours: 80, usedHours: 45.5, remainingHours: 34.5 },
-  { id: '2', name: 'Mobile App Development', category: 'fixed', budgetHours: 120, usedHours: 85, remainingHours: 35 },
-  { id: '3', name: 'API Integration', category: 'budget', budgetHours: 40, usedHours: 12.5, remainingHours: 27.5 },
+  {
+    id: '1',
+    name: 'Website Redesign',
+    category: 'budget',
+    budgetHours: 80,
+    usedHours: 45.5,
+    remainingHours: 34.5,
+  },
+  {
+    id: '2',
+    name: 'Mobile App Development',
+    category: 'fixed',
+    budgetHours: 120,
+    usedHours: 85,
+    remainingHours: 35,
+  },
+  {
+    id: '3',
+    name: 'API Integration',
+    category: 'budget',
+    budgetHours: 40,
+    usedHours: 12.5,
+    remainingHours: 27.5,
+  },
 ]
 
 export const BasicExample: Story = {
@@ -262,25 +317,35 @@ export const WithDoubleClick: Story = {
             {selectedEntry && (
               <div className="space-y-6 py-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Title</label>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Title
+                  </label>
                   <p className="text-base">{selectedEntry.title}</p>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Project</label>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Project
+                  </label>
                   <p className="text-base">{selectedEntry.project}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Date</label>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Date
+                    </label>
                     <p className="text-base">{selectedEntry.date}</p>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Hours</label>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Hours
+                    </label>
                     <p className="text-base">{selectedEntry.hours}h</p>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Status</label>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Status
+                  </label>
                   <p className="text-base">
                     {selectedEntry.approved ? (
                       <Badge variant="default">Approved</Badge>
@@ -325,7 +390,8 @@ export const WithActions: Story = {
         accessorKey: 'usedHours',
         header: 'Progress',
         cell: ({ row }) => {
-          const percentage = (row.original.usedHours / row.original.budgetHours) * 100
+          const percentage =
+            (row.original.usedHours / row.original.budgetHours) * 100
           return (
             <div className="flex items-center gap-2">
               <div className="w-24 bg-muted rounded-full h-2">
@@ -334,7 +400,9 @@ export const WithActions: Story = {
                   style={{ width: `${percentage}%` }}
                 />
               </div>
-              <span className="text-xs text-muted-foreground">{percentage.toFixed(0)}%</span>
+              <span className="text-xs text-muted-foreground">
+                {percentage.toFixed(0)}%
+              </span>
             </div>
           )
         },

@@ -8,16 +8,26 @@ export const timeEntryRepository = {
   },
 
   async findById(id: string): Promise<TimeEntry | undefined> {
-    const result = await db.select().from(timeEntries).where(eq(timeEntries.id, id)).limit(1)
+    const result = await db
+      .select()
+      .from(timeEntries)
+      .where(eq(timeEntries.id, id))
+      .limit(1)
     return result[0]
   },
 
   async findByProjectId(projectId: string): Promise<TimeEntry[]> {
-    return await db.select().from(timeEntries).where(eq(timeEntries.projectId, projectId))
+    return await db
+      .select()
+      .from(timeEntries)
+      .where(eq(timeEntries.projectId, projectId))
   },
 
   async findByOrganisationId(organisationId: string): Promise<TimeEntry[]> {
-    return await db.select().from(timeEntries).where(eq(timeEntries.organisationId, organisationId))
+    return await db
+      .select()
+      .from(timeEntries)
+      .where(eq(timeEntries.organisationId, organisationId))
   },
 
   async create(entry: TimeEntry): Promise<TimeEntry> {

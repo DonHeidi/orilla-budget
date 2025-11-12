@@ -2,7 +2,7 @@ import { drizzle } from 'drizzle-orm/bun-sqlite'
 import { Database } from 'bun:sqlite'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import * as schema from '@/db/schema'
-import { eq } from 'drizzle-orm'
+import { eq as _eq } from 'drizzle-orm'
 
 /**
  * Creates an in-memory SQLite database for testing
@@ -47,7 +47,9 @@ export const testFactories = {
     ...overrides,
   }),
 
-  organisation: (overrides?: Partial<typeof schema.organisations.$inferInsert>) => ({
+  organisation: (
+    overrides?: Partial<typeof schema.organisations.$inferInsert>
+  ) => ({
     id: Math.random().toString(36).substring(2, 15),
     name: 'Test Organisation',
     contactName: 'John Doe',
@@ -154,7 +156,7 @@ export const seed = {
       .insert(schema.projects)
       .values(testFactories.project(organisationId, data))
       .returning()
-      return project
+    return project
   },
 
   async timeEntry(

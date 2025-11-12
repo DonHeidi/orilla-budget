@@ -35,7 +35,8 @@ vi.mock('@/hooks/use-mobile', () => ({
 describe('Sidebar', () => {
   beforeEach(() => {
     // Clear cookies before each test
-    document.cookie = 'sidebar_state=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+    document.cookie =
+      'sidebar_state=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
   })
 
   describe('SidebarProvider', () => {
@@ -46,7 +47,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-wrapper"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-wrapper"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('Content')).toBeInTheDocument()
     })
 
@@ -121,7 +124,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar"]')
+      ).toBeInTheDocument()
     })
 
     it('renders with left side by default', () => {
@@ -186,7 +191,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar"]')
+      ).toBeInTheDocument()
     })
 
     it('supports icon collapsible mode', () => {
@@ -196,7 +203,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar"]')
+      ).toBeInTheDocument()
     })
 
     it('supports none collapsible mode', () => {
@@ -206,7 +215,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar"]')
+      ).toBeInTheDocument()
     })
   })
 
@@ -222,7 +233,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-header"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-header"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('Header')).toBeInTheDocument()
     })
 
@@ -237,7 +250,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-content"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-content"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('Content area')).toBeInTheDocument()
     })
 
@@ -252,7 +267,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-footer"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-footer"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('Footer content')).toBeInTheDocument()
     })
 
@@ -267,9 +284,15 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-header"]')).toBeInTheDocument()
-      expect(container.querySelector('[data-slot="sidebar-content"]')).toBeInTheDocument()
-      expect(container.querySelector('[data-slot="sidebar-footer"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-header"]')
+      ).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-content"]')
+      ).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-footer"]')
+      ).toBeInTheDocument()
     })
   })
 
@@ -299,7 +322,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-separator"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-separator"]')
+      ).toBeInTheDocument()
     })
 
     it('renders sidebar rail', () => {
@@ -311,7 +336,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-rail"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-rail"]')
+      ).toBeInTheDocument()
     })
 
     it('renders sidebar trigger', () => {
@@ -323,7 +350,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(screen.getByRole('button', { name: /toggle sidebar/i })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: /toggle sidebar/i })
+      ).toBeInTheDocument()
     })
 
     it('renders sidebar inset', () => {
@@ -336,7 +365,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-inset"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-inset"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('Main content')).toBeInTheDocument()
     })
   })
@@ -355,7 +386,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-group"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-group"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('Group content')).toBeInTheDocument()
     })
 
@@ -372,7 +405,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-group-label"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-group-label"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('Group Title')).toBeInTheDocument()
     })
 
@@ -391,7 +426,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-group-content"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-group-content"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('Content here')).toBeInTheDocument()
     })
 
@@ -410,7 +447,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-group-action"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-group-action"]')
+      ).toBeInTheDocument()
     })
   })
 
@@ -428,7 +467,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-menu"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-menu"]')
+      ).toBeInTheDocument()
     })
 
     it('renders menu items', () => {
@@ -446,7 +487,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-menu-item"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-menu-item"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('Home')).toBeInTheDocument()
     })
 
@@ -465,7 +508,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-menu-button"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-menu-button"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('Dashboard')).toBeInTheDocument()
     })
 
@@ -476,7 +521,9 @@ describe('Sidebar', () => {
             <SidebarContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton isActive={true}>Active Item</SidebarMenuButton>
+                  <SidebarMenuButton isActive={true}>
+                    Active Item
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarContent>
@@ -495,7 +542,9 @@ describe('Sidebar', () => {
             <SidebarContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton tooltip="Home page">Home</SidebarMenuButton>
+                  <SidebarMenuButton tooltip="Home page">
+                    Home
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarContent>
@@ -524,7 +573,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-menu-action"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-menu-action"]')
+      ).toBeInTheDocument()
     })
 
     it('renders menu badge', () => {
@@ -543,7 +594,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-menu-badge"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-menu-badge"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('5')).toBeInTheDocument()
     })
 
@@ -562,7 +615,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-menu-skeleton"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-menu-skeleton"]')
+      ).toBeInTheDocument()
     })
 
     it('renders menu skeleton with icon', () => {
@@ -580,7 +635,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      const iconSkeleton = container.querySelector('[data-sidebar="menu-skeleton-icon"]')
+      const iconSkeleton = container.querySelector(
+        '[data-sidebar="menu-skeleton-icon"]'
+      )
       expect(iconSkeleton).toBeInTheDocument()
     })
   })
@@ -606,7 +663,9 @@ describe('Sidebar', () => {
         </SidebarProvider>
       )
 
-      expect(container.querySelector('[data-slot="sidebar-menu-sub"]')).toBeInTheDocument()
+      expect(
+        container.querySelector('[data-slot="sidebar-menu-sub"]')
+      ).toBeInTheDocument()
       expect(screen.getByText('Child')).toBeInTheDocument()
     })
 
@@ -758,7 +817,9 @@ describe('Sidebar', () => {
             <SidebarContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton className="custom-button">Item</SidebarMenuButton>
+                  <SidebarMenuButton className="custom-button">
+                    Item
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarContent>

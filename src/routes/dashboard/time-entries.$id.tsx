@@ -1,4 +1,9 @@
-import { createFileRoute, useNavigate, useRouter, getRouteApi } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  useNavigate,
+  useRouter,
+  getRouteApi,
+} from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { CheckCircle, XCircle } from 'lucide-react'
@@ -31,7 +36,7 @@ function formatDateTime(isoString: string): string {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true
+    hour12: true,
   }
   return date.toLocaleString('en-US', options)
 }
@@ -76,21 +81,29 @@ function TimeEntryDetailPage() {
 
   if (!timeEntry) {
     return (
-      <Sheet open={true} onOpenChange={(open) => {
-        if (!open) {
-          navigate({ to: '/dashboard/time-entries' })
-        }
-      }}>
+      <Sheet
+        open={true}
+        onOpenChange={(open) => {
+          if (!open) {
+            navigate({ to: '/dashboard/time-entries' })
+          }
+        }}
+      >
         <SheetContent className="w-full sm:max-w-[600px]">
           <SheetHeader>
             <SheetTitle>Error</SheetTitle>
             <SheetDescription>Time entry not found</SheetDescription>
           </SheetHeader>
           <div className="py-6">
-            <p className="text-gray-500">The requested time entry could not be found.</p>
+            <p className="text-gray-500">
+              The requested time entry could not be found.
+            </p>
           </div>
           <div className="flex gap-3 justify-end pt-6 border-t">
-            <Button variant="outline" onClick={() => navigate({ to: '/dashboard/time-entries' })}>
+            <Button
+              variant="outline"
+              onClick={() => navigate({ to: '/dashboard/time-entries' })}
+            >
               Back to List
             </Button>
           </div>
@@ -99,7 +112,9 @@ function TimeEntryDetailPage() {
     )
   }
 
-  const organisation = organisations.find((o: any) => o.id === timeEntry.organisationId)
+  const organisation = organisations.find(
+    (o: any) => o.id === timeEntry.organisationId
+  )
   const project = projects.find((p: any) => p.id === timeEntry.projectId)
 
   const currentValues = { ...timeEntry, ...editedValues }
@@ -124,15 +139,18 @@ function TimeEntryDetailPage() {
   }
 
   const handleFieldChange = (fieldName: string, value: any) => {
-    setEditedValues(prev => ({ ...prev, [fieldName]: value }))
+    setEditedValues((prev) => ({ ...prev, [fieldName]: value }))
   }
 
   return (
-    <Sheet open={true} onOpenChange={(open) => {
-      if (!open) {
-        navigate({ to: '/dashboard/time-entries' })
-      }
-    }}>
+    <Sheet
+      open={true}
+      onOpenChange={(open) => {
+        if (!open) {
+          navigate({ to: '/dashboard/time-entries' })
+        }
+      }}
+    >
       <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
         <SheetHeader className="space-y-3 pb-6 border-b">
           <SheetTitle>Time Entry Details</SheetTitle>
@@ -164,12 +182,16 @@ function TimeEntryDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Description</label>
+              <label className="text-sm font-medium text-gray-500">
+                Description
+              </label>
               {editingField === 'description' ? (
                 <textarea
                   autoFocus
                   value={currentValues.description}
-                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  onChange={(e) =>
+                    handleFieldChange('description', e.target.value)
+                  }
                   onBlur={handleFieldBlur}
                   className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1"
                   rows={3}
@@ -186,7 +208,9 @@ function TimeEntryDetailPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-500">Date</label>
+                <label className="text-sm font-medium text-gray-500">
+                  Date
+                </label>
                 {editingField === 'date' ? (
                   <Input
                     autoFocus
@@ -207,7 +231,9 @@ function TimeEntryDetailPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-500">Hours</label>
+                <label className="text-sm font-medium text-gray-500">
+                  Hours
+                </label>
                 {editingField === 'hours' ? (
                   <div className="flex gap-2 items-center mt-1">
                     <Input
@@ -218,7 +244,9 @@ function TimeEntryDetailPage() {
                       value={Math.floor(currentValues.hours)}
                       onChange={(e) => {
                         const hours = parseInt(e.target.value) || 0
-                        const minutes = Math.round((currentValues.hours % 1) * 60)
+                        const minutes = Math.round(
+                          (currentValues.hours % 1) * 60
+                        )
                         handleFieldChange('hours', hours + minutes / 60)
                       }}
                       onBlur={handleFieldBlur}
@@ -253,13 +281,18 @@ function TimeEntryDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Organisation</label>
+              <label className="text-sm font-medium text-gray-500">
+                Organisation
+              </label>
               {editingField === 'organisationId' ? (
                 <select
                   autoFocus
                   value={currentValues.organisationId || ''}
                   onChange={(e) => {
-                    handleFieldChange('organisationId', e.target.value || undefined)
+                    handleFieldChange(
+                      'organisationId',
+                      e.target.value || undefined
+                    )
                     handleFieldChange('projectId', undefined)
                   }}
                   onBlur={handleFieldBlur}
@@ -283,19 +316,26 @@ function TimeEntryDetailPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Project</label>
+              <label className="text-sm font-medium text-gray-500">
+                Project
+              </label>
               {editingField === 'projectId' ? (
                 <select
                   autoFocus
                   value={currentValues.projectId || ''}
-                  onChange={(e) => handleFieldChange('projectId', e.target.value || undefined)}
+                  onChange={(e) =>
+                    handleFieldChange('projectId', e.target.value || undefined)
+                  }
                   onBlur={handleFieldBlur}
                   disabled={!currentValues.organisationId}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <option value="">None</option>
                   {projects
-                    .filter((p: any) => p.organisationId === currentValues.organisationId)
+                    .filter(
+                      (p: any) =>
+                        p.organisationId === currentValues.organisationId
+                    )
                     .map((proj: any) => (
                       <option key={proj.id} value={proj.id}>
                         {proj.name}
@@ -314,7 +354,9 @@ function TimeEntryDetailPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-500">Approved</label>
+                <label className="text-sm font-medium text-gray-500">
+                  Approved
+                </label>
                 <div className="flex items-center mt-1">
                   {timeEntry.approvedDate ? (
                     <>
@@ -331,7 +373,9 @@ function TimeEntryDetailPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-500">Billed</label>
+                <label className="text-sm font-medium text-gray-500">
+                  Billed
+                </label>
                 <div className="flex items-center mt-1">
                   <input
                     type="checkbox"
@@ -342,27 +386,40 @@ function TimeEntryDetailPage() {
                     }}
                     className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"
                   />
-                  <span className="ml-2 text-base">{currentValues.billed ? 'Yes' : 'No'}</span>
+                  <span className="ml-2 text-base">
+                    {currentValues.billed ? 'Yes' : 'No'}
+                  </span>
                 </div>
               </div>
             </div>
 
             {timeEntry.approvedDate && (
               <div>
-                <label className="text-sm font-medium text-gray-500">Approved Date</label>
-                <p className="text-base mt-1">{formatDateTime(timeEntry.approvedDate)}</p>
+                <label className="text-sm font-medium text-gray-500">
+                  Approved Date
+                </label>
+                <p className="text-base mt-1">
+                  {formatDateTime(timeEntry.approvedDate)}
+                </p>
               </div>
             )}
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Created</label>
-              <p className="text-base mt-1">{formatDateTime(timeEntry.createdAt)}</p>
+              <label className="text-sm font-medium text-gray-500">
+                Created
+              </label>
+              <p className="text-base mt-1">
+                {formatDateTime(timeEntry.createdAt)}
+              </p>
             </div>
           </div>
         </div>
 
         <div className="flex gap-3 justify-end pt-6 border-t">
-          <Button variant="outline" onClick={() => navigate({ to: '/dashboard/time-entries' })}>
+          <Button
+            variant="outline"
+            onClick={() => navigate({ to: '/dashboard/time-entries' })}
+          >
             Close
           </Button>
         </div>

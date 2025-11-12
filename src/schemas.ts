@@ -148,6 +148,7 @@ export const timeSheetSchema = z
     rejectedDate: z.string().datetime().optional(),
     rejectionReason: z.string().optional(),
     organisationId: z.string().optional(),
+    projectId: z.string().optional(),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
   })
@@ -173,15 +174,6 @@ export const createTimeSheetSchema = timeSheetSchema
   })
   .extend({
     organisationId: z.string().min(1, 'Organisation is required'),
-    startDate: z
-      .string()
-      .min(1, 'Start date is required')
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
-    endDate: z
-      .string()
-      .min(1, 'End date is required')
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
-    entryIds: z.array(z.string()).default([]),
   })
 
 export const updateTimeSheetSchema = timeSheetSchema

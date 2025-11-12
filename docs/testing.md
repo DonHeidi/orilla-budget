@@ -26,12 +26,14 @@ We use **unit testing** to validate our backend and core functionality, ensuring
 - Custom hooks manage state properly
 
 **What we test:**
+
 - ✅ Zod validation schemas (business rules)
 - ✅ Repository layer (database operations)
 - ✅ Utility functions
 - ✅ Custom React hooks
 
 **What we don't test:**
+
 - ❌ UI Components (we use Storybook for component documentation and visual testing)
 - ❌ Routes (integration/E2E tests would be more appropriate)
 
@@ -89,6 +91,7 @@ describe('projectSchema', () => {
 ```
 
 **Coverage:**
+
 - User, Organisation, Account, Project schemas
 - Time Entry and Quick Time Entry schemas
 - Time Sheet schemas with workflow validation
@@ -124,7 +127,8 @@ describe('userRepository', () => {
     const user = await seed.user(db, { email: 'test@example.com' })
 
     // Act
-    const result = await db.select()
+    const result = await db
+      .select()
       .from(schema.users)
       .where(eq(schema.users.email, 'test@example.com'))
       .limit(1)
@@ -147,7 +151,7 @@ import { db, users } from '@/db'
 export const userRepository = {
   async findAll() {
     return await db.select().from(users)
-  }
+  },
 }
 ```
 
@@ -246,11 +250,12 @@ beforeEach(async () => {
 ```typescript
 const user = testFactories.user({
   handle: 'johndoe',
-  email: 'john@example.com'
+  email: 'john@example.com',
 })
 ```
 
 Available factories:
+
 - `testFactories.user(overrides?)`
 - `testFactories.organisation(overrides?)`
 - `testFactories.account(organisationId, overrides?)`
@@ -266,6 +271,7 @@ const account = await seed.account(db, org.id, { role: 'finance' })
 ```
 
 Available seed functions:
+
 - `seed.user(db, data?)`
 - `seed.organisation(db, data?)`
 - `seed.account(db, organisationId, data?)`
@@ -284,16 +290,19 @@ const { getByText } = render(<MyComponent />)
 ```
 
 Automatically wraps components with:
+
 - `ThemeProvider` for theme context
 - `userEvent.setup()` for user interactions
 
 #### 3. Test Setup Files
 
 **`setup.ts`** - Global test setup:
+
 - Imports `@testing-library/jest-dom` for DOM matchers
 - Cleans up after each test
 
 **`dom-setup.ts`** - DOM environment setup:
+
 - Registers `happy-dom` for browser API simulation
 - Required for testing React components and hooks
 
@@ -312,7 +321,8 @@ it('should do something', async () => {
   const project = await seed.project(db, org.id, { budgetHours: 100 })
 
   // Act - Perform the operation
-  const result = await db.select()
+  const result = await db
+    .select()
     .from(schema.projects)
     .where(eq(schema.projects.id, project.id))
     .limit(1)
@@ -353,7 +363,8 @@ describe('create', () => {
     await db.insert(schema.users).values(newUser)
 
     // Assert
-    const result = await db.select()
+    const result = await db
+      .select()
       .from(schema.users)
       .where(eq(schema.users.id, newUser.id))
       .limit(1)
@@ -408,11 +419,13 @@ it('should cascade delete accounts when organisation is deleted', async () => {
   const account = await seed.account(db, 'org-1')
 
   // Act - Delete organisation
-  await db.delete(schema.organisations)
+  await db
+    .delete(schema.organisations)
     .where(eq(schema.organisations.id, 'org-1'))
 
   // Assert - Account should be deleted due to cascade
-  const result = await db.select()
+  const result = await db
+    .select()
     .from(schema.accounts)
     .where(eq(schema.accounts.id, account.id))
     .limit(1)
@@ -445,7 +458,7 @@ describe('approveSheet', () => {
     const sheet = await seed.timeSheet(db, {
       id: 'sheet-1',
       status: 'submitted',
-      organisationId: org.id
+      organisationId: org.id,
     })
     const entry1 = await seed.timeEntry(db, { approvedDate: undefined })
     const entry2 = await seed.timeEntry(db, { approvedDate: undefined })
@@ -456,37 +469,43 @@ describe('approveSheet', () => {
         id: 'tse-1',
         timeSheetId: 'sheet-1',
         timeEntryId: entry1.id,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       },
       {
         id: 'tse-2',
         timeSheetId: 'sheet-1',
         timeEntryId: entry2.id,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       },
     ])
 
     // Act - Approve sheet and cascade to entries
     const approvedDate = new Date().toISOString()
-    await db.update(schema.timeSheets).set({
-      status: 'approved',
-      approvedDate,
-      updatedAt: approvedDate,
-    }).where(eq(schema.timeSheets.id, 'sheet-1'))
+    await db
+      .update(schema.timeSheets)
+      .set({
+        status: 'approved',
+        approvedDate,
+        updatedAt: approvedDate,
+      })
+      .where(eq(schema.timeSheets.id, 'sheet-1'))
 
     // Get all entries and approve them
-    const sheetEntries = await db.select()
+    const sheetEntries = await db
+      .select()
       .from(schema.timeSheetEntries)
       .where(eq(schema.timeSheetEntries.timeSheetId, 'sheet-1'))
 
     for (const se of sheetEntries) {
-      await db.update(schema.timeEntries)
+      await db
+        .update(schema.timeEntries)
         .set({ approvedDate })
         .where(eq(schema.timeEntries.id, se.timeEntryId))
     }
 
     // Assert - Sheet is approved
-    const sheetResult = await db.select()
+    const sheetResult = await db
+      .select()
       .from(schema.timeSheets)
       .where(eq(schema.timeSheets.id, 'sheet-1'))
       .limit(1)
@@ -494,11 +513,13 @@ describe('approveSheet', () => {
     expect(sheetResult[0].approvedDate).toBe(approvedDate)
 
     // Assert - All entries are approved
-    const entry1Result = await db.select()
+    const entry1Result = await db
+      .select()
       .from(schema.timeEntries)
       .where(eq(schema.timeEntries.id, entry1.id))
       .limit(1)
-    const entry2Result = await db.select()
+    const entry2Result = await db
+      .select()
       .from(schema.timeEntries)
       .where(eq(schema.timeEntries.id, entry2.id))
       .limit(1)
@@ -581,6 +602,7 @@ As of the latest test run:
 - **Coverage:** ~97% of tested code
 
 **Coverage by module:**
+
 - ✅ 100% - All Zod schemas
 - ✅ 100% - All repositories
 - ✅ 100% - All custom hooks
@@ -638,13 +660,13 @@ const user = {
   id: 'user-1',
   handle: 'testuser',
   email: 'test@example.com',
-  createdAt: '2024-11-11T00:00:00Z'
+  createdAt: '2024-11-11T00:00:00Z',
 }
 
 // ✅ Good
 const user = testFactories.user({
   handle: 'testuser',
-  email: 'test@example.com'
+  email: 'test@example.com',
 })
 ```
 
@@ -670,7 +692,7 @@ Focus on testing business logic, not implementation details:
 it('should reject budget project without budgetHours', () => {
   const result = projectSchema.safeParse({
     category: 'budget',
-    budgetHours: null
+    budgetHours: null,
   })
   expect(result.success).toBe(false)
 })
@@ -710,7 +732,7 @@ describe('useIsMobile', () => {
   afterEach(() => {
     // Restore original value
     Object.defineProperty(window, 'innerWidth', {
-      value: originalInnerWidth
+      value: originalInnerWidth,
     })
   })
 })
@@ -743,7 +765,7 @@ const MOBILE_BREAKPOINT = 768
 
 it('should detect mobile at 767px', () => {
   Object.defineProperty(window, 'innerWidth', {
-    value: MOBILE_BREAKPOINT - 1
+    value: MOBILE_BREAKPOINT - 1,
   })
   // ...
 })
@@ -796,16 +818,20 @@ it('should exclude entries in approved sheets', async () => {
   })
 
   // Act - Query for available entries (should exclude entry1)
-  const approvedSheets = await db.select()
+  const approvedSheets = await db
+    .select()
     .from(schema.timeSheets)
     .where(eq(schema.timeSheets.status, 'approved'))
 
-  const entriesInApprovedSheets = await db.select()
+  const entriesInApprovedSheets = await db
+    .select()
     .from(schema.timeSheetEntries)
-    .where(sql`${schema.timeSheetEntries.timeSheetId} IN ${approvedSheets.map(s => s.id)}`)
+    .where(
+      sql`${schema.timeSheetEntries.timeSheetId} IN ${approvedSheets.map((s) => s.id)}`
+    )
 
   // Assert - entry1 should be in the exclusion list
-  expect(entriesInApprovedSheets.map(e => e.timeEntryId)).toContain(entry1.id)
+  expect(entriesInApprovedSheets.map((e) => e.timeEntryId)).toContain(entry1.id)
 })
 ```
 
@@ -905,6 +931,7 @@ Our testing approach prioritizes **business logic and backend functionality** us
 By focusing on unit tests for core functionality and using Storybook for UI components, we maintain a fast, reliable test suite that provides confidence when making changes to the codebase.
 
 **Current stats:**
+
 - 296 tests passing
 - 528 assertions
 - ~97% code coverage

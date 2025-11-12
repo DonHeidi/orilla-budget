@@ -56,7 +56,9 @@ export const Sides: Story = {
         <SheetContent side="right">
           <SheetHeader>
             <SheetTitle>Right Sheet</SheetTitle>
-            <SheetDescription>This sheet slides in from the right.</SheetDescription>
+            <SheetDescription>
+              This sheet slides in from the right.
+            </SheetDescription>
           </SheetHeader>
         </SheetContent>
       </Sheet>
@@ -68,7 +70,9 @@ export const Sides: Story = {
         <SheetContent side="left">
           <SheetHeader>
             <SheetTitle>Left Sheet</SheetTitle>
-            <SheetDescription>This sheet slides in from the left.</SheetDescription>
+            <SheetDescription>
+              This sheet slides in from the left.
+            </SheetDescription>
           </SheetHeader>
         </SheetContent>
       </Sheet>
@@ -80,7 +84,9 @@ export const Sides: Story = {
         <SheetContent side="top">
           <SheetHeader>
             <SheetTitle>Top Sheet</SheetTitle>
-            <SheetDescription>This sheet slides in from the top.</SheetDescription>
+            <SheetDescription>
+              This sheet slides in from the top.
+            </SheetDescription>
           </SheetHeader>
         </SheetContent>
       </Sheet>
@@ -92,7 +98,9 @@ export const Sides: Story = {
         <SheetContent side="bottom">
           <SheetHeader>
             <SheetTitle>Bottom Sheet</SheetTitle>
-            <SheetDescription>This sheet slides in from the bottom.</SheetDescription>
+            <SheetDescription>
+              This sheet slides in from the bottom.
+            </SheetDescription>
           </SheetHeader>
         </SheetContent>
       </Sheet>
@@ -166,7 +174,9 @@ export const TimeEntryDetail: Story = {
 
           <div className="space-y-6 py-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Title</label>
+              <label className="text-sm font-medium text-muted-foreground">
+                Title
+              </label>
               <Input defaultValue="Client Meeting" />
             </div>
 
@@ -182,18 +192,24 @@ export const TimeEntryDetail: Story = {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Date</label>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Date
+                </label>
                 <Input type="date" defaultValue="2025-11-08" />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Hours</label>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Hours
+                </label>
                 <Input type="number" step="0.5" defaultValue="2.5" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Project</label>
+              <label className="text-sm font-medium text-muted-foreground">
+                Project
+              </label>
               <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                 <option>Website Redesign</option>
                 <option>Mobile App</option>
@@ -254,7 +270,9 @@ export const ClickToEdit: Story = {
             <div className="flex justify-between items-start">
               <div>
                 <div className="font-medium">{values.title}</div>
-                <div className="text-sm text-muted-foreground">{values.date}</div>
+                <div className="text-sm text-muted-foreground">
+                  {values.date}
+                </div>
               </div>
               <div className="text-sm">{values.hours}h</div>
             </div>
@@ -270,7 +288,9 @@ export const ClickToEdit: Story = {
 
           <div className="space-y-6 py-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Title</label>
+              <label className="text-sm font-medium text-muted-foreground">
+                Title
+              </label>
               {editingField === 'title' ? (
                 <Input
                   autoFocus
@@ -296,7 +316,9 @@ export const ClickToEdit: Story = {
                 <textarea
                   autoFocus
                   value={values.description}
-                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  onChange={(e) =>
+                    handleFieldChange('description', e.target.value)
+                  }
                   onBlur={handleFieldBlur}
                   className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
@@ -312,7 +334,9 @@ export const ClickToEdit: Story = {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Date</label>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Date
+                </label>
                 {editingField === 'date' ? (
                   <Input
                     autoFocus
@@ -332,7 +356,9 @@ export const ClickToEdit: Story = {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Hours</label>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Hours
+                </label>
                 {editingField === 'hours' ? (
                   <Input
                     autoFocus
@@ -419,7 +445,9 @@ export const ProjectDetail: Story = {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Category</label>
+              <label className="text-sm font-medium text-muted-foreground">
+                Category
+              </label>
               <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                 <option>Budget (Time & Materials)</option>
                 <option>Fixed Price</option>

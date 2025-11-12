@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, waitFor } from '@/test-utils'
-import { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from './popover'
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverAnchor,
+} from './popover'
 import { Button } from './button'
 
 describe('Popover', () => {
@@ -234,7 +239,9 @@ describe('Popover', () => {
       await waitFor(() => {
         expect(screen.getByText('Title')).toBeInTheDocument()
         expect(screen.getByText('Description text')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Action' })).toBeInTheDocument()
+        expect(
+          screen.getByRole('button', { name: 'Action' })
+        ).toBeInTheDocument()
       })
     })
 
@@ -254,7 +261,9 @@ describe('Popover', () => {
       await user.click(screen.getByText('Open'))
       await waitFor(() => {
         expect(screen.getByPlaceholderText('Username')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Submit' })).toBeInTheDocument()
+        expect(
+          screen.getByRole('button', { name: 'Submit' })
+        ).toBeInTheDocument()
       })
     })
   })
@@ -342,7 +351,10 @@ describe('Popover', () => {
 
       await user.click(screen.getByText('Open'))
       await waitFor(() => {
-        expect(screen.getByTestId('popover')).toHaveAttribute('data-custom', 'test')
+        expect(screen.getByTestId('popover')).toHaveAttribute(
+          'data-custom',
+          'test'
+        )
       })
     })
   })
@@ -366,7 +378,9 @@ describe('Popover', () => {
       await user.click(screen.getByRole('button', { name: 'Info' }))
       await waitFor(() => {
         expect(screen.getByText('Additional Information')).toBeInTheDocument()
-        expect(screen.getByText('This is helpful context about the feature.')).toBeInTheDocument()
+        expect(
+          screen.getByText('This is helpful context about the feature.')
+        ).toBeInTheDocument()
       })
     })
 
@@ -387,8 +401,12 @@ describe('Popover', () => {
       await user.click(screen.getByText('Options'))
       await waitFor(() => {
         expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument()
+        expect(
+          screen.getByRole('button', { name: 'Delete' })
+        ).toBeInTheDocument()
+        expect(
+          screen.getByRole('button', { name: 'Share' })
+        ).toBeInTheDocument()
       })
     })
 
@@ -398,7 +416,12 @@ describe('Popover', () => {
         <Popover>
           <PopoverTrigger>Quick Add</PopoverTrigger>
           <PopoverContent>
-            <form onSubmit={(e) => { e.preventDefault(); handleSubmit() }}>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                handleSubmit()
+              }}
+            >
               <input placeholder="Item name" />
               <Button type="submit">Add</Button>
             </form>

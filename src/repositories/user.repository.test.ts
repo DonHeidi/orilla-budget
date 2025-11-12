@@ -20,8 +20,14 @@ describe('userRepository', () => {
   describe('findAll', () => {
     it('should retrieve all users from database', async () => {
       // Arrange - Insert test data directly
-      const user1 = testFactories.user({ handle: 'john_doe', email: 'john@example.com' })
-      const user2 = testFactories.user({ handle: 'jane_doe', email: 'jane@example.com' })
+      const user1 = testFactories.user({
+        handle: 'john_doe',
+        email: 'john@example.com',
+      })
+      const user2 = testFactories.user({
+        handle: 'jane_doe',
+        email: 'jane@example.com',
+      })
 
       await db.insert(schema.users).values([user1, user2])
 
@@ -30,8 +36,8 @@ describe('userRepository', () => {
 
       // Assert
       expect(results).toHaveLength(2)
-      expect(results.map(u => u.handle)).toContain('john_doe')
-      expect(results.map(u => u.handle)).toContain('jane_doe')
+      expect(results.map((u) => u.handle)).toContain('john_doe')
+      expect(results.map((u) => u.handle)).toContain('jane_doe')
     })
 
     it('should return empty array when no users exist', async () => {
@@ -50,7 +56,11 @@ describe('userRepository', () => {
       await db.insert(schema.users).values(user)
 
       // Act
-      const result = await db.select().from(schema.users).where(eq(schema.users.id, 'user-123')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, 'user-123'))
+        .limit(1)
 
       // Assert
       expect(result[0]).toBeDefined()
@@ -60,7 +70,11 @@ describe('userRepository', () => {
 
     it('should return undefined when user not found', async () => {
       // Act
-      const result = await db.select().from(schema.users).where(eq(schema.users.id, 'nonexistent')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, 'nonexistent'))
+        .limit(1)
 
       // Assert
       expect(result[0]).toBeUndefined()
@@ -74,7 +88,11 @@ describe('userRepository', () => {
       await db.insert(schema.users).values(user)
 
       // Act
-      const result = await db.select().from(schema.users).where(eq(schema.users.email, 'unique@example.com')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, 'unique@example.com'))
+        .limit(1)
 
       // Assert
       expect(result[0]).toBeDefined()
@@ -83,7 +101,11 @@ describe('userRepository', () => {
 
     it('should return undefined when email not found', async () => {
       // Act
-      const result = await db.select().from(schema.users).where(eq(schema.users.email, 'notfound@example.com')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, 'notfound@example.com'))
+        .limit(1)
 
       // Assert
       expect(result[0]).toBeUndefined()
@@ -95,7 +117,11 @@ describe('userRepository', () => {
       await db.insert(schema.users).values(user)
 
       // Act - SQLite is case-insensitive for LIKE but case-sensitive for =
-      const result = await db.select().from(schema.users).where(eq(schema.users.email, 'test@example.com')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, 'test@example.com'))
+        .limit(1)
 
       // Assert - Should not find with different case
       expect(result[0]).toBeUndefined()
@@ -105,13 +131,20 @@ describe('userRepository', () => {
   describe('create', () => {
     it('should insert new user into database', async () => {
       // Arrange
-      const newUser = testFactories.user({ handle: 'newuser', email: 'new@example.com' })
+      const newUser = testFactories.user({
+        handle: 'newuser',
+        email: 'new@example.com',
+      })
 
       // Act
       await db.insert(schema.users).values(newUser)
 
       // Assert - Verify user was inserted
-      const result = await db.select().from(schema.users).where(eq(schema.users.id, newUser.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, newUser.id))
+        .limit(1)
       expect(result[0]).toBeDefined()
       expect(result[0].handle).toBe('newuser')
       expect(result[0].email).toBe('new@example.com')
@@ -130,7 +163,11 @@ describe('userRepository', () => {
       await db.insert(schema.users).values(newUser)
 
       // Assert
-      const result = await db.select().from(schema.users).where(eq(schema.users.id, 'user-999')).limit(1)
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, 'user-999'))
+        .limit(1)
       expect(result[0].id).toBe('user-999')
       expect(result[0].handle).toBe('testuser')
       expect(result[0].email).toBe('test@example.com')
@@ -145,10 +182,17 @@ describe('userRepository', () => {
       await db.insert(schema.users).values(user)
 
       // Act
-      await db.update(schema.users).set({ handle: 'newhandle' }).where(eq(schema.users.id, user.id))
+      await db
+        .update(schema.users)
+        .set({ handle: 'newhandle' })
+        .where(eq(schema.users.id, user.id))
 
       // Assert
-      const result = await db.select().from(schema.users).where(eq(schema.users.id, user.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, user.id))
+        .limit(1)
       expect(result[0].handle).toBe('newhandle')
     })
 
@@ -158,42 +202,78 @@ describe('userRepository', () => {
       await db.insert(schema.users).values(user)
 
       // Act
-      await db.update(schema.users).set({ email: 'new@example.com' }).where(eq(schema.users.id, user.id))
+      await db
+        .update(schema.users)
+        .set({ email: 'new@example.com' })
+        .where(eq(schema.users.id, user.id))
 
       // Assert
-      const result = await db.select().from(schema.users).where(eq(schema.users.id, user.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, user.id))
+        .limit(1)
       expect(result[0].email).toBe('new@example.com')
     })
 
     it('should update multiple fields', async () => {
       // Arrange
-      const user = testFactories.user({ handle: 'oldhandle', email: 'old@example.com' })
+      const user = testFactories.user({
+        handle: 'oldhandle',
+        email: 'old@example.com',
+      })
       await db.insert(schema.users).values(user)
 
       // Act
-      await db.update(schema.users).set({
-        handle: 'newhandle',
-        email: 'new@example.com'
-      }).where(eq(schema.users.id, user.id))
+      await db
+        .update(schema.users)
+        .set({
+          handle: 'newhandle',
+          email: 'new@example.com',
+        })
+        .where(eq(schema.users.id, user.id))
 
       // Assert
-      const result = await db.select().from(schema.users).where(eq(schema.users.id, user.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, user.id))
+        .limit(1)
       expect(result[0].handle).toBe('newhandle')
       expect(result[0].email).toBe('new@example.com')
     })
 
     it('should not affect other users', async () => {
       // Arrange
-      const user1 = testFactories.user({ id: 'user-1', handle: 'user1', email: 'user1@example.com' })
-      const user2 = testFactories.user({ id: 'user-2', handle: 'user2', email: 'user2@example.com' })
+      const user1 = testFactories.user({
+        id: 'user-1',
+        handle: 'user1',
+        email: 'user1@example.com',
+      })
+      const user2 = testFactories.user({
+        id: 'user-2',
+        handle: 'user2',
+        email: 'user2@example.com',
+      })
       await db.insert(schema.users).values([user1, user2])
 
       // Act
-      await db.update(schema.users).set({ handle: 'updated' }).where(eq(schema.users.id, 'user-1'))
+      await db
+        .update(schema.users)
+        .set({ handle: 'updated' })
+        .where(eq(schema.users.id, 'user-1'))
 
       // Assert
-      const result1 = await db.select().from(schema.users).where(eq(schema.users.id, 'user-1')).limit(1)
-      const result2 = await db.select().from(schema.users).where(eq(schema.users.id, 'user-2')).limit(1)
+      const result1 = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, 'user-1'))
+        .limit(1)
+      const result2 = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, 'user-2'))
+        .limit(1)
       expect(result1[0].handle).toBe('updated')
       expect(result2[0].handle).toBe('user2')
     })
@@ -209,14 +289,26 @@ describe('userRepository', () => {
       await db.delete(schema.users).where(eq(schema.users.id, user.id))
 
       // Assert
-      const result = await db.select().from(schema.users).where(eq(schema.users.id, user.id)).limit(1)
+      const result = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, user.id))
+        .limit(1)
       expect(result[0]).toBeUndefined()
     })
 
     it('should not affect other users', async () => {
       // Arrange
-      const user1 = testFactories.user({ id: 'user-1', handle: 'user1', email: 'user1@example.com' })
-      const user2 = testFactories.user({ id: 'user-2', handle: 'user2', email: 'user2@example.com' })
+      const user1 = testFactories.user({
+        id: 'user-1',
+        handle: 'user1',
+        email: 'user1@example.com',
+      })
+      const user2 = testFactories.user({
+        id: 'user-2',
+        handle: 'user2',
+        email: 'user2@example.com',
+      })
       await db.insert(schema.users).values([user1, user2])
 
       // Act

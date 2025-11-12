@@ -84,10 +84,14 @@ describe('cn', () => {
 
     it('should mix conditional and static classNames', () => {
       // Act
-      const result = cn('p-4', {
-        'text-red-500': true,
-        'bg-blue-500': false,
-      }, 'm-2')
+      const result = cn(
+        'p-4',
+        {
+          'text-red-500': true,
+          'bg-blue-500': false,
+        },
+        'm-2'
+      )
 
       // Assert
       expect(result).toContain('p-4')
@@ -201,7 +205,14 @@ describe('cn', () => {
 
     it('should handle mixed falsy values', () => {
       // Act
-      const result = cn('text-red-500', undefined, null, false, '', 'bg-blue-500')
+      const result = cn(
+        'text-red-500',
+        undefined,
+        null,
+        false,
+        '',
+        'bg-blue-500'
+      )
 
       // Assert
       expect(result).toBe('text-red-500 bg-blue-500')
@@ -223,15 +234,12 @@ describe('cn', () => {
       const size = 'lg'
 
       // Act
-      const result = cn(
-        'btn',
-        {
-          'btn-primary': variant === 'primary',
-          'btn-secondary': variant === 'secondary',
-          'btn-sm': size === 'sm',
-          'btn-lg': size === 'lg',
-        }
-      )
+      const result = cn('btn', {
+        'btn-primary': variant === 'primary',
+        'btn-secondary': variant === 'secondary',
+        'btn-sm': size === 'sm',
+        'btn-lg': size === 'lg',
+      })
 
       // Assert
       expect(result).toBe('btn btn-primary btn-lg')
@@ -242,13 +250,10 @@ describe('cn', () => {
       const isDisabled = true
 
       // Act
-      const result = cn(
-        'px-4 py-2 rounded',
-        {
-          'bg-blue-500 hover:bg-blue-600': !isDisabled,
-          'bg-gray-300 cursor-not-allowed': isDisabled,
-        }
-      )
+      const result = cn('px-4 py-2 rounded', {
+        'bg-blue-500 hover:bg-blue-600': !isDisabled,
+        'bg-gray-300 cursor-not-allowed': isDisabled,
+      })
 
       // Assert
       expect(result).toContain('px-4')
@@ -342,7 +347,9 @@ describe('cn', () => {
   describe('performance and edge cases', () => {
     it('should handle many classNames efficiently', () => {
       // Arrange
-      const classes = Array(50).fill(0).map((_, i) => `class-${i}`)
+      const classes = Array(50)
+        .fill(0)
+        .map((_, i) => `class-${i}`)
 
       // Act
       const result = cn(...classes)
@@ -354,12 +361,21 @@ describe('cn', () => {
 
     it('should handle duplicate classNames', () => {
       // Act
-      const result = cn('text-red-500', 'bg-blue-500', 'text-red-500', 'bg-blue-500')
+      const result = cn(
+        'text-red-500',
+        'bg-blue-500',
+        'text-red-500',
+        'bg-blue-500'
+      )
 
       // Assert - twMerge should keep last occurrence of conflicts
       const parts = result.split(' ')
-      expect(parts.filter(p => p === 'text-red-500').length).toBeLessThanOrEqual(1)
-      expect(parts.filter(p => p === 'bg-blue-500').length).toBeLessThanOrEqual(1)
+      expect(
+        parts.filter((p) => p === 'text-red-500').length
+      ).toBeLessThanOrEqual(1)
+      expect(
+        parts.filter((p) => p === 'bg-blue-500').length
+      ).toBeLessThanOrEqual(1)
     })
   })
 })

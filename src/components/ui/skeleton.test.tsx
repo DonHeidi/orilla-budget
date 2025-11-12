@@ -52,7 +52,10 @@ describe('Skeleton', () => {
 
     it('renders as avatar skeleton', () => {
       const { container } = render(
-        <Skeleton className="h-12 w-12 rounded-full" data-testid="avatar-skeleton" />
+        <Skeleton
+          className="h-12 w-12 rounded-full"
+          data-testid="avatar-skeleton"
+        />
       )
       const skeleton = screen.getByTestId('avatar-skeleton')
       expect(skeleton).toHaveClass('rounded-full')

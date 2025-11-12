@@ -10,15 +10,20 @@ import { createServerFn } from '@tanstack/react-start'
 import appCss from '@/styles/app.css?url'
 import { ThemeProvider } from '@/components/theme-provider'
 
-const getThemeFromCookieFn = createServerFn({ method: 'GET' }).handler(async (ctx) => {
-  const cookieHeader = ctx.request.headers.get('cookie') || ''
-  const cookies = cookieHeader.split('; ').reduce((acc, cookie) => {
-    const [key, value] = cookie.split('=')
-    if (key && value) acc[key] = value
-    return acc
-  }, {} as Record<string, string>)
-  return cookies['orilla-ui-theme'] || 'system'
-})
+const getThemeFromCookieFn = createServerFn({ method: 'GET' }).handler(
+  async (ctx) => {
+    const cookieHeader = ctx.request.headers.get('cookie') || ''
+    const cookies = cookieHeader.split('; ').reduce(
+      (acc, cookie) => {
+        const [key, value] = cookie.split('=')
+        if (key && value) acc[key] = value
+        return acc
+      },
+      {} as Record<string, string>
+    )
+    return cookies['orilla-ui-theme'] || 'system'
+  }
+)
 
 export const Route = createRootRoute({
   head: () => ({
@@ -28,10 +33,10 @@ export const Route = createRootRoute({
       },
       {
         name: 'viewport',
-	content: 'width=device-width, initial-scale=1',
+        content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'Orilla Budget'
+        title: 'Orilla Budget',
       },
     ],
     links: [
@@ -53,14 +58,20 @@ function RootComponent() {
 
   return (
     <RootDocument theme={theme}>
-      <ThemeProvider defaultTheme={theme as 'dark' | 'light' | 'system'} storageKey="orilla-ui-theme">
+      <ThemeProvider
+        defaultTheme={theme as 'dark' | 'light' | 'system'}
+        storageKey="orilla-ui-theme"
+      >
         <Outlet />
       </ThemeProvider>
     </RootDocument>
-    )
+  )
 }
 
-function RootDocument({ children, theme }: ReadOnly<{ children: ReactNode; theme: string }>) {
+function RootDocument({
+  children,
+  theme,
+}: ReadOnly<{ children: ReactNode; theme: string }>) {
   return (
     <html data-theme={theme}>
       <head>
@@ -86,7 +97,7 @@ function RootDocument({ children, theme }: ReadOnly<{ children: ReactNode; theme
         data-gr-ext-installed=""
       >
         {children}
-	<Scripts />
+        <Scripts />
       </body>
     </html>
   )
