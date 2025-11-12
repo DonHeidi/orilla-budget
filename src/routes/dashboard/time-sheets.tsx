@@ -373,7 +373,6 @@ function AddTimeSheetDialog({
   const [open, setOpen] = useState(false)
   const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set())
   const [selectedOrgId, setSelectedOrgId] = useState<string>('')
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('')
   const router = useRouter()
 
   const form = useForm({
@@ -428,12 +427,9 @@ function AddTimeSheetDialog({
       // Filter by organisation if one is selected
       if (selectedOrgId && entry.organisationId !== selectedOrgId) return false
 
-      // Filter by project if one is selected
-      if (selectedProjectId && entry.projectId !== selectedProjectId) return false
-
       return true
     })
-  }, [timeEntries, selectedOrgId, selectedProjectId])
+  }, [timeEntries, selectedOrgId])
 
   return (
     <Dialog open={open} onOpenChange={(open) => {
@@ -441,7 +437,6 @@ function AddTimeSheetDialog({
         setOpen(false)
         form.reset()
         setSelectedOrgId('')
-        setSelectedProjectId('')
         setSelectedEntryIds(new Set())
       } else {
         setOpen(open)
@@ -561,7 +556,6 @@ function AddTimeSheetDialog({
                     const value = e.target.value
                     field.handleChange(value)
                     setSelectedOrgId(value)
-                    setSelectedProjectId('')
                     setSelectedEntryIds(new Set())
                   }}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
