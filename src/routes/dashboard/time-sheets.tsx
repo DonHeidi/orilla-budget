@@ -374,6 +374,7 @@ function AddTimeSheetDialog({
   const [open, setOpen] = useState(false)
   const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set())
   const [selectedOrgId, setSelectedOrgId] = useState<string>('')
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const router = useRouter()
 
   const form = useForm({
@@ -386,25 +387,12 @@ function AddTimeSheetDialog({
     },
     validatorAdapter: zodValidator(),
     validators: {
-      onSubmitAsync: async ({ value }) => {
-        const result = createTimeSheetSchema.safeParse(value)
-        if (!result.success) {
-          const fieldErrors: Record<string, string> = {}
-          result.error.errors.forEach((err) => {
-            if (err.path.length > 0) {
-              fieldErrors[err.path[0] as string] = err.message
-            }
-          })
-          return {
-            form: 'Please fix the errors below',
-            fields: fieldErrors,
-          }
-        }
-        return undefined
-      },
+      onChange: createTimeSheetSchema,
+      onSubmit: createTimeSheetSchema,
     },
     onSubmit: async ({ value }) => {
       try {
+        setSubmitError(null)
         const sheet = await createTimeSheetFn({
           data: {
             title: value.title,
@@ -431,7 +419,7 @@ function AddTimeSheetDialog({
         router.invalidate()
       } catch (error) {
         console.error('Error creating time sheet:', error)
-        alert(`Error creating time sheet: ${error instanceof Error ? error.message : String(error)}`)
+        setSubmitError(error instanceof Error ? error.message : String(error))
       }
     },
   })
@@ -455,6 +443,7 @@ function AddTimeSheetDialog({
         form.reset()
         setSelectedOrgId('')
         setSelectedEntryIds(new Set())
+        setSubmitError(null)
       } else {
         setOpen(open)
       }
@@ -473,19 +462,20 @@ function AddTimeSheetDialog({
           </DialogDescription>
         </DialogHeader>
 
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.handleSubmit()
+          }}
+          className="flex flex-col flex-1"
+        >
         <ScrollArea className="flex-1">
           <div className="px-6 py-6 space-y-6 pb-4">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                form.handleSubmit()
-              }}
-              className="space-y-6"
-            >
+            <div className="space-y-6">
           <form.Field
             name="title"
             validators={{
+              onChange: createTimeSheetSchema.shape.title,
               onBlur: createTimeSheetSchema.shape.title,
             }}
           >
@@ -501,7 +491,7 @@ function AddTimeSheetDialog({
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="e.g., Week 1 - Feature Development"
                 />
-                {field.state.meta.errors && field.state.meta.errors.length > 0 && (field.state.meta.isTouched || form.state.submissionAttempts > 0) && (
+                {field.state.meta.isTouched && field.state.meta.errors && field.state.meta.errors.length > 0 && (
                   <p className="text-sm text-destructive">
                     {typeof field.state.meta.errors[0] === 'string'
                       ? field.state.meta.errors[0]
@@ -521,6 +511,7 @@ function AddTimeSheetDialog({
                 <textarea
                   id={field.name}
                   value={field.state.value}
+                  onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                   className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                   placeholder="Optional notes about this time sheet"
@@ -534,6 +525,7 @@ function AddTimeSheetDialog({
             <form.Field
               name="startDate"
               validators={{
+                onChange: createTimeSheetSchema.shape.startDate,
                 onBlur: createTimeSheetSchema.shape.startDate,
               }}
             >
@@ -549,7 +541,7 @@ function AddTimeSheetDialog({
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
                   />
-                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (field.state.meta.isTouched || form.state.submissionAttempts > 0) && (
+                  {field.state.meta.isTouched && field.state.meta.errors && field.state.meta.errors.length > 0 && (
                     <p className="text-sm text-destructive">
                       {typeof field.state.meta.errors[0] === 'string'
                         ? field.state.meta.errors[0]
@@ -563,6 +555,7 @@ function AddTimeSheetDialog({
             <form.Field
               name="endDate"
               validators={{
+                onChange: createTimeSheetSchema.shape.endDate,
                 onBlur: createTimeSheetSchema.shape.endDate,
               }}
             >
@@ -578,7 +571,7 @@ function AddTimeSheetDialog({
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
                   />
-                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (field.state.meta.isTouched || form.state.submissionAttempts > 0) && (
+                  {field.state.meta.isTouched && field.state.meta.errors && field.state.meta.errors.length > 0 && (
                     <p className="text-sm text-destructive">
                       {typeof field.state.meta.errors[0] === 'string'
                         ? field.state.meta.errors[0]
@@ -593,6 +586,7 @@ function AddTimeSheetDialog({
           <form.Field
             name="organisationId"
             validators={{
+              onChange: createTimeSheetSchema.shape.organisationId,
               onBlur: createTimeSheetSchema.shape.organisationId,
             }}
           >
@@ -621,7 +615,7 @@ function AddTimeSheetDialog({
                     emptyText="No organisation found."
                     className="w-full"
                   />
-                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (field.state.meta.isTouched || form.state.submissionAttempts > 0) && (
+                  {field.state.meta.isTouched && field.state.meta.errors && field.state.meta.errors.length > 0 && (
                     <p className="text-sm text-destructive">
                       {typeof field.state.meta.errors[0] === 'string'
                         ? field.state.meta.errors[0]
@@ -712,9 +706,15 @@ function AddTimeSheetDialog({
               )}
             </div>
           )}
-            </form>
+            </div>
           </div>
         </ScrollArea>
+
+        {submitError && (
+          <div className="px-6 py-3 bg-destructive/10 border-t border-destructive/20">
+            <p className="text-sm text-destructive">{submitError}</p>
+          </div>
+        )}
 
         <DialogFooter className="px-6 pb-6">
           <Button
@@ -724,8 +724,17 @@ function AddTimeSheetDialog({
           >
             Cancel
           </Button>
-          <Button onClick={() => form.handleSubmit()}>Create Time Sheet</Button>
+          <form.Subscribe
+            selector={(state) => [state.canSubmit, state.isSubmitting, state.isTouched]}
+          >
+            {([canSubmit, isSubmitting, isTouched]) => (
+              <Button type="submit" disabled={!isTouched || !canSubmit || isSubmitting}>
+                {isSubmitting ? 'Creating...' : 'Create Time Sheet'}
+              </Button>
+            )}
+          </form.Subscribe>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )
