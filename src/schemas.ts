@@ -119,6 +119,8 @@ export const timeSheetSchema = z.object({
 
 export const createTimeSheetSchema = timeSheetSchema.omit({ id: true, createdAt: true, updatedAt: true, submittedDate: true, approvedDate: true, rejectedDate: true }).extend({
   organisationId: z.string().min(1, 'Organisation is required'),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Start date is required').min(1, 'Start date is required'),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'End date is required').min(1, 'End date is required'),
 })
 
 export const updateTimeSheetSchema = timeSheetSchema.partial().required({ id: true })

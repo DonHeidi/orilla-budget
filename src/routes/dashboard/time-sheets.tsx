@@ -386,7 +386,22 @@ function AddTimeSheetDialog({
     },
     validatorAdapter: zodValidator(),
     validators: {
-      onSubmit: createTimeSheetSchema,
+      onSubmitAsync: async ({ value }) => {
+        const result = createTimeSheetSchema.safeParse(value)
+        if (!result.success) {
+          const fieldErrors: Record<string, string> = {}
+          result.error.errors.forEach((err) => {
+            if (err.path.length > 0) {
+              fieldErrors[err.path[0] as string] = err.message
+            }
+          })
+          return {
+            form: 'Please fix the errors below',
+            fields: fieldErrors,
+          }
+        }
+        return undefined
+      },
     },
     onSubmit: async ({ value }) => {
       try {
@@ -486,7 +501,7 @@ function AddTimeSheetDialog({
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="e.g., Week 1 - Feature Development"
                 />
-                {field.state.meta.errors && field.state.meta.errors.length > 0 && (field.state.meta.isTouched || form.state.isSubmitted) && (
+                {field.state.meta.errors && field.state.meta.errors.length > 0 && (field.state.meta.isTouched || form.state.submissionAttempts > 0) && (
                   <p className="text-sm text-destructive">
                     {typeof field.state.meta.errors[0] === 'string'
                       ? field.state.meta.errors[0]
@@ -534,7 +549,7 @@ function AddTimeSheetDialog({
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
                   />
-                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (field.state.meta.isTouched || form.state.isSubmitted) && (
+                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (field.state.meta.isTouched || form.state.submissionAttempts > 0) && (
                     <p className="text-sm text-destructive">
                       {typeof field.state.meta.errors[0] === 'string'
                         ? field.state.meta.errors[0]
@@ -563,7 +578,7 @@ function AddTimeSheetDialog({
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
                   />
-                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (field.state.meta.isTouched || form.state.isSubmitted) && (
+                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (field.state.meta.isTouched || form.state.submissionAttempts > 0) && (
                     <p className="text-sm text-destructive">
                       {typeof field.state.meta.errors[0] === 'string'
                         ? field.state.meta.errors[0]
@@ -606,7 +621,7 @@ function AddTimeSheetDialog({
                     emptyText="No organisation found."
                     className="w-full"
                   />
-                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (field.state.meta.isTouched || form.state.isSubmitted) && (
+                  {field.state.meta.errors && field.state.meta.errors.length > 0 && (field.state.meta.isTouched || form.state.submissionAttempts > 0) && (
                     <p className="text-sm text-destructive">
                       {typeof field.state.meta.errors[0] === 'string'
                         ? field.state.meta.errors[0]
@@ -672,15 +687,15 @@ function AddTimeSheetDialog({
                             onCheckedChange={toggleEntry}
                           />
                         </div>
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-medium text-sm">{entry.title}</span>
-                          <span className="text-xs text-muted-foreground">{entry.date}</span>
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-medium text-sm">{entry.title}</span>
+                            <span className="text-xs text-muted-foreground">{entry.date}</span>
+                          </div>
+                          {entry.description && (
+                            <p className="text-xs text-muted-foreground">{entry.description}</p>
+                          )}
                         </div>
-                        {entry.description && (
-                          <p className="text-xs text-muted-foreground">{entry.description}</p>
-                        )}
-                      </div>
                         <div className="text-sm font-medium tabular-nums whitespace-nowrap">
                           {entry.hours}h
                         </div>
