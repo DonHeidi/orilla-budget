@@ -60,4 +60,5 @@ export interface TimeSheetSummary {
   projectName?: string
   createdAt: string
   updatedAt: string
+  entries: TimeEntry[]
 }

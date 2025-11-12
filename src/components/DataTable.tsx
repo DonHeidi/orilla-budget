@@ -1,6 +1,7 @@
 import {
   flexRender,
   getCoreRowModel,
+  getExpandedRowModel,
   useReactTable,
   type ColumnDef,
   type Row,
@@ -22,6 +23,7 @@ interface DataTableProps<TData, TValue> {
   onRowClick?: (row: Row<TData>, event: React.MouseEvent<HTMLTableRowElement>) => void
   onRowKeyDown?: (row: Row<TData>, event: React.KeyboardEvent<HTMLTableRowElement>) => void
   onContainerClick?: (event: React.MouseEvent<HTMLDivElement>) => void
+  renderExpandedRow?: (row: Row<TData>) => React.ReactNode
 }
 
 export function DataTable<TData, TValue>({
@@ -32,12 +34,14 @@ export function DataTable<TData, TValue>({
   onRowClick,
   onRowKeyDown,
   onContainerClick,
+  renderExpandedRow,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
     columns,
     getRowId,
     getCoreRowModel: getCoreRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
   })
 
   return (
@@ -84,19 +88,28 @@ export function DataTable<TData, TValue>({
         >
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() && 'selected'}
-                data-row-id={row.id}
-                className={onRowDoubleClick || onRowClick ? 'cursor-pointer' : undefined}
-                onDoubleClick={() => onRowDoubleClick?.(row)}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
+              <>
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && 'selected'}
+                  data-row-id={row.id}
+                  className={onRowDoubleClick || onRowClick ? 'cursor-pointer' : undefined}
+                  onDoubleClick={() => onRowDoubleClick?.(row)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+                {row.getIsExpanded() && renderExpandedRow && (
+                  <TableRow key={`${row.id}-expanded`}>
+                    <TableCell colSpan={columns.length} className="p-0">
+                      {renderExpandedRow(row)}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </>
             ))
           ) : (
             <TableRow>
