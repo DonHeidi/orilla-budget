@@ -181,6 +181,7 @@ export const createTimeSheetSchema = timeSheetSchema
       .string()
       .min(1, 'End date is required')
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
+    entryIds: z.array(z.string()).default([]),
   })
 
 export const updateTimeSheetSchema = timeSheetSchema
