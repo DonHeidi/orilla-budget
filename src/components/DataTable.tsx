@@ -1,4 +1,3 @@
-import { Fragment } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -21,8 +20,14 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   getRowId?: (originalRow: TData, index: number) => string
   onRowDoubleClick?: (row: Row<TData>) => void
-  onRowClick?: (row: Row<TData>, event: React.MouseEvent<HTMLTableRowElement>) => void
-  onRowKeyDown?: (row: Row<TData>, event: React.KeyboardEvent<HTMLTableRowElement>) => void
+  onRowClick?: (
+    row: Row<TData>,
+    event: React.MouseEvent<HTMLTableRowElement>
+  ) => void
+  onRowKeyDown?: (
+    row: Row<TData>,
+    event: React.KeyboardEvent<HTMLTableRowElement>
+  ) => void
   onContainerClick?: (event: React.MouseEvent<HTMLDivElement>) => void
   renderExpandedRow?: (row: Row<TData>) => React.ReactNode
 }
@@ -50,7 +55,12 @@ export function DataTable<TData, TValue>({
       className="rounded-md border"
       onClick={(e) => {
         // Temporary debug to verify click events reach the table container
-        try { console.log('[DataTable] container click', (e.target as HTMLElement)?.tagName) } catch {}
+        try {
+          console.log(
+            '[DataTable] container click',
+            (e.target as HTMLElement)?.tagName
+          )
+        } catch {}
         onContainerClick?.(e)
       }}
     >
@@ -76,29 +86,41 @@ export function DataTable<TData, TValue>({
             // Row-level event delegation: find nearest row and emit onRowClick
             const target = e.target as HTMLElement | null
             if (!target) return
-            const rowEl = target.closest('[data-row-id]') as HTMLTableRowElement | null
+            const rowEl = target.closest(
+              '[data-row-id]'
+            ) as HTMLTableRowElement | null
             if (!rowEl) return
             const rowId = rowEl.getAttribute('data-row-id')
             const row = table.getRowModel().rows.find((r) => r.id === rowId)
             if (!row) return
             if (onRowClick) {
-              try { console.log('[DataTable] row click', row.id) } catch {}
+              try {
+                console.log('[DataTable] row click', row.id)
+              } catch {}
               onRowClick(row, e as React.MouseEvent<HTMLTableRowElement>)
             }
           }}
         >
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <Fragment key={row.id}>
+              <>
                 <TableRow
+                  key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
                   data-row-id={row.id}
-                  className={onRowDoubleClick || onRowClick ? 'cursor-pointer' : undefined}
+                  className={
+                    onRowDoubleClick || onRowClick
+                      ? 'cursor-pointer'
+                      : undefined
+                  }
                   onDoubleClick={() => onRowDoubleClick?.(row)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -109,14 +131,11 @@ export function DataTable<TData, TValue>({
                     </TableCell>
                   </TableRow>
                 )}
-              </Fragment>
+              </>
             ))
           ) : (
             <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="h-24 text-center"
-              >
+              <TableCell colSpan={columns.length} className="h-24 text-center">
                 No results.
               </TableCell>
             </TableRow>
