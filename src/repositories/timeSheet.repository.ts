@@ -22,10 +22,6 @@ export const timeSheetRepository = {
     return await db.select().from(timeSheets).where(eq(timeSheets.organisationId, organisationId))
   },
 
-  async findByProject(projectId: string): Promise<TimeSheet[]> {
-    return await db.select().from(timeSheets).where(eq(timeSheets.projectId, projectId))
-  },
-
   async create(sheet: TimeSheet): Promise<TimeSheet> {
     await db.insert(timeSheets).values(sheet)
     return sheet
@@ -67,9 +63,8 @@ export const timeSheetRepository = {
 
     const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0)
 
-    // Get organisation and project if they exist
+    // Get organisation if it exists
     let organisation = undefined
-    let project = undefined
 
     if (sheet.organisationId) {
       const orgResult = await db
@@ -80,21 +75,21 @@ export const timeSheetRepository = {
       organisation = orgResult[0]
     }
 
-    if (sheet.projectId) {
-      const projResult = await db
-        .select()
-        .from(projects)
-        .where(eq(projects.id, sheet.projectId))
-        .limit(1)
-      project = projResult[0]
-    }
+    // Get all unique projects from entries
+    const uniqueProjectIds = [...new Set(entries.map(e => e.projectId).filter(Boolean))] as string[]
+    const projectsList = uniqueProjectIds.length > 0
+      ? await db
+          .select()
+          .from(projects)
+          .where(sql`${projects.id} IN ${uniqueProjectIds}`)
+      : []
 
     return {
       timeSheet: sheet,
       entries,
       totalHours,
       organisation,
-      project,
+      projects: projectsList,
     }
   },
 

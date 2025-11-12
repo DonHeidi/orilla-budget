@@ -69,7 +69,6 @@ const createTimeSheetFn = createServerFn({ method: 'POST' })
       endDate: data.endDate,
       status: 'draft',
       organisationId: data.organisationId,
-      projectId: data.projectId,
       createdAt: now,
       updatedAt: now,
     }
@@ -102,7 +101,13 @@ function TimeSheetsPage() {
     return data.sheetsWithData.map((item: any) => {
       const sheet = item.sheet
       const organisation = data.organisations.find((o: any) => o.id === sheet.organisationId)
-      const project = data.projects.find((p: any) => p.id === sheet.projectId)
+
+      // Get unique project IDs from entries
+      const projectIds = [...new Set(item.entries.map((e: any) => e.projectId).filter(Boolean))]
+      const projectNames = projectIds
+        .map(id => data.projects.find((p: any) => p.id === id)?.name)
+        .filter(Boolean)
+        .join(', ')
 
       return {
         id: sheet.id,
@@ -114,7 +119,7 @@ function TimeSheetsPage() {
         entryCount: item.entries.length,
         totalHours: item.totalHours,
         organisationName: organisation?.name,
-        projectName: project?.name,
+        projectNames: projectNames || 'No projects',
         createdAt: sheet.createdAt,
         updatedAt: sheet.updatedAt,
         entries: item.entries, // For expandable rows
@@ -203,8 +208,8 @@ function TimeSheetsPage() {
       cell: ({ getValue }) => getValue() || <span className="text-gray-400">-</span>,
     },
     {
-      accessorKey: 'projectName',
-      header: 'Project',
+      accessorKey: 'projectNames',
+      header: 'Projects',
       cell: ({ getValue }) => getValue() || <span className="text-gray-400">-</span>,
     },
   ]
@@ -378,7 +383,6 @@ function AddTimeSheetDialog({
       startDate: '',
       endDate: '',
       organisationId: '',
-      projectId: '',
     },
     validatorAdapter: zodValidator(),
     validators: {
@@ -393,7 +397,6 @@ function AddTimeSheetDialog({
             startDate: value.startDate || undefined,
             endDate: value.endDate || undefined,
             organisationId: value.organisationId,
-            projectId: value.projectId || undefined,
           },
         })
 
@@ -557,7 +560,6 @@ function AddTimeSheetDialog({
                   onChange={(e) => {
                     const value = e.target.value
                     field.handleChange(value)
-                    form.setFieldValue('projectId', '')
                     setSelectedOrgId(value)
                     setSelectedProjectId('')
                     setSelectedEntryIds(new Set())
@@ -576,44 +578,6 @@ function AddTimeSheetDialog({
                 )}
               </div>
             )}
-          </form.Field>
-
-          <form.Field name="projectId">
-            {(field) => {
-              const selectedOrg = form.getFieldValue('organisationId')
-              const availableProjects = selectedOrg
-                ? projects.filter((p: any) => p.organisationId === selectedOrg)
-                : []
-
-              return (
-                <div className="space-y-2">
-                  <label htmlFor={field.name} className="text-sm font-medium">
-                    Project (optional)
-                  </label>
-                  <select
-                    id={field.name}
-                    value={field.state.value}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      field.handleChange(value)
-                      setSelectedProjectId(value)
-                      setSelectedEntryIds(new Set())
-                    }}
-                    disabled={!selectedOrg}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="">
-                      {selectedOrg ? 'None' : 'Select organisation first'}
-                    </option>
-                    {availableProjects.map((proj: any) => (
-                      <option key={proj.id} value={proj.id}>
-                        {proj.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )
-            }}
           </form.Field>
 
           {/* Time Entry Selection */}
