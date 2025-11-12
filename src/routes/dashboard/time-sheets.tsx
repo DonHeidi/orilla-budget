@@ -418,6 +418,7 @@ function AddTimeSheetDialog({
     new Set()
   )
   const [selectedOrgId, setSelectedOrgId] = useState<string>('')
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const router = useRouter()
 
   const form = useForm({
@@ -430,25 +431,12 @@ function AddTimeSheetDialog({
     },
     validatorAdapter: zodValidator(),
     validators: {
-      onSubmitAsync: async ({ value }) => {
-        const result = createTimeSheetSchema.safeParse(value)
-        if (!result.success) {
-          const fieldErrors: Record<string, string> = {}
-          result.error.errors.forEach((err) => {
-            if (err.path.length > 0) {
-              fieldErrors[err.path[0] as string] = err.message
-            }
-          })
-          return {
-            form: 'Please fix the errors below',
-            fields: fieldErrors,
-          }
-        }
-        return undefined
-      },
+      onChange: createTimeSheetSchema,
+      onSubmit: createTimeSheetSchema,
     },
     onSubmit: async ({ value }) => {
       try {
+        setSubmitError(null)
         const sheet = await createTimeSheetFn({
           data: {
             title: value.title,
@@ -475,9 +463,7 @@ function AddTimeSheetDialog({
         router.invalidate()
       } catch (error) {
         console.error('Error creating time sheet:', error)
-        alert(
-          `Error creating time sheet: ${error instanceof Error ? error.message : String(error)}`
-        )
+        setSubmitError(error instanceof Error ? error.message : String(error))
       }
     },
   })
@@ -503,6 +489,7 @@ function AddTimeSheetDialog({
           form.reset()
           setSelectedOrgId('')
           setSelectedEntryIds(new Set())
+          setSubmitError(null)
         } else {
           setOpen(open)
         }
@@ -522,71 +509,21 @@ function AddTimeSheetDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1">
-          <div className="px-6 py-6 space-y-6 pb-4">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                form.handleSubmit()
-              }}
-              className="space-y-6"
-            >
-              <form.Field
-                name="title"
-                validators={{
-                  onBlur: createTimeSheetSchema.shape.title,
-                }}
-              >
-                {(field) => (
-                  <div className="space-y-2">
-                    <label htmlFor={field.name} className="text-sm font-medium">
-                      Title *
-                    </label>
-                    <Input
-                      id={field.name}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      placeholder="e.g., Week 1 - Feature Development"
-                    />
-                    {field.state.meta.errors &&
-                      field.state.meta.errors.length > 0 &&
-                      (field.state.meta.isTouched ||
-                        form.state.submissionAttempts > 0) && (
-                        <p className="text-sm text-destructive">
-                          {typeof field.state.meta.errors[0] === 'string'
-                            ? field.state.meta.errors[0]
-                            : field.state.meta.errors[0].message}
-                        </p>
-                      )}
-                  </div>
-                )}
-              </form.Field>
-
-              <form.Field name="description">
-                {(field) => (
-                  <div className="space-y-2">
-                    <label htmlFor={field.name} className="text-sm font-medium">
-                      Description
-                    </label>
-                    <textarea
-                      id={field.name}
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                      placeholder="Optional notes about this time sheet"
-                      rows={3}
-                    />
-                  </div>
-                )}
-              </form.Field>
-
-              <div className="grid grid-cols-2 gap-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.handleSubmit()
+          }}
+          className="flex flex-col flex-1"
+        >
+          <ScrollArea className="flex-1">
+            <div className="px-6 py-6 space-y-6 pb-4">
+              <div className="space-y-6">
                 <form.Field
-                  name="startDate"
+                  name="title"
                   validators={{
-                    onBlur: createTimeSheetSchema.shape.startDate,
+                    onChange: createTimeSheetSchema.shape.title,
+                    onBlur: createTimeSheetSchema.shape.title,
                   }}
                 >
                   {(field) => (
@@ -595,19 +532,18 @@ function AddTimeSheetDialog({
                         htmlFor={field.name}
                         className="text-sm font-medium"
                       >
-                        Start Date *
+                        Title *
                       </label>
                       <Input
                         id={field.name}
-                        type="date"
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
+                        placeholder="e.g., Week 1 - Feature Development"
                       />
-                      {field.state.meta.errors &&
-                        field.state.meta.errors.length > 0 &&
-                        (field.state.meta.isTouched ||
-                          form.state.submissionAttempts > 0) && (
+                      {field.state.meta.isTouched &&
+                        field.state.meta.errors &&
+                        field.state.meta.errors.length > 0 && (
                           <p className="text-sm text-destructive">
                             {typeof field.state.meta.errors[0] === 'string'
                               ? field.state.meta.errors[0]
@@ -618,198 +554,281 @@ function AddTimeSheetDialog({
                   )}
                 </form.Field>
 
-                <form.Field
-                  name="endDate"
-                  validators={{
-                    onBlur: createTimeSheetSchema.shape.endDate,
-                  }}
-                >
+                <form.Field name="description">
                   {(field) => (
                     <div className="space-y-2">
                       <label
                         htmlFor={field.name}
                         className="text-sm font-medium"
                       >
-                        End Date *
+                        Description
                       </label>
-                      <Input
+                      <textarea
                         id={field.name}
-                        type="date"
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
+                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                        placeholder="Optional notes about this time sheet"
+                        rows={3}
                       />
-                      {field.state.meta.errors &&
-                        field.state.meta.errors.length > 0 &&
-                        (field.state.meta.isTouched ||
-                          form.state.submissionAttempts > 0) && (
-                          <p className="text-sm text-destructive">
-                            {typeof field.state.meta.errors[0] === 'string'
-                              ? field.state.meta.errors[0]
-                              : field.state.meta.errors[0].message}
-                          </p>
-                        )}
                     </div>
                   )}
                 </form.Field>
-              </div>
 
-              <form.Field
-                name="organisationId"
-                validators={{
-                  onBlur: createTimeSheetSchema.shape.organisationId,
-                }}
-              >
-                {(field) => {
-                  const organisationOptions = organisations.map((org: any) => ({
-                    value: org.id,
-                    label: org.name,
-                  }))
+                <div className="grid grid-cols-2 gap-4">
+                  <form.Field
+                    name="startDate"
+                    validators={{
+                      onChange: createTimeSheetSchema.shape.startDate,
+                      onBlur: createTimeSheetSchema.shape.startDate,
+                    }}
+                  >
+                    {(field) => (
+                      <div className="space-y-2">
+                        <label
+                          htmlFor={field.name}
+                          className="text-sm font-medium"
+                        >
+                          Start Date *
+                        </label>
+                        <Input
+                          id={field.name}
+                          type="date"
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                        />
+                        {field.state.meta.isTouched &&
+                          field.state.meta.errors &&
+                          field.state.meta.errors.length > 0 && (
+                            <p className="text-sm text-destructive">
+                              {typeof field.state.meta.errors[0] === 'string'
+                                ? field.state.meta.errors[0]
+                                : field.state.meta.errors[0].message}
+                            </p>
+                          )}
+                      </div>
+                    )}
+                  </form.Field>
 
-                  return (
-                    <div className="space-y-2">
-                      <label
-                        htmlFor={field.name}
-                        className="text-sm font-medium"
-                      >
-                        Organisation *
-                      </label>
-                      <Combobox
-                        options={organisationOptions}
-                        value={field.state.value}
-                        onChange={(value) => {
-                          field.handleChange(value)
-                          setSelectedOrgId(value)
-                          setSelectedEntryIds(new Set())
-                        }}
-                        onBlur={field.handleBlur}
-                        placeholder="Select organisation..."
-                        searchPlaceholder="Search organisations..."
-                        emptyText="No organisation found."
-                        className="w-full"
-                      />
-                      {field.state.meta.errors &&
-                        field.state.meta.errors.length > 0 &&
-                        (field.state.meta.isTouched ||
-                          form.state.submissionAttempts > 0) && (
-                          <p className="text-sm text-destructive">
-                            {typeof field.state.meta.errors[0] === 'string'
-                              ? field.state.meta.errors[0]
-                              : field.state.meta.errors[0].message}
-                          </p>
-                        )}
-                    </div>
-                  )
-                }}
-              </form.Field>
+                  <form.Field
+                    name="endDate"
+                    validators={{
+                      onChange: createTimeSheetSchema.shape.endDate,
+                      onBlur: createTimeSheetSchema.shape.endDate,
+                    }}
+                  >
+                    {(field) => (
+                      <div className="space-y-2">
+                        <label
+                          htmlFor={field.name}
+                          className="text-sm font-medium"
+                        >
+                          End Date *
+                        </label>
+                        <Input
+                          id={field.name}
+                          type="date"
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                        />
+                        {field.state.meta.isTouched &&
+                          field.state.meta.errors &&
+                          field.state.meta.errors.length > 0 && (
+                            <p className="text-sm text-destructive">
+                              {typeof field.state.meta.errors[0] === 'string'
+                                ? field.state.meta.errors[0]
+                                : field.state.meta.errors[0].message}
+                            </p>
+                          )}
+                      </div>
+                    )}
+                  </form.Field>
+                </div>
 
-              {/* Time Entry Selection */}
-              {selectedOrgId && (
-                <div className="space-y-3 pt-4 border-t">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">
-                      Select Time Entries ({availableEntries.length} available)
-                    </label>
-                    {availableEntries.length > 0 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (
-                            selectedEntryIds.size === availableEntries.length
-                          ) {
+                <form.Field
+                  name="organisationId"
+                  validators={{
+                    onChange: createTimeSheetSchema.shape.organisationId,
+                    onBlur: createTimeSheetSchema.shape.organisationId,
+                  }}
+                >
+                  {(field) => {
+                    const organisationOptions = organisations.map(
+                      (org: any) => ({
+                        value: org.id,
+                        label: org.name,
+                      })
+                    )
+
+                    return (
+                      <div className="space-y-2">
+                        <label
+                          htmlFor={field.name}
+                          className="text-sm font-medium"
+                        >
+                          Organisation *
+                        </label>
+                        <Combobox
+                          options={organisationOptions}
+                          value={field.state.value}
+                          onChange={(value) => {
+                            field.handleChange(value)
+                            setSelectedOrgId(value)
                             setSelectedEntryIds(new Set())
-                          } else {
-                            setSelectedEntryIds(
-                              new Set(availableEntries.map((e: any) => e.id))
-                            )
+                          }}
+                          onBlur={field.handleBlur}
+                          placeholder="Select organisation..."
+                          searchPlaceholder="Search organisations..."
+                          emptyText="No organisation found."
+                          className="w-full"
+                        />
+                        {field.state.meta.isTouched &&
+                          field.state.meta.errors &&
+                          field.state.meta.errors.length > 0 && (
+                            <p className="text-sm text-destructive">
+                              {typeof field.state.meta.errors[0] === 'string'
+                                ? field.state.meta.errors[0]
+                                : field.state.meta.errors[0].message}
+                            </p>
+                          )}
+                      </div>
+                    )
+                  }}
+                </form.Field>
+
+                {/* Time Entry Selection */}
+                {selectedOrgId && (
+                  <div className="space-y-3 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">
+                        Select Time Entries ({availableEntries.length}{' '}
+                        available)
+                      </label>
+                      {availableEntries.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (
+                              selectedEntryIds.size === availableEntries.length
+                            ) {
+                              setSelectedEntryIds(new Set())
+                            } else {
+                              setSelectedEntryIds(
+                                new Set(availableEntries.map((e: any) => e.id))
+                              )
+                            }
+                          }}
+                        >
+                          {selectedEntryIds.size === availableEntries.length
+                            ? 'Deselect All'
+                            : 'Select All'}
+                        </Button>
+                      )}
+                    </div>
+
+                    {availableEntries.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-4">
+                        No available time entries for this organisation.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {availableEntries.map((entry: any) => {
+                          const toggleEntry = () => {
+                            const newSet = new Set(selectedEntryIds)
+                            if (newSet.has(entry.id)) {
+                              newSet.delete(entry.id)
+                            } else {
+                              newSet.add(entry.id)
+                            }
+                            setSelectedEntryIds(newSet)
                           }
-                        }}
-                      >
-                        {selectedEntryIds.size === availableEntries.length
-                          ? 'Deselect All'
-                          : 'Select All'}
-                      </Button>
+
+                          return (
+                            <div
+                              key={entry.id}
+                              className="flex items-start gap-3 p-3 bg-background rounded-md border hover:bg-accent/50 cursor-pointer transition-colors"
+                              onClick={toggleEntry}
+                            >
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <Checkbox
+                                  checked={selectedEntryIds.has(entry.id)}
+                                  onCheckedChange={toggleEntry}
+                                />
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-baseline gap-2">
+                                  <span className="font-medium text-sm">
+                                    {entry.title}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {entry.date}
+                                  </span>
+                                </div>
+                                {entry.description && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {entry.description}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="text-sm font-medium tabular-nums whitespace-nowrap">
+                                {entry.hours}h
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {selectedEntryIds.size > 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        {selectedEntryIds.size}{' '}
+                        {selectedEntryIds.size === 1 ? 'entry' : 'entries'}{' '}
+                        selected
+                      </p>
                     )}
                   </div>
+                )}
+              </div>
+            </div>
+          </ScrollArea>
 
-                  {availableEntries.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4">
-                      No available time entries for this organisation.
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {availableEntries.map((entry: any) => {
-                        const toggleEntry = () => {
-                          const newSet = new Set(selectedEntryIds)
-                          if (newSet.has(entry.id)) {
-                            newSet.delete(entry.id)
-                          } else {
-                            newSet.add(entry.id)
-                          }
-                          setSelectedEntryIds(newSet)
-                        }
+          {submitError && (
+            <div className="px-6 py-3 bg-destructive/10 border-t border-destructive/20">
+              <p className="text-sm text-destructive">{submitError}</p>
+            </div>
+          )}
 
-                        return (
-                          <div
-                            key={entry.id}
-                            className="flex items-start gap-3 p-3 bg-background rounded-md border hover:bg-accent/50 cursor-pointer transition-colors"
-                            onClick={toggleEntry}
-                          >
-                            <div onClick={(e) => e.stopPropagation()}>
-                              <Checkbox
-                                checked={selectedEntryIds.has(entry.id)}
-                                onCheckedChange={toggleEntry}
-                              />
-                            </div>
-                            <div className="flex-1 space-y-1">
-                              <div className="flex items-baseline gap-2">
-                                <span className="font-medium text-sm">
-                                  {entry.title}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {entry.date}
-                                </span>
-                              </div>
-                              {entry.description && (
-                                <p className="text-xs text-muted-foreground">
-                                  {entry.description}
-                                </p>
-                              )}
-                            </div>
-                            <div className="text-sm font-medium tabular-nums whitespace-nowrap">
-                              {entry.hours}h
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-
-                  {selectedEntryIds.size > 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      {selectedEntryIds.size}{' '}
-                      {selectedEntryIds.size === 1 ? 'entry' : 'entries'}{' '}
-                      selected
-                    </p>
-                  )}
-                </div>
+          <DialogFooter className="px-6 pb-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <form.Subscribe
+              selector={(state) => [
+                state.canSubmit,
+                state.isSubmitting,
+                state.isTouched,
+              ]}
+            >
+              {([canSubmit, isSubmitting, isTouched]) => (
+                <Button
+                  type="submit"
+                  disabled={!isTouched || !canSubmit || isSubmitting}
+                >
+                  {isSubmitting ? 'Creating...' : 'Create Time Sheet'}
+                </Button>
               )}
-            </form>
-          </div>
-        </ScrollArea>
-
-        <DialogFooter className="px-6 pb-6">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setOpen(false)}
-          >
-            Cancel
-          </Button>
-          <Button onClick={() => form.handleSubmit()}>Create Time Sheet</Button>
-        </DialogFooter>
+            </form.Subscribe>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )

@@ -175,12 +175,12 @@ export const createTimeSheetSchema = timeSheetSchema
     organisationId: z.string().min(1, 'Organisation is required'),
     startDate: z
       .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Start date is required')
-      .min(1, 'Start date is required'),
+      .min(1, 'Start date is required')
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
     endDate: z
       .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'End date is required')
-      .min(1, 'End date is required'),
+      .min(1, 'End date is required')
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
   })
 
 export const updateTimeSheetSchema = timeSheetSchema
