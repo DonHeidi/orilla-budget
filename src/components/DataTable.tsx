@@ -1,6 +1,8 @@
+import { Fragment } from 'react'
 import {
   flexRender,
   getCoreRowModel,
+  getExpandedRowModel,
   useReactTable,
   type ColumnDef,
   type Row,
@@ -28,6 +30,8 @@ interface DataTableProps<TData, TValue> {
     event: React.KeyboardEvent<HTMLTableRowElement>
   ) => void
   onContainerClick?: (event: React.MouseEvent<HTMLDivElement>) => void
+  renderSubComponent?: (props: { row: Row<TData> }) => React.ReactElement
+  disableHover?: boolean
 }
 
 export function DataTable<TData, TValue>({
@@ -38,12 +42,15 @@ export function DataTable<TData, TValue>({
   onRowClick,
   onRowKeyDown: _onRowKeyDown,
   onContainerClick,
+  renderSubComponent,
+  disableHover = false,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
     columns,
     getRowId,
     getCoreRowModel: getCoreRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
   })
 
   return (
@@ -99,21 +106,33 @@ export function DataTable<TData, TValue>({
         >
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() && 'selected'}
-                data-row-id={row.id}
-                className={
-                  onRowDoubleClick || onRowClick ? 'cursor-pointer' : undefined
-                }
-                onDoubleClick={() => onRowDoubleClick?.(row)}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
+              <Fragment key={row.id}>
+                <TableRow
+                  data-state={row.getIsSelected() && 'selected'}
+                  data-row-id={row.id}
+                  className={
+                    disableHover
+                      ? '[&]:hover:bg-transparent'
+                      : onRowDoubleClick || onRowClick
+                        ? 'cursor-pointer'
+                        : undefined
+                  }
+                  onDoubleClick={() => onRowDoubleClick?.(row)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+                {row.getIsExpanded() && renderSubComponent && (
+                  <TableRow key={`${row.id}-expanded`} className="hover:bg-transparent">
+                    <TableCell colSpan={row.getVisibleCells().length} className="p-0">
+                      {renderSubComponent({ row })}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </Fragment>
             ))
           ) : (
             <TableRow>

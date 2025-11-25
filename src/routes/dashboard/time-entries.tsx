@@ -26,31 +26,13 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox'
-
-// Helper functions
-function timeToHours(time: string): number {
-  const [hours, minutes] = time.split(':').map(Number)
-  return hours + (minutes || 0) / 60
-}
-
-function hoursToTime(hours: number): string {
-  const h = Math.floor(hours)
-  const m = Math.round((hours - h) * 60)
-  return `${h}:${m.toString().padStart(2, '0')}`
-}
-
-function formatDateTime(isoString: string): string {
-  const date = new Date(isoString)
-  const options: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  }
-  return date.toLocaleString('en-US', options)
-}
+import { useLocale } from '@/hooks/use-locale'
+import {
+  formatDate,
+  formatDateTime,
+  hoursToTime,
+  timeToHours,
+} from '@/lib/date-utils'
 
 // Server functions
 const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
@@ -118,6 +100,7 @@ type TimeEntryWithDetails = {
 function TimeEntriesPage() {
   const data = Route.useLoaderData()
   const navigate = useNavigate({ from: Route.fullPath })
+  const locale = useLocale()
   const [filterOrganisationId, setFilterOrganisationId] = useState<string>('')
   const [filterProjectId, setFilterProjectId] = useState<string>('')
 
@@ -201,35 +184,54 @@ function TimeEntriesPage() {
     {
       accessorKey: 'date',
       header: 'Date',
+      size: 110,
+      cell: ({ getValue }) => {
+        const dateStr = getValue() as string
+        return <div className="w-[110px]">{formatDate(dateStr, locale)}</div>
+      },
     },
     {
       accessorKey: 'organisationName',
       header: 'Organisation',
+      size: 180,
+      cell: ({ getValue }) => {
+        return <div className="w-[180px] truncate" title={getValue() as string}>{getValue() as string}</div>
+      },
     },
     {
       accessorKey: 'projectName',
       header: 'Project',
+      size: 180,
+      cell: ({ getValue }) => {
+        return <div className="w-[180px] truncate" title={getValue() as string}>{getValue() as string}</div>
+      },
     },
     {
       accessorKey: 'title',
       header: 'Title',
+      size: 200,
+      cell: ({ getValue }) => {
+        return <div className="w-[200px] font-medium">{getValue() as string}</div>
+      },
     },
     {
       accessorKey: 'hours',
       header: 'Time',
+      size: 80,
       cell: ({ getValue }) => {
         const hours = getValue() as number
-        return hoursToTime(hours)
+        return <div className="w-[80px] text-right">{hoursToTime(hours)}</div>
       },
     },
     {
       id: 'approved-status',
       accessorKey: 'approvedDate',
       header: 'Approved',
+      size: 90,
       cell: ({ getValue }) => {
         const approvedDate = getValue() as string | undefined
         return (
-          <div className="flex items-center justify-center">
+          <div className="w-[90px] flex items-center justify-center">
             {approvedDate ? (
               <CheckCircle className="h-4 w-4 text-green-600" />
             ) : (
@@ -243,9 +245,10 @@ function TimeEntriesPage() {
       id: 'approved-date',
       accessorKey: 'approvedDate',
       header: 'Approved Date',
+      size: 180,
       cell: ({ getValue }) => {
         const approvedDate = getValue() as string | undefined
-        return approvedDate ? formatDateTime(approvedDate) : '-'
+        return <div className="w-[180px]">{approvedDate ? formatDateTime(approvedDate, locale) : '-'}</div>
       },
     },
   ]
