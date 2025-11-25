@@ -1,8 +1,9 @@
 # Dashboard Improvements & Features
 
 **Date:** 2025-11-22
-**Status:** Planned
+**Status:** In Progress
 **Context:** Initial review of Agent Dashboard after product description research
+**Last Updated:** 2025-11-25
 
 ## Overview
 
@@ -12,17 +13,19 @@ This document captures improvements and feature requests identified during the i
 
 ## Critical Bugs
 
-### 1. Projects View Error
+### 1. Projects View Error ✅ FIXED
 **Issue:** When clicking on a project, error occurs: "organisationRepository is not defined"
 **Impact:** Projects detail view is completely broken
 **Priority:** High
 **Affected:** `src/routes/dashboard/projects.$id.tsx`
+**Resolution:** Used parent route API pattern instead of separate loader (2025-11-25)
 
-### 2. Time Entry Selection Failing
+### 2. Time Entry Selection Failing ✅ FIXED
 **Issue:** Selecting time entries fails with possible client-server code conflict
 **Impact:** Cannot add time entries to time sheets
 **Priority:** High
 **Affected:** Time entries view selection mechanism
+**Resolution:** Fixed React hook misuse - changed `useState()` to `useEffect()` for data fetching (2025-11-25)
 
 ---
 
@@ -92,7 +95,7 @@ This document captures improvements and feature requests identified during the i
 
 ## Business Logic & Validation
 
-### 8. Filter Time Entry Selection for Time Sheets
+### 8. Filter Time Entry Selection for Time Sheets ✅ FIXED
 **Current Behavior:** All time entries appear in selection list
 **Desired Behavior:** Only show unassigned time entries (not already in a time sheet)
 **Rationale:** Prevents duplicate assignments and confusion
@@ -100,8 +103,9 @@ This document captures improvements and feature requests identified during the i
 **Implementation:**
 - Update time entry query to exclude entries with existing `timeSheetEntries` relationships
 - Add visual indicator for assigned vs. unassigned entries
+**Resolution:** Updated `getAvailableEntries()` to filter out entries in ANY time sheet, not just approved ones (2025-11-25)
 
-### 9. Prevent Removal of Approved Time Entries
+### 9. Prevent Removal of Approved Time Entries ✅ FIXED
 **Current Behavior:** Unknown - likely allows removal of any entry from time sheet
 **Desired Behavior:** Approved time entries cannot be removed from time sheets
 **Rationale:** Maintains audit trail and prevents accidental data loss
@@ -110,6 +114,7 @@ This document captures improvements and feature requests identified during the i
 - Add validation in removal handler
 - Disable remove button for approved entries
 - Show toast/error if user attempts removal
+**Resolution:** Added handler validation and disabled remove button for entries with `approvedDate` (2025-11-25)
 
 ---
 
@@ -179,11 +184,12 @@ This document captures improvements and feature requests identified during the i
 
 ### Suggested Order of Implementation
 
-**Phase 1: Critical Fixes**
-1. Fix projects view error (bug #1)
-2. Fix time entry selection (bug #2)
-3. Prevent removal of approved entries (validation #8)
-4. Filter unassigned entries in selection (logic #7)
+**Phase 1: Critical Fixes** ✅ COMPLETE (2025-11-25)
+1. ~~Fix projects view error (bug #1)~~ ✅
+2. ~~Fix time entry selection (bug #2)~~ ✅
+3. ~~Prevent removal of approved entries (validation #9)~~ ✅
+4. ~~Filter unassigned entries in selection (logic #8)~~ ✅
+5. Time entries list changed to single-click navigation ✅
 
 **Phase 2: Data Model Changes**
 5. Restructure time sheets by account (architecture #4) - requires migration

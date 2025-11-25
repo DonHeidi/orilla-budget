@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Trash2, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -194,6 +194,11 @@ function TimeSheetDetailPage() {
   }
 
   const handleRemoveEntry = async (entryId: string) => {
+    // Prevent removal of approved entries
+    const entry = timeSheetData?.entries.find((e) => e.id === entryId)
+    if (entry?.approvedDate) {
+      return
+    }
     await removeEntryFromSheetFn({ sheetId: id, entryId })
     router.invalidate()
   }
@@ -231,17 +236,23 @@ function TimeSheetDetailPage() {
     {
       id: 'actions',
       header: () => null,
-      cell: ({ row }) =>
-        isDraft && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleRemoveEntry(row.original.id)}
-            className="h-8 w-8 p-0"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        ),
+      cell: ({ row }) => {
+        const isApproved = !!row.original.approvedDate
+        return (
+          isDraft && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleRemoveEntry(row.original.id)}
+              disabled={isApproved}
+              title={isApproved ? 'Cannot remove approved entries' : 'Remove entry'}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )
+        )
+      },
     },
   ]
 
@@ -681,12 +692,13 @@ function AddEntriesDialog({
   const [loading, setLoading] = useState(true)
 
   // Load available entries
-  useState(() => {
+  useEffect(() => {
+    setLoading(true)
     getAvailableEntriesFn({ organisationId, projectId }).then((entries) => {
       setAvailableEntries(entries)
       setLoading(false)
     })
-  })
+  }, [organisationId, projectId])
 
   const handleToggleEntry = (entryId: string) => {
     setSelectedEntryIds((prev) => {

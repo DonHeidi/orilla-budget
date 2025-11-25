@@ -156,25 +156,15 @@ export const timeSheetRepository = {
     organisationId?: string
     projectId?: string
   }): Promise<TimeEntry[]> {
-    // Get IDs of entries that are in approved sheets
-    const approvedSheets = await this.findByStatus('approved')
-    const approvedSheetIds = approvedSheets.map((s) => s.id)
-
-    let entriesInApprovedSheets: string[] = []
-    if (approvedSheetIds.length > 0) {
-      const sheetEntryRecords = await db
-        .select()
-        .from(timeSheetEntries)
-        .where(sql`${timeSheetEntries.timeSheetId} IN ${approvedSheetIds}`)
-
-      entriesInApprovedSheets = sheetEntryRecords.map((se) => se.timeEntryId)
-    }
+    // Get IDs of ALL entries already in any time sheet (not just approved)
+    const allSheetEntryRecords = await db.select().from(timeSheetEntries)
+    const entriesInAnySheet = allSheetEntryRecords.map((se) => se.timeEntryId)
 
     // Build query conditions
     const conditions = []
 
-    if (entriesInApprovedSheets.length > 0) {
-      conditions.push(notInArray(timeEntries.id, entriesInApprovedSheets))
+    if (entriesInAnySheet.length > 0) {
+      conditions.push(notInArray(timeEntries.id, entriesInAnySheet))
     }
 
     if (filters?.organisationId) {

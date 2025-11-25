@@ -601,45 +601,123 @@ describe('timeSheetRepository', () => {
   })
 
   describe('getAvailableEntries - Complex filtering logic', () => {
-    it('should exclude entries in approved sheets', async () => {
+    /**
+     * These tests verify the query logic for filtering available time entries.
+     * The repository excludes entries that are in ANY time sheet (not just approved).
+     * Tests use the test db directly to verify the filtering logic.
+     */
+
+    it('should exclude entries in any time sheet (not just approved)', async () => {
       // Arrange
       const org = await seed.organisation(db, { id: 'org-1' })
-      const approvedSheet = await seed.timeSheet(db, {
-        status: 'approved',
+      const draftSheet = await seed.timeSheet(db, {
+        status: 'draft',
         organisationId: 'org-1',
       })
       const entry1 = await seed.timeEntry(db, { organisationId: 'org-1' })
       const entry2 = await seed.timeEntry(db, { organisationId: 'org-1' })
 
-      // Add entry1 to approved sheet
+      // Add entry1 to draft sheet
       await db.insert(schema.timeSheetEntries).values({
         id: 'tse-1',
-        timeSheetId: approvedSheet.id,
+        timeSheetId: draftSheet.id,
         timeEntryId: entry1.id,
         createdAt: new Date().toISOString(),
       })
 
-      // Act - Get approved sheets and their entries
-      const approvedSheets = await db
+      // Act - Simulate getAvailableEntries logic: exclude entries in ANY sheet
+      const allSheetEntryRecords = await db.select().from(schema.timeSheetEntries)
+      const entriesInAnySheet = allSheetEntryRecords.map((se) => se.timeEntryId)
+
+      const availableEntries = await db
         .select()
-        .from(schema.timeSheets)
-        .where(eq(schema.timeSheets.status, 'approved'))
-      const approvedSheetIds = approvedSheets.map((s) => s.id)
-
-      let entriesInApprovedSheets: string[] = []
-      if (approvedSheetIds.length > 0) {
-        const sheetEntryRecords = await db
-          .select()
-          .from(schema.timeSheetEntries)
-          .where(
-            sql`${schema.timeSheetEntries.timeSheetId} IN ${approvedSheetIds}`
+        .from(schema.timeEntries)
+        .where(
+          and(
+            eq(schema.timeEntries.organisationId, 'org-1'),
+            entriesInAnySheet.length > 0
+              ? sql`${schema.timeEntries.id} NOT IN ${entriesInAnySheet}`
+              : undefined
           )
-        entriesInApprovedSheets = sheetEntryRecords.map((se) => se.timeEntryId)
-      }
+        )
 
-      // Assert
-      expect(entriesInApprovedSheets).toContain(entry1.id)
-      expect(entriesInApprovedSheets).not.toContain(entry2.id)
+      // Assert - entry1 should be excluded even though sheet is draft
+      expect(availableEntries).toHaveLength(1)
+      expect(availableEntries[0].id).toBe(entry2.id)
+    })
+
+    it('should exclude entries in sheets of any status', async () => {
+      // Arrange
+      const org = await seed.organisation(db, { id: 'org-1' })
+
+      // Create sheets with different statuses
+      const draftSheet = await seed.timeSheet(db, {
+        id: 'sheet-draft',
+        status: 'draft',
+        organisationId: 'org-1',
+      })
+      const submittedSheet = await seed.timeSheet(db, {
+        id: 'sheet-submitted',
+        status: 'submitted',
+        organisationId: 'org-1',
+      })
+      const approvedSheet = await seed.timeSheet(db, {
+        id: 'sheet-approved',
+        status: 'approved',
+        organisationId: 'org-1',
+      })
+
+      // Create entries
+      const entryInDraft = await seed.timeEntry(db, { organisationId: 'org-1' })
+      const entryInSubmitted = await seed.timeEntry(db, {
+        organisationId: 'org-1',
+      })
+      const entryInApproved = await seed.timeEntry(db, {
+        organisationId: 'org-1',
+      })
+      const unassignedEntry = await seed.timeEntry(db, {
+        organisationId: 'org-1',
+      })
+
+      // Add entries to sheets
+      await db.insert(schema.timeSheetEntries).values([
+        {
+          id: 'tse-1',
+          timeSheetId: draftSheet.id,
+          timeEntryId: entryInDraft.id,
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'tse-2',
+          timeSheetId: submittedSheet.id,
+          timeEntryId: entryInSubmitted.id,
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'tse-3',
+          timeSheetId: approvedSheet.id,
+          timeEntryId: entryInApproved.id,
+          createdAt: new Date().toISOString(),
+        },
+      ])
+
+      // Act - Simulate getAvailableEntries logic
+      const allSheetEntryRecords = await db.select().from(schema.timeSheetEntries)
+      const entriesInAnySheet = allSheetEntryRecords.map((se) => se.timeEntryId)
+
+      const availableEntries = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(
+          and(
+            eq(schema.timeEntries.organisationId, 'org-1'),
+            sql`${schema.timeEntries.id} NOT IN ${entriesInAnySheet}`
+          )
+        )
+
+      // Assert - only unassigned entry should be available
+      expect(availableEntries).toHaveLength(1)
+      expect(availableEntries[0].id).toBe(unassignedEntry.id)
     })
 
     it('should filter by organisation', async () => {
@@ -676,6 +754,29 @@ describe('timeSheetRepository', () => {
       // Assert
       expect(results).toHaveLength(1)
       expect(results[0].id).toBe(entry1.id)
+    })
+
+    it('should return all entries when no sheets exist', async () => {
+      // Arrange
+      const org = await seed.organisation(db)
+      const entry1 = await seed.timeEntry(db, { organisationId: org.id })
+      const entry2 = await seed.timeEntry(db, { organisationId: org.id })
+
+      // Act - Simulate getAvailableEntries with no filters
+      const allSheetEntryRecords = await db.select().from(schema.timeSheetEntries)
+      const entriesInAnySheet = allSheetEntryRecords.map((se) => se.timeEntryId)
+
+      // When no entries are in sheets, return all
+      const availableEntries =
+        entriesInAnySheet.length === 0
+          ? await db.select().from(schema.timeEntries)
+          : await db
+              .select()
+              .from(schema.timeEntries)
+              .where(sql`${schema.timeEntries.id} NOT IN ${entriesInAnySheet}`)
+
+      // Assert
+      expect(availableEntries).toHaveLength(2)
     })
   })
 

@@ -9,9 +9,8 @@ import { useState } from 'react'
 import { FolderKanban, Building2, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { projectRepository } from '@/repositories/project.repository'
-import { organisationRepository } from '@/repositories/organisation.repository'
-import { timeEntryRepository } from '@/repositories/timeEntry.repository'
 import type { Project } from '@/schemas'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -21,6 +20,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+
+// Use parent route for data (follows pattern from time-entries.$id.tsx)
+const parentRouteApi = getRouteApi('/dashboard/projects')
 
 // Helper functions
 function formatDateTime(isoString: string): string {
@@ -63,31 +65,14 @@ const deleteProjectFn = createServerFn({ method: 'POST' }).handler(
   }
 )
 
-const getProjectDetailDataFn = createServerFn({ method: 'GET' }).handler(
-  async (ctx) => {
-    const organisations = await organisationRepository.findAll()
-    const projects = await projectRepository.findAll()
-    const timeEntries = await timeEntryRepository.findAll()
-
-    return {
-      organisations: organisations,
-      projects: projects,
-      timeEntries: timeEntries,
-    }
-  }
-)
-
-// Route definition
+// Route definition - no loader, uses parent route data
 export const Route = createFileRoute('/dashboard/projects/$id')({
   component: ProjectDetailPage,
-  loader: async () => {
-    return await getProjectDetailDataFn()
-  },
 })
 
 function ProjectDetailPage() {
   const { id } = Route.useParams()
-  const data = Route.useLoaderData()
+  const data = parentRouteApi.useLoaderData()
   const navigate = useNavigate()
   const router = useRouter()
   const [editingField, setEditingField] = useState<string | null>(null)
