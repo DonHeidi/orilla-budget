@@ -43,6 +43,13 @@
       "when": 1762946230193,
       "tag": "0005_brown_killer_shrike",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1764068395273,
+      "tag": "0006_thankful_jackpot",
+      "breakpoints": true
     }
   ]
 }

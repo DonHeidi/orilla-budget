@@ -1,0 +1,1 @@
+ALTER TABLE `time_sheets` ADD `project_id` text REFERENCES projects(id);
