@@ -306,7 +306,7 @@ function TimeEntriesPage() {
         columns={columns}
         data={filteredTimeEntries}
         getRowId={(row) => row.id}
-        onRowDoubleClick={(row) => {
+        onRowClick={(row) => {
           navigate({
             to: '/dashboard/time-entries/$id',
             params: { id: row.original.id },
