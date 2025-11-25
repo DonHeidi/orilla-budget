@@ -7,12 +7,14 @@ import { cn } from '@/lib/utils'
 import { timeSheetRepository } from '@/repositories/timeSheet.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
+import { accountRepository } from '@/repositories/account.repository'
 import {
   addEntriesToSheetSchema,
   type TimeSheet,
   type TimeEntry,
   type Organisation,
   type Project,
+  type Account,
 } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import {
@@ -41,11 +43,13 @@ const getTimeSheetDetailFn = createServerFn({ method: 'GET' }).handler(
     const sheetData = await timeSheetRepository.findWithEntries(id)
     const organisations = await organisationRepository.findAll()
     const projects = await projectRepository.findAll()
+    const accounts = await accountRepository.findAll()
 
     return {
       sheetData: sheetData,
       organisations: organisations,
       projects: projects,
+      accounts: accounts,
     }
   }
 )
@@ -134,7 +138,7 @@ function TimeSheetDetailPage() {
     return <div>Time sheet not found</div>
   }
 
-  const { timeSheet, entries, totalHours, organisation, project } =
+  const { timeSheet, entries, totalHours, organisation, project, account } =
     data.sheetData
   const currentValues = { ...timeSheet, ...editedValues }
   const isDraft = timeSheet.status === 'draft'
@@ -444,6 +448,13 @@ function TimeSheetDetailPage() {
                       'organisationId',
                       e.target.value || undefined
                     )
+                    // Clear account if it doesn't belong to the new org
+                    if (currentValues.accountId) {
+                      const acc = data.accounts.find((a: Account) => a.id === currentValues.accountId)
+                      if (acc?.organisationId !== e.target.value) {
+                        handleFieldChange('accountId', undefined)
+                      }
+                    }
                     handleFieldChange('projectId', undefined)
                   }}
                   onBlur={handleFieldBlur}
@@ -466,6 +477,54 @@ function TimeSheetDetailPage() {
                   onClick={() => handleFieldClick('organisationId')}
                 >
                   {organisation?.name || 'Not set'}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-500">
+                Account
+              </label>
+              {editingField === 'accountId' && isDraft ? (
+                <select
+                  autoFocus
+                  value={currentValues.accountId || ''}
+                  onChange={(e) => {
+                    const value = e.target.value || undefined
+                    handleFieldChange('accountId', value)
+                    // Bidirectional: auto-fill organisation from account
+                    if (value) {
+                      const acc = data.accounts.find((a: Account) => a.id === value)
+                      if (acc && acc.organisationId !== currentValues.organisationId) {
+                        handleFieldChange('organisationId', acc.organisationId)
+                        handleFieldChange('projectId', undefined)
+                      }
+                    }
+                  }}
+                  onBlur={handleFieldBlur}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
+                >
+                  <option value="">None</option>
+                  {data.accounts
+                    .filter((a: Account) =>
+                      !currentValues.organisationId || a.organisationId === currentValues.organisationId
+                    )
+                    .map((acc: Account) => (
+                      <option key={acc.id} value={acc.id}>
+                        {acc.name} ({acc.email})
+                      </option>
+                    ))}
+                </select>
+              ) : (
+                <p
+                  className={cn(
+                    'text-base mt-1 px-2 py-1 -mx-2 rounded',
+                    isDraft &&
+                      'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
+                  )}
+                  onClick={() => handleFieldClick('accountId')}
+                >
+                  {account?.name || 'Not set'}
                 </p>
               )}
             </div>

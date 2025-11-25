@@ -876,6 +876,39 @@ describe('timeSheetSchema', () => {
 
       expect(result.success).toBe(true)
     })
+
+    it('should accept time sheet with accountId', () => {
+      const result = timeSheetSchema.safeParse({
+        id: 'sheet-1',
+        title: 'Week 45',
+        status: 'draft',
+        organisationId: 'org-1',
+        accountId: 'acc-1',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.accountId).toBe('acc-1')
+      }
+    })
+
+    it('should accept time sheet without accountId', () => {
+      const result = timeSheetSchema.safeParse({
+        id: 'sheet-1',
+        title: 'Week 45',
+        status: 'draft',
+        organisationId: 'org-1',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.accountId).toBeUndefined()
+      }
+    })
   })
 
   describe('business rule validation', () => {
@@ -1052,6 +1085,46 @@ describe('createTimeSheetSchema', () => {
     })
 
     expect(result.success).toBe(true)
+  })
+
+  it('should accept accountId field', () => {
+    const result = createTimeSheetSchema.safeParse({
+      title: 'Week 45',
+      organisationId: 'org-1',
+      accountId: 'acc-1',
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.accountId).toBe('acc-1')
+    }
+  })
+
+  it('should transform empty string dates to undefined', () => {
+    const result = createTimeSheetSchema.safeParse({
+      title: 'Week 45',
+      organisationId: 'org-1',
+      startDate: '',
+      endDate: '',
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.startDate).toBeUndefined()
+      expect(result.data.endDate).toBeUndefined()
+    }
+  })
+
+  it('should accept time sheet without accountId', () => {
+    const result = createTimeSheetSchema.safeParse({
+      title: 'Week 45',
+      organisationId: 'org-1',
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.accountId).toBeUndefined()
+    }
   })
 })
 

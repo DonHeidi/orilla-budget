@@ -1,0 +1,1 @@
+ALTER TABLE `time_sheets` ADD `account_id` text REFERENCES accounts(id);

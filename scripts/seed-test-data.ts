@@ -486,6 +486,7 @@ async function seedDatabase() {
         rejectionReason: undefined,
         organisationId: 'org-1',
         projectId: 'proj-1',
+        accountId: 'acc-2', // David Anderson (Project Manager)
         createdAt: now(),
         updatedAt: now(),
       },
@@ -502,6 +503,7 @@ async function seedDatabase() {
         rejectionReason: undefined,
         organisationId: 'org-1',
         projectId: undefined,
+        accountId: 'acc-3', // Sarah Johnson (Finance)
         createdAt: now(),
         updatedAt: now(),
       },
@@ -518,6 +520,7 @@ async function seedDatabase() {
         rejectionReason: undefined,
         organisationId: 'org-2',
         projectId: undefined,
+        accountId: 'acc-6', // Emily Rodriguez (Project Manager)
         createdAt: now(),
         updatedAt: now(),
       },
@@ -534,6 +537,7 @@ async function seedDatabase() {
         rejectionReason: undefined,
         organisationId: 'org-2',
         projectId: 'proj-6',
+        accountId: undefined, // No account - testing backwards compatibility
         createdAt: now(),
         updatedAt: now(),
       },
