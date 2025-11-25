@@ -13,6 +13,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
+    "seed": "bun scripts/seed-test-data.ts",
+    "seed:clear": "bun scripts/seed-test-data.ts --clear",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "format": "prettier --write .",
