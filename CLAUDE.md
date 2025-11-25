@@ -136,6 +136,147 @@ When making schema changes, ALWAYS follow this exact workflow:
 
 **Migration files live in `drizzle/` and MUST be committed to git.** See `docs/database.md` for more details.
 
+### Schema Changes
+
+When modifying the database schema, multiple files need to be updated in sync. Follow this comprehensive workflow:
+
+#### Step-by-Step Schema Change Workflow
+
+```bash
+# 1. Modify the Drizzle schema
+#    Edit src/db/schema.ts with your table/column changes
+
+# 2. Update Zod validation schemas
+#    Edit src/schemas.ts to match the new schema structure
+
+# 3. Update TypeScript types (if needed)
+#    Edit src/types.ts for any view models or domain interfaces
+
+# 4. Generate the migration
+bun run db:generate
+
+# 5. Review the generated SQL
+#    Check drizzle/XXXX_*.sql - verify it does what you expect
+
+# 6. Apply the migration to your local database
+bun run db:migrate
+
+# 7. Update repository layer (if needed)
+#    Edit src/repositories/*.repository.ts for new queries/operations
+
+# 8. Update seed script (if needed)
+#    Edit scripts/seed-test-data.ts to include new fields/tables
+
+# 9. Run tests to verify nothing broke
+bun test
+
+# 10. Commit all changes together
+git add src/db/schema.ts src/schemas.ts drizzle/ src/repositories/ scripts/
+git commit -m "feat(db): add new-feature table/column"
+```
+
+#### Files to Update for Schema Changes
+
+| Change Type | Files to Update |
+|-------------|-----------------|
+| New table | `schema.ts`, `schemas.ts`, new `*.repository.ts`, `seed-test-data.ts` |
+| New column | `schema.ts`, `schemas.ts`, possibly `*.repository.ts` |
+| Column rename | `schema.ts`, `schemas.ts`, `*.repository.ts`, `seed-test-data.ts` |
+| New enum value | `schema.ts`, `schemas.ts` |
+| Foreign key | `schema.ts`, possibly `*.repository.ts` for joins |
+
+#### Example: Adding a New Column
+
+```typescript
+// 1. src/db/schema.ts - Add column to table
+export const projects = sqliteTable('projects', {
+  // ... existing columns
+  archived: integer('archived', { mode: 'boolean' }).notNull().default(false), // NEW
+})
+
+// 2. src/schemas.ts - Update Zod schema
+export const projectSchema = z.object({
+  // ... existing fields
+  archived: z.boolean().default(false), // NEW
+})
+
+// 3. Generate and apply migration
+// bun run db:generate && bun run db:migrate
+```
+
+#### Example: Adding a New Table
+
+```typescript
+// 1. src/db/schema.ts - Define new table
+export const expenses = sqliteTable('expenses', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+  description: text('description').notNull(),
+  amount: real('amount').notNull(),
+  date: text('date').notNull(),
+  createdAt: text('created_at').notNull(),
+})
+
+// 2. src/schemas.ts - Add Zod schemas
+export const expenseSchema = z.object({
+  id: z.string().uuid(),
+  projectId: z.string().uuid().nullable(),
+  description: z.string().min(1),
+  amount: z.number().positive(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  createdAt: z.string().datetime(),
+})
+
+export const createExpenseSchema = expenseSchema.omit({ id: true, createdAt: true })
+export type Expense = z.infer<typeof expenseSchema>
+export type CreateExpense = z.infer<typeof createExpenseSchema>
+
+// 3. src/repositories/expense.repository.ts - Create repository
+import { db } from '@/db'
+import { expenses } from '@/db/schema'
+import { eq } from 'drizzle-orm'
+import type { Expense, CreateExpense } from '@/schemas'
+
+export const expenseRepository = {
+  findAll: () => db.select().from(expenses),
+  findById: (id: string) => db.select().from(expenses).where(eq(expenses.id, id)).get(),
+  create: (data: Expense) => db.insert(expenses).values(data).returning().get(),
+  // ... other methods
+}
+
+// 4. scripts/seed-test-data.ts - Add test data
+const testExpenses: Expense[] = [
+  { id: 'exp-1', projectId: 'proj-1', description: 'Software license', amount: 99.99, date: '2024-01-15', createdAt: now() },
+]
+
+// 5. Generate migration, apply, and test
+// bun run db:generate && bun run db:migrate && bun test
+```
+
+#### Seeding the Database
+
+```bash
+# Seed with test data (appends to existing data)
+bun run scripts/seed-test-data.ts
+
+# Clear database first, then seed fresh
+bun run scripts/seed-test-data.ts --clear
+```
+
+The seed script creates:
+- 3 users, 2 organisations, 7 accounts
+- 6 projects (mix of budget/fixed)
+- 13 time entries with various states
+- 4 time sheets in different workflow stages
+
+#### Common Pitfalls
+
+1. **Forgetting to update Zod schemas** - TypeScript won't catch mismatches between Drizzle and Zod schemas at compile time
+2. **Not reviewing generated SQL** - Always check the migration before applying; Drizzle might generate unexpected changes
+3. **Using `db:push` instead of migrations** - Only use `db:push` for throwaway local experiments
+4. **Forgetting to update seed script** - New required columns will cause seed script to fail
+5. **Not running tests** - Schema changes can break repository queries silently
+
 ## Git Workflow
 
 ### Commit Convention
