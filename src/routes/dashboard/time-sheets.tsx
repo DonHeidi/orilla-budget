@@ -25,6 +25,7 @@ import {
 } from '@/schemas'
 import type { TimeSheetSummary } from '@/types'
 import { DataTable } from '@/components/DataTable'
+import { TimeEntriesTable } from '@/components/TimeEntriesTable'
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { useLocale } from '@/hooks/use-locale'
+import { formatDate, formatDateTime, hoursToTime } from '@/lib/date-utils'
+import { CheckCircle, XCircle, LayoutGrid, Table as TableIcon } from 'lucide-react'
 
 // Server Functions
 const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
@@ -107,7 +111,9 @@ export const Route = createFileRoute('/dashboard/time-sheets')({
 function TimeSheetsPage() {
   const data = Route.useLoaderData()
   const router = useRouter()
+  const locale = useLocale()
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
 
   const sheetsWithDetails = useMemo(() => {
     return data.sheetsWithData.map((item: any) => {
@@ -186,9 +192,9 @@ function TimeSheetsPage() {
         const start = row.original.startDate
         const end = row.original.endDate
         if (!start && !end) return <span className="text-gray-400">-</span>
-        if (start && end) return `${start} to ${end}`
-        if (start) return `From ${start}`
-        if (end) return `Until ${end}`
+        if (start && end) return `${formatDate(start, locale)} to ${formatDate(end, locale)}`
+        if (start) return `From ${formatDate(start, locale)}`
+        if (end) return `Until ${formatDate(end, locale)}`
         return '-'
       },
     },
@@ -261,6 +267,116 @@ function TimeSheetsPage() {
         columns={columns}
         data={filteredSheets}
         getRowId={(row) => row.id}
+        renderSubComponent={({ row }) => {
+          const entries = row.original.entries || []
+          const projects = data.projects
+
+          if (entries.length === 0) {
+            return (
+              <div className="p-4 text-sm text-muted-foreground">
+                No time entries in this sheet yet.
+              </div>
+            )
+          }
+
+          // Group entries by project
+          const entriesByProject = entries.reduce(
+            (acc: Record<string, any[]>, entry: any) => {
+              const projectId = entry.projectId || 'no-project'
+              if (!acc[projectId]) {
+                acc[projectId] = []
+              }
+              acc[projectId].push(entry)
+              return acc
+            },
+            {}
+          )
+
+          return (
+            <div className="p-4 space-y-6 bg-muted/20">
+              <div className="flex items-center justify-end gap-2 pb-2 border-b">
+                <span className="text-xs text-muted-foreground mr-2">View:</span>
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="h-8 px-2"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'table' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('table')}
+                  className="h-8 px-2"
+                >
+                  <TableIcon className="h-4 w-4" />
+                </Button>
+              </div>
+              {Object.entries(entriesByProject).map(
+                ([projectId, projectEntries]) => {
+                  const project = projects.find((p: any) => p.id === projectId)
+                  const projectTotal = projectEntries.reduce(
+                    (sum, entry) => sum + entry.hours,
+                    0
+                  )
+
+                  return (
+                    <div key={projectId} className="space-y-3">
+                      <div className="px-1">
+                        <h4 className="font-semibold text-sm">
+                          {project?.name || 'No Project'}
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {projectEntries.length} {projectEntries.length === 1 ? 'entry' : 'entries'} · {projectTotal.toFixed(1)} hours total
+                        </p>
+                      </div>
+                      {viewMode === 'grid' ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {projectEntries.map((entry: any) => (
+                            <div
+                              key={entry.id}
+                              className="bg-card border rounded-lg p-3 space-y-2 hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <h5 className="font-medium text-sm line-clamp-2">
+                                  {entry.title}
+                                </h5>
+                                {entry.approvedDate ? (
+                                  <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                ) : (
+                                  <XCircle className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                                )}
+                              </div>
+                              {entry.description && (
+                                <p className="text-xs text-muted-foreground line-clamp-2">
+                                  {entry.description}
+                                </p>
+                              )}
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">
+                                  {formatDate(entry.date, locale)}
+                                </span>
+                                <span className="font-medium">
+                                  {hoursToTime(entry.hours)}
+                                </span>
+                              </div>
+                              <div className={`text-xs pt-1 border-t ${entry.approvedDate ? 'text-muted-foreground' : 'invisible'}`}>
+                                Approved: {entry.approvedDate ? formatDateTime(entry.approvedDate, locale) : 'placeholder'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <TimeEntriesTable entries={projectEntries} />
+                      )}
+                    </div>
+                  )
+                }
+              )}
+            </div>
+          )
+        }}
       />
 
       <Outlet />
