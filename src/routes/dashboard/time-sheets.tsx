@@ -15,6 +15,7 @@ import { timeSheetRepository } from '@/repositories/timeSheet.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
+import { accountRepository } from '@/repositories/account.repository'
 import {
   createTimeSheetSchema,
   addEntriesToSheetSchema,
@@ -22,6 +23,7 @@ import {
   type Organisation,
   type Project,
   type TimeEntry,
+  type Account,
 } from '@/schemas'
 import type { TimeSheetSummary } from '@/types'
 import { DataTable } from '@/components/DataTable'
@@ -50,6 +52,7 @@ const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
   const organisations = await organisationRepository.findAll()
   const projects = await projectRepository.findAll()
   const timeEntries = await timeEntryRepository.findAll()
+  const accounts = await accountRepository.findAll()
 
   // Get entry counts and totals for each sheet
   const sheetsWithData = await Promise.all(
@@ -68,6 +71,7 @@ const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
     organisations,
     projects,
     timeEntries,
+    accounts,
     sheetsWithData,
   }
 })
@@ -85,6 +89,7 @@ const createTimeSheetFn = createServerFn({ method: 'POST' })
       status: 'draft',
       organisationId: data.organisationId,
       projectId: data.projectId,
+      accountId: data.accountId,
       createdAt: now,
       updatedAt: now,
     }
@@ -122,6 +127,7 @@ function TimeSheetsPage() {
         (o: any) => o.id === sheet.organisationId
       )
       const project = data.projects.find((p: any) => p.id === sheet.projectId)
+      const account = data.accounts.find((a: any) => a.id === sheet.accountId)
 
       return {
         id: sheet.id,
@@ -134,6 +140,7 @@ function TimeSheetsPage() {
         totalHours: item.totalHours,
         organisationName: organisation?.name,
         projectName: project?.name,
+        accountName: account?.name,
         createdAt: sheet.createdAt,
         updatedAt: sheet.updatedAt,
         entries: item.entries, // For expandable rows
@@ -225,6 +232,12 @@ function TimeSheetsPage() {
         getValue() || <span className="text-gray-400">-</span>,
     },
     {
+      accessorKey: 'accountName',
+      header: 'Account',
+      cell: ({ getValue }) =>
+        getValue() || <span className="text-gray-400">-</span>,
+    },
+    {
       accessorKey: 'projectName',
       header: 'Project',
       cell: ({ getValue }) =>
@@ -243,7 +256,7 @@ function TimeSheetsPage() {
         </div>
         <AddTimeSheetDialog
           organisations={data.organisations}
-          projects={data.projects}
+          accounts={data.accounts}
           timeEntries={data.timeEntries}
         />
       </div>
@@ -418,11 +431,11 @@ function StatusBadge({ status }: { status: string }) {
 
 function AddTimeSheetDialog({
   organisations,
-  projects,
+  accounts,
   timeEntries,
 }: {
   organisations: any[]
-  projects: any[]
+  accounts: any[]
   timeEntries: any[]
 }) {
   const [open, setOpen] = useState(false)
@@ -430,7 +443,7 @@ function AddTimeSheetDialog({
     new Set()
   )
   const [selectedOrgId, setSelectedOrgId] = useState<string>('')
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('')
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('')
   const router = useRouter()
 
   const form = useForm({
@@ -440,7 +453,7 @@ function AddTimeSheetDialog({
       startDate: '',
       endDate: '',
       organisationId: '',
-      projectId: '',
+      accountId: '',
     },
     validatorAdapter: zodValidator(),
     validators: {
@@ -455,7 +468,7 @@ function AddTimeSheetDialog({
             startDate: value.startDate || undefined,
             endDate: value.endDate || undefined,
             organisationId: value.organisationId,
-            projectId: value.projectId || undefined,
+            accountId: value.accountId || undefined,
           },
         })
 
@@ -487,13 +500,9 @@ function AddTimeSheetDialog({
       // Filter by organisation if one is selected
       if (selectedOrgId && entry.organisationId !== selectedOrgId) return false
 
-      // Filter by project if one is selected
-      if (selectedProjectId && entry.projectId !== selectedProjectId)
-        return false
-
       return true
     })
-  }, [timeEntries, selectedOrgId, selectedProjectId])
+  }, [timeEntries, selectedOrgId])
 
   return (
     <Dialog
@@ -503,7 +512,7 @@ function AddTimeSheetDialog({
           setOpen(false)
           form.reset()
           setSelectedOrgId('')
-          setSelectedProjectId('')
+          setSelectedAccountId('')
           setSelectedEntryIds(new Set())
         } else {
           setOpen(open)
@@ -640,9 +649,15 @@ function AddTimeSheetDialog({
                       onChange={(e) => {
                         const value = e.target.value
                         field.handleChange(value)
-                        form.setFieldValue('projectId', '')
+                        // Clear account if it doesn't belong to the new org
+                        if (selectedAccountId) {
+                          const account = accounts.find((a: any) => a.id === selectedAccountId)
+                          if (account?.organisationId !== value) {
+                            form.setFieldValue('accountId', '')
+                            setSelectedAccountId('')
+                          }
+                        }
                         setSelectedOrgId(value)
-                        setSelectedProjectId('')
                         setSelectedEntryIds(new Set())
                       }}
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
@@ -664,14 +679,14 @@ function AddTimeSheetDialog({
                 )}
               </form.Field>
 
-              <form.Field name="projectId">
+              <form.Field name="accountId">
                 {(field) => {
                   const selectedOrg = form.getFieldValue('organisationId')
-                  const availableProjects = selectedOrg
-                    ? projects.filter(
-                        (p: any) => p.organisationId === selectedOrg
+                  const availableAccounts = selectedOrg
+                    ? accounts.filter(
+                        (a: any) => a.organisationId === selectedOrg
                       )
-                    : []
+                    : accounts
 
                   return (
                     <div className="space-y-2">
@@ -679,7 +694,7 @@ function AddTimeSheetDialog({
                         htmlFor={field.name}
                         className="text-sm font-medium"
                       >
-                        Project (optional)
+                        Account (optional)
                       </label>
                       <select
                         id={field.name}
@@ -687,18 +702,23 @@ function AddTimeSheetDialog({
                         onChange={(e) => {
                           const value = e.target.value
                           field.handleChange(value)
-                          setSelectedProjectId(value)
-                          setSelectedEntryIds(new Set())
+                          setSelectedAccountId(value)
+                          // Bidirectional: auto-fill organisation from account
+                          if (value) {
+                            const account = accounts.find((a: any) => a.id === value)
+                            if (account && account.organisationId !== selectedOrg) {
+                              form.setFieldValue('organisationId', account.organisationId)
+                              setSelectedOrgId(account.organisationId)
+                              setSelectedEntryIds(new Set())
+                            }
+                          }
                         }}
-                        disabled={!selectedOrg}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                       >
-                        <option value="">
-                          {selectedOrg ? 'None' : 'Select organisation first'}
-                        </option>
-                        {availableProjects.map((proj: any) => (
-                          <option key={proj.id} value={proj.id}>
-                            {proj.name}
+                        <option value="">None</option>
+                        {availableAccounts.map((acc: any) => (
+                          <option key={acc.id} value={acc.id}>
+                            {acc.name} ({acc.email})
                           </option>
                         ))}
                       </select>

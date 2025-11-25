@@ -5,6 +5,7 @@ import {
   timeEntries,
   organisations,
   projects,
+  accounts,
 } from '@/db'
 import { eq, sql, and, notInArray } from 'drizzle-orm'
 import type { TimeSheet, TimeEntry } from '@/schemas'
@@ -46,6 +47,13 @@ export const timeSheetRepository = {
       .select()
       .from(timeSheets)
       .where(eq(timeSheets.projectId, projectId))
+  },
+
+  async findByAccount(accountId: string): Promise<TimeSheet[]> {
+    return await db
+      .select()
+      .from(timeSheets)
+      .where(eq(timeSheets.accountId, accountId))
   },
 
   async create(sheet: TimeSheet): Promise<TimeSheet> {
@@ -111,12 +119,23 @@ export const timeSheetRepository = {
       project = projResult[0]
     }
 
+    let account = undefined
+    if (sheet.accountId) {
+      const accountResult = await db
+        .select()
+        .from(accounts)
+        .where(eq(accounts.id, sheet.accountId))
+        .limit(1)
+      account = accountResult[0]
+    }
+
     return {
       timeSheet: sheet,
       entries,
       totalHours,
       organisation,
       project,
+      account,
     }
   },
 

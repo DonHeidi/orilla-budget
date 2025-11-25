@@ -132,14 +132,20 @@ export const timeSheetSchema = z
     id: z.string(),
     title: z.string().min(1, 'Title is required'),
     description: z.string().optional().default(''),
-    startDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format')
-      .optional(),
-    endDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format')
-      .optional(),
+    startDate: z.preprocess(
+      (val) => (val === '' ? undefined : val),
+      z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format')
+        .optional()
+    ),
+    endDate: z.preprocess(
+      (val) => (val === '' ? undefined : val),
+      z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format')
+        .optional()
+    ),
     status: z
       .enum(['draft', 'submitted', 'approved', 'rejected'])
       .default('draft'),
@@ -149,6 +155,7 @@ export const timeSheetSchema = z
     rejectionReason: z.string().optional(),
     organisationId: z.string().optional(),
     projectId: z.string().optional(),
+    accountId: z.string().optional(),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
   })

@@ -83,6 +83,9 @@ export const timeSheets = sqliteTable('time_sheets', {
   projectId: text('project_id').references(() => projects.id, {
     onDelete: 'set null',
   }),
+  accountId: text('account_id').references(() => accounts.id, {
+    onDelete: 'set null',
+  }),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 })

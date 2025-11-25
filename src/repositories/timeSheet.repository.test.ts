@@ -243,6 +243,43 @@ describe('timeSheetRepository', () => {
     })
   })
 
+  describe('findByAccount', () => {
+    it('should retrieve all time sheets for an account', async () => {
+      // Arrange
+      const org = await seed.organisation(db)
+      const account1 = await seed.account(db, org.id, { id: 'acc-1' })
+      const account2 = await seed.account(db, org.id, { id: 'acc-2' })
+
+      await seed.timeSheet(db, { accountId: 'acc-1', organisationId: org.id })
+      await seed.timeSheet(db, { accountId: 'acc-1', organisationId: org.id })
+      await seed.timeSheet(db, { accountId: 'acc-2', organisationId: org.id })
+
+      // Act
+      const results = await db
+        .select()
+        .from(schema.timeSheets)
+        .where(eq(schema.timeSheets.accountId, 'acc-1'))
+
+      // Assert
+      expect(results).toHaveLength(2)
+    })
+
+    it('should return empty array when account has no time sheets', async () => {
+      // Arrange
+      const org = await seed.organisation(db)
+      const account = await seed.account(db, org.id, { id: 'acc-1' })
+
+      // Act
+      const results = await db
+        .select()
+        .from(schema.timeSheets)
+        .where(eq(schema.timeSheets.accountId, 'acc-1'))
+
+      // Assert
+      expect(results).toHaveLength(0)
+    })
+  })
+
   describe('create', () => {
     it('should insert new time sheet into database', async () => {
       // Arrange
