@@ -33,6 +33,12 @@ import {
   hoursToTime,
   timeToHours,
 } from '@/lib/date-utils'
+import { TabNavigation } from '@/components/TabNavigation'
+
+const timeTabs = [
+  { label: 'Time Entries', href: '/expert/time-entries' },
+  { label: 'Time Sheets', href: '/expert/time-sheets' },
+]
 
 // Server functions
 const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
@@ -82,7 +88,7 @@ const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
 )
 
 // Route definition
-export const Route = createFileRoute('/dashboard/time-entries')({
+export const Route = createFileRoute('/expert/time-entries')({
   component: TimeEntriesPage,
   loader: () => getAllDataFn(),
 })
@@ -91,18 +97,30 @@ type TimeEntryWithDetails = {
   id: string
   date: string
   organisationName: string
+  organisationId?: string
   projectName: string
+  projectId?: string
   title: string
+  description?: string
   hours: number
   approvedDate?: string
+  createdAt: string
 }
+
+type EditingCell = {
+  rowId: string
+  field: string
+} | null
 
 function TimeEntriesPage() {
   const data = Route.useLoaderData()
+  const router = useRouter()
   const navigate = useNavigate({ from: Route.fullPath })
   const locale = useLocale()
   const [filterOrganisationId, setFilterOrganisationId] = useState<string>('')
   const [filterProjectId, setFilterProjectId] = useState<string>('')
+  const [editingCell, setEditingCell] = useState<EditingCell>(null)
+  const [editedValue, setEditedValue] = useState<any>(null)
 
   const timeEntriesWithDetails = useMemo(() => {
     return data.timeEntries.map((entry: any) => {
@@ -114,15 +132,48 @@ function TimeEntriesPage() {
         id: entry.id,
         date: entry.date,
         organisationName: organisation?.name || '',
+        organisationId: entry.organisationId,
         projectName: project?.name || '',
+        projectId: entry.projectId,
         title: entry.title,
+        description: entry.description,
         hours: entry.hours,
         approvedDate: entry.approvedDate,
-        organisationId: entry.organisationId,
-        projectId: entry.projectId,
+        createdAt: entry.createdAt,
       }
     })
   }, [data])
+
+  // Inline editing handlers
+  const startEdit = (rowId: string, field: string, currentValue: any) => {
+    setEditingCell({ rowId, field })
+    setEditedValue(currentValue)
+  }
+
+  const cancelEdit = () => {
+    setEditingCell(null)
+    setEditedValue(null)
+  }
+
+  const handleSaveCell = async (entry: TimeEntryWithDetails, field: string) => {
+    if (editedValue === null || editedValue === entry[field as keyof TimeEntryWithDetails]) {
+      cancelEdit()
+      return
+    }
+
+    try {
+      const updateData: any = {
+        id: entry.id,
+        createdAt: entry.createdAt,
+        [field]: editedValue,
+      }
+      await updateTimeEntryFn({ data: updateData })
+      router.invalidate()
+    } catch (error) {
+      console.error('Failed to update:', error)
+    }
+    cancelEdit()
+  }
 
   const filteredTimeEntries = useMemo(() => {
     let filtered = timeEntriesWithDetails
@@ -184,10 +235,37 @@ function TimeEntriesPage() {
     {
       accessorKey: 'date',
       header: 'Date',
-      size: 110,
-      cell: ({ getValue }) => {
-        const dateStr = getValue() as string
-        return <div className="w-[110px]">{formatDate(dateStr, locale)}</div>
+      size: 130,
+      cell: ({ row }) => {
+        const isEditing = editingCell?.rowId === row.original.id && editingCell?.field === 'date'
+        if (isEditing) {
+          return (
+            <Input
+              type="date"
+              autoFocus
+              value={editedValue ?? row.original.date}
+              onChange={(e) => setEditedValue(e.target.value)}
+              onBlur={() => handleSaveCell(row.original, 'date')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveCell(row.original, 'date')
+                if (e.key === 'Escape') cancelEdit()
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="h-8 w-[120px]"
+            />
+          )
+        }
+        return (
+          <div
+            className="w-[120px] cursor-pointer hover:bg-muted rounded px-1 -mx-1"
+            onDoubleClick={(e) => {
+              e.stopPropagation()
+              startEdit(row.original.id, 'date', row.original.date)
+            }}
+          >
+            {formatDate(row.original.date, locale)}
+          </div>
+        )
       },
     },
     {
@@ -195,32 +273,149 @@ function TimeEntriesPage() {
       header: 'Organisation',
       size: 180,
       cell: ({ getValue }) => {
-        return <div className="w-[180px] truncate" title={getValue() as string}>{getValue() as string}</div>
+        return <div className="w-[180px] truncate" title={getValue() as string}>{getValue() as string || '-'}</div>
       },
     },
     {
       accessorKey: 'projectName',
       header: 'Project',
       size: 180,
-      cell: ({ getValue }) => {
-        return <div className="w-[180px] truncate" title={getValue() as string}>{getValue() as string}</div>
+      cell: ({ row }) => {
+        const isEditing = editingCell?.rowId === row.original.id && editingCell?.field === 'projectId'
+        if (isEditing) {
+          const availableProjects = row.original.organisationId
+            ? data.projects.filter((p: any) => p.organisationId === row.original.organisationId)
+            : data.projects
+          return (
+            <select
+              autoFocus
+              value={editedValue ?? row.original.projectId ?? ''}
+              onChange={(e) => setEditedValue(e.target.value || null)}
+              onBlur={() => handleSaveCell(row.original, 'projectId')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveCell(row.original, 'projectId')
+                if (e.key === 'Escape') cancelEdit()
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="h-8 w-[170px] rounded-md border border-input bg-background px-2 text-sm"
+            >
+              <option value="">None</option>
+              {availableProjects.map((proj: any) => (
+                <option key={proj.id} value={proj.id}>{proj.name}</option>
+              ))}
+            </select>
+          )
+        }
+        return (
+          <div
+            className="w-[180px] truncate cursor-pointer hover:bg-muted rounded px-1 -mx-1"
+            title={row.original.projectName}
+            onDoubleClick={(e) => {
+              e.stopPropagation()
+              startEdit(row.original.id, 'projectId', row.original.projectId)
+            }}
+          >
+            {row.original.projectName || '-'}
+          </div>
+        )
       },
     },
     {
       accessorKey: 'title',
       header: 'Title',
       size: 200,
-      cell: ({ getValue }) => {
-        return <div className="w-[200px] font-medium">{getValue() as string}</div>
+      cell: ({ row }) => {
+        const isEditing = editingCell?.rowId === row.original.id && editingCell?.field === 'title'
+        if (isEditing) {
+          return (
+            <Input
+              autoFocus
+              value={editedValue ?? row.original.title}
+              onChange={(e) => setEditedValue(e.target.value)}
+              onBlur={() => handleSaveCell(row.original, 'title')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveCell(row.original, 'title')
+                if (e.key === 'Escape') cancelEdit()
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="h-8 w-[190px]"
+            />
+          )
+        }
+        return (
+          <div
+            className="w-[200px] font-medium cursor-pointer hover:bg-muted rounded px-1 -mx-1"
+            onDoubleClick={(e) => {
+              e.stopPropagation()
+              startEdit(row.original.id, 'title', row.original.title)
+            }}
+          >
+            {row.original.title}
+          </div>
+        )
       },
     },
     {
       accessorKey: 'hours',
       header: 'Time',
-      size: 80,
-      cell: ({ getValue }) => {
-        const hours = getValue() as number
-        return <div className="w-[80px] text-right">{hoursToTime(hours)}</div>
+      size: 100,
+      cell: ({ row }) => {
+        const isEditing = editingCell?.rowId === row.original.id && editingCell?.field === 'hours'
+        if (isEditing) {
+          const currentHours = editedValue ?? row.original.hours
+          const h = Math.floor(currentHours)
+          const m = Math.round((currentHours % 1) * 60)
+          return (
+            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <Input
+                type="number"
+                autoFocus
+                min="0"
+                max="99"
+                value={h}
+                onChange={(e) => {
+                  const newH = parseInt(e.target.value) || 0
+                  setEditedValue(newH + m / 60)
+                }}
+                onBlur={() => handleSaveCell(row.original, 'hours')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveCell(row.original, 'hours')
+                  if (e.key === 'Escape') cancelEdit()
+                }}
+                className="h-8 w-12 text-center"
+              />
+              <span className="text-xs">:</span>
+              <Input
+                type="number"
+                min="0"
+                max="59"
+                step="15"
+                value={m}
+                onChange={(e) => {
+                  const newM = parseInt(e.target.value) || 0
+                  setEditedValue(h + newM / 60)
+                }}
+                onBlur={() => handleSaveCell(row.original, 'hours')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveCell(row.original, 'hours')
+                  if (e.key === 'Escape') cancelEdit()
+                }}
+                className="h-8 w-12 text-center"
+              />
+            </div>
+          )
+        }
+        return (
+          <div
+            className="w-[80px] text-right cursor-pointer hover:bg-muted rounded px-1 -mx-1"
+            onDoubleClick={(e) => {
+              e.stopPropagation()
+              startEdit(row.original.id, 'hours', row.original.hours)
+            }}
+          >
+            {hoursToTime(row.original.hours)}
+          </div>
+        )
       },
     },
     {
@@ -254,9 +449,11 @@ function TimeEntriesPage() {
   ]
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Time Entries</h1>
+    <div className="flex flex-1 flex-col">
+      <TabNavigation tabs={timeTabs} className="px-6 pt-4" />
+      <div className="container mx-auto p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Time Entries</h1>
         <QuickTimeEntrySheet
           organisations={data.organisations}
           projects={data.projects}
@@ -307,14 +504,17 @@ function TimeEntriesPage() {
         data={filteredTimeEntries}
         getRowId={(row) => row.id}
         onRowClick={(row) => {
+          // Don't navigate if we're editing a cell
+          if (editingCell) return
           navigate({
-            to: '/dashboard/time-entries/$id',
+            to: '/expert/time-entries/$id',
             params: { id: row.original.id },
           })
         }}
       />
 
       <Outlet />
+      </div>
     </div>
   )
 }

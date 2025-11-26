@@ -31,7 +31,7 @@ This document captures improvements and feature requests identified during the i
 
 ## Naming & Terminology
 
-### 3. Rename "Agent Dashboard" to "Expert Dashboard"
+### 3. Rename "Agent Dashboard" to "Expert Dashboard" ✅ FIXED
 **Rationale:** "Expert" better reflects the role and status of users managing the dashboard
 **Impact:** UI labels, documentation, route names
 **Priority:** Medium
@@ -39,12 +39,13 @@ This document captures improvements and feature requests identified during the i
 - Update sidebar/header labels
 - Update documentation (CLAUDE.md, README)
 - Consider route rename `/dashboard` → `/expert` (breaking change)
+**Resolution:** Renamed all routes from `/dashboard/*` to `/expert/*`, updated all labels to "Expert Dashboard", updated CLAUDE.md (2025-11-25)
 
 ---
 
 ## Architecture & Data Model Changes
 
-### 4. Restructure Time Sheets by Account
+### 4. Restructure Time Sheets by Account ✅ FIXED
 **Current Behavior:** Time sheets are created per organization only
 **Desired Behavior:** Time sheets should be created by account (individual contact), with organization and projects as optional filters
 **Rationale:** Better aligns with real-world workflows where individual team members submit their own time sheets
@@ -54,12 +55,13 @@ This document captures improvements and feature requests identified during the i
 - Update time sheet creation form to select account
 - Add organization/project filter UI
 - Migration required
+**Resolution:** Added optional `accountId` field with bidirectional org/account filtering in creation form, Account column in list/detail views, and `findByAccount` repository method (2025-11-25)
 
 ---
 
 ## UI/UX Improvements
 
-### 5. Combine Time Entries and Time Sheets Views
+### 5. Combine Time Entries and Time Sheets Views ✅ FIXED
 **Current State:** Separate routes for time entries and time sheets
 **Desired State:** Single view with tabs: `/dashboard/time-entries-and-sheets`
 **Rationale:** These concepts are tightly coupled; users need to switch between them frequently
@@ -69,16 +71,18 @@ This document captures improvements and feature requests identified during the i
 - Tab 1: Time Entries (current view)
 - Tab 2: Time Sheets (current view)
 - Share filters/context between tabs
+**Resolution:** Added linked TabNavigation component to both time-entries and time-sheets routes for easy switching (2025-11-25)
 
-### 6. Date Range Column UI Refactor
+### 6. Date Range Column UI Refactor ✅ FIXED
 **Issue:** Date range column in time sheets needs better visual design
 **Suggestions:**
 - More compact date format
 - Visual separator between start/end dates
 - Consider date range picker component
 **Priority:** Low
+**Resolution:** Changed format from "Jan 1, 2025 to Jan 31, 2025" to "Jan 1, 2025 → Jan 31, 2025" with arrow icon separator (2025-11-25)
 
-### 7. Quick Edit on Time Entries Row
+### 7. Quick Edit on Time Entries Row ✅ FIXED
 **Description:** Enable inline editing of time entries directly in the data table
 **Interaction:** Double-click on a cell to edit that field value
 **Use Case:** Faster updates without opening detail sheet for minor corrections
@@ -90,6 +94,7 @@ This document captures improvements and feature requests identified during the i
 - Show loading indicator during save
 - Revert on Escape key
 **Editable Fields:** Title, hours, description, project, date
+**Resolution:** Implemented double-click inline editing for Date, Project, Title, and Hours columns with auto-save on blur/Enter and cancel on Escape (2025-11-25)
 
 ---
 
@@ -191,22 +196,22 @@ This document captures improvements and feature requests identified during the i
 4. ~~Filter unassigned entries in selection (logic #8)~~ ✅
 5. Time entries list changed to single-click navigation ✅
 
-**Phase 2: Data Model Changes**
-5. Restructure time sheets by account (architecture #4) - requires migration
+**Phase 2: Data Model Changes** ✅ COMPLETE (2025-11-25)
+6. ~~Restructure time sheets by account (architecture #4)~~ ✅
 
-**Phase 3: UI Improvements**
-6. Combine time entries and time sheets views (UX #5)
-7. Rename Agent → Expert Dashboard (naming #3)
-8. Date range column refactor (UI #6)
-9. Quick edit on time entries row (UX #7)
+**Phase 3: UI Improvements** ✅ COMPLETE (2025-11-25)
+7. ~~Combine time entries and time sheets views (UX #5)~~ ✅
+8. ~~Rename Agent → Expert Dashboard (naming #3)~~ ✅
+9. ~~Date range column refactor (UI #6)~~ ✅
+10. ~~Quick edit on time entries row (UX #7)~~ ✅
 
 **Phase 4: Financial Features** (High Priority)
-10. Project-specific rates (feature #12) - requires data model changes
-11. Profitability calculation (feature #13) - depends on #12
+11. Project-specific rates (feature #12) - requires data model changes
+12. Profitability calculation (feature #13) - depends on #11
 
 **Phase 5: Additional Features**
-12. Approved entries/invoices view (feature #10)
-13. Quick entry templates (feature #11)
+13. Approved entries/invoices view (feature #10)
+14. Quick entry templates (feature #11)
 
 ### Testing Considerations
 
@@ -217,11 +222,10 @@ This document captures improvements and feature requests identified during the i
 
 ### Migration Strategy
 
-**For item #4 (time sheets by account):**
-- Add `accountId` column to `timeSheets` (nullable initially)
-- Backfill existing time sheets with default account from organization
-- Make `accountId` required going forward
-- Update repository queries and validation schemas
+**For item #4 (time sheets by account):** ✅ COMPLETE
+- ~~Add `accountId` column to `timeSheets` (nullable initially)~~ ✅
+- ~~Update repository queries and validation schemas~~ ✅
+- Note: `accountId` kept optional to allow org-only time sheets
 
 **For item #12 (project-specific rates):**
 - Add `projectRates` table or `defaultHourlyRate` column to `projects`
@@ -249,8 +253,8 @@ These items are not planned for immediate implementation but should be considere
 
 ## Questions & Decisions Needed
 
-1. **Route Breaking Change:** Should `/dashboard` be renamed to `/expert`? This would affect existing bookmarks/links.
-2. **Time Sheet Account Migration:** How should we handle existing time sheets that don't have an associated account?
+1. ~~**Route Breaking Change:** Should `/dashboard` be renamed to `/expert`? This would affect existing bookmarks/links.~~ → Resolved: Routes renamed to `/expert/*` (2025-11-25)
+2. ~~**Time Sheet Account Migration:** How should we handle existing time sheets that don't have an associated account?~~ → Resolved: `accountId` is optional, existing sheets remain valid without account association
 3. **Template Scope:** Should quick entry templates be user-specific or organization-wide?
 4. **Approved View:** Should "Approved Time Entries" be a separate view or a filter on the existing time entries view?
 5. **Rate Structure:** Should rates be simple (one rate per project) or complex (multiple rates per role per project)?

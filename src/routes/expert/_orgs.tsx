@@ -27,6 +27,6 @@ const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
 })
 
 // Pathless layout route definition
-export const Route = createFileRoute('/dashboard/_orgs')({
+export const Route = createFileRoute('/expert/_orgs')({
   loader: () => getAllDataFn(),
 })

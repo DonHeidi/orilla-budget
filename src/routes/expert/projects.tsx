@@ -52,7 +52,7 @@ const createProjectFn = createServerFn({ method: 'POST' })
     return await projectRepository.create(project)
   })
 
-export const Route = createFileRoute('/dashboard/projects')({
+export const Route = createFileRoute('/expert/projects')({
   component: ProjectsPage,
   loader: () => getProjectsDataFn(),
 })
@@ -240,7 +240,7 @@ function ProjectsPage() {
         getRowId={(row) => row.id}
         onRowClick={(row) => {
           navigate({
-            to: '/dashboard/projects/$id',
+            to: '/expert/projects/$id',
             params: { id: row.original.id },
           })
         }}
@@ -279,7 +279,7 @@ function AddProjectSheet({ organisations }: { organisations: any[] }) {
       })
       setOpen(false)
       form.reset()
-      navigate({ to: '/dashboard/projects' })
+      navigate({ to: '/expert/projects' })
     },
   })
 

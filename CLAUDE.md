@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Orilla Budget is a time tracking and budget management application built with TanStack Start (React), Bun, Drizzle ORM, and SQLite. The app provides both an agent interface for managing organisations, projects, and time entries, as well as a client portal for viewing budget information.
+Orilla Budget is a time tracking and budget management application built with TanStack Start (React), Bun, Drizzle ORM, and SQLite. The app provides both an expert interface for managing organisations, projects, and time entries, as well as a client portal for viewing budget information.
 
-**Note**: The agent interface uses the `/dashboard` route. All agent pages are under `/dashboard/*`.
+**Note**: The expert interface uses the `/expert` route. All expert pages are under `/expert/*`.
 
 ## Setup
 
@@ -651,7 +651,7 @@ All database access goes through repository modules that encapsulate Drizzle ORM
 
 #### Dual Interface Architecture
 
-- **Dashboard (`/dashboard`)**: Full CRUD interface with sidebar navigation organized by organisations, projects, and accounts
+- **Dashboard (`/expert`)**: Full CRUD interface with sidebar navigation organized by organisations, projects, and accounts
 - **Portal (`/portal`)**: Read-only client view authenticated via access codes
 
 #### Theme System

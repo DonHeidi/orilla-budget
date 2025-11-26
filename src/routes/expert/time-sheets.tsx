@@ -7,7 +7,7 @@ import {
 import { createServerFn } from '@tanstack/react-start'
 import { useState, useMemo } from 'react'
 import { type ColumnDef, type Row } from '@tanstack/react-table'
-import { FileText, Plus, ChevronDown, ChevronRight } from 'lucide-react'
+import { FileText, Plus, ChevronDown, ChevronRight, ArrowRight } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { cn } from '@/lib/utils'
@@ -45,6 +45,12 @@ import { Badge } from '@/components/ui/badge'
 import { useLocale } from '@/hooks/use-locale'
 import { formatDate, formatDateTime, hoursToTime } from '@/lib/date-utils'
 import { CheckCircle, XCircle, LayoutGrid, Table as TableIcon } from 'lucide-react'
+import { TabNavigation } from '@/components/TabNavigation'
+
+const timeTabs = [
+  { label: 'Time Entries', href: '/expert/time-entries' },
+  { label: 'Time Sheets', href: '/expert/time-sheets' },
+]
 
 // Server Functions
 const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
@@ -108,7 +114,7 @@ const addEntriesToSheetFn = createServerFn({ method: 'POST' })
     return await timeSheetRepository.addEntries(data.sheetId, data.entryIds)
   })
 
-export const Route = createFileRoute('/dashboard/time-sheets')({
+export const Route = createFileRoute('/expert/time-sheets')({
   component: TimeSheetsPage,
   loader: () => getAllDataFn(),
 })
@@ -178,7 +184,7 @@ function TimeSheetsPage() {
       cell: ({ getValue, row }) => (
         <div className="flex items-center gap-2">
           <Link
-            to="/dashboard/time-sheets/$id"
+            to="/expert/time-sheets/$id"
             params={{ id: row.original.id }}
             className="font-medium hover:underline"
           >
@@ -199,7 +205,14 @@ function TimeSheetsPage() {
         const start = row.original.startDate
         const end = row.original.endDate
         if (!start && !end) return <span className="text-gray-400">-</span>
-        if (start && end) return `${formatDate(start, locale)} to ${formatDate(end, locale)}`
+        if (start && end)
+          return (
+            <span className="flex items-center gap-1 whitespace-nowrap">
+              {formatDate(start, locale)}
+              <ArrowRight className="h-3 w-3 text-gray-400 flex-shrink-0" />
+              {formatDate(end, locale)}
+            </span>
+          )
         if (start) return `From ${formatDate(start, locale)}`
         if (end) return `Until ${formatDate(end, locale)}`
         return '-'
@@ -246,10 +259,12 @@ function TimeSheetsPage() {
   ]
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-semibold">Time Sheets</h2>
+    <div className="flex flex-1 flex-col">
+      <TabNavigation tabs={timeTabs} className="px-6 pt-4" />
+      <div className="flex flex-1 flex-col gap-4 p-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-semibold">Time Sheets</h2>
           <p className="text-sm text-muted-foreground">
             Organize time entries into sheets for approval
           </p>
@@ -393,6 +408,7 @@ function TimeSheetsPage() {
       />
 
       <Outlet />
+      </div>
     </div>
   )
 }
