@@ -240,24 +240,27 @@ function TimeEntriesPage() {
         const isEditing = editingCell?.rowId === row.original.id && editingCell?.field === 'date'
         if (isEditing) {
           return (
-            <Input
-              type="date"
-              autoFocus
-              value={editedValue ?? row.original.date}
-              onChange={(e) => setEditedValue(e.target.value)}
-              onBlur={() => handleSaveCell(row.original, 'date')}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveCell(row.original, 'date')
-                if (e.key === 'Escape') cancelEdit()
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="h-8 w-[120px]"
-            />
+            <div className="w-[120px]">
+              <Input
+                type="date"
+                autoFocus
+                value={editedValue ?? row.original.date}
+                onChange={(e) => setEditedValue(e.target.value)}
+                onBlur={() => handleSaveCell(row.original, 'date')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveCell(row.original, 'date')
+                  if (e.key === 'Escape') cancelEdit()
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="h-8 w-full"
+              />
+            </div>
           )
         }
         return (
           <div
-            className="w-[120px] cursor-pointer hover:bg-muted rounded px-1 -mx-1"
+            data-editable
+            className="w-[120px] truncate cursor-pointer hover:bg-muted rounded px-1 -mx-1"
             onDoubleClick={(e) => {
               e.stopPropagation()
               startEdit(row.original.id, 'date', row.original.date)
@@ -287,27 +290,30 @@ function TimeEntriesPage() {
             ? data.projects.filter((p: any) => p.organisationId === row.original.organisationId)
             : data.projects
           return (
-            <select
-              autoFocus
-              value={editedValue ?? row.original.projectId ?? ''}
-              onChange={(e) => setEditedValue(e.target.value || null)}
-              onBlur={() => handleSaveCell(row.original, 'projectId')}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveCell(row.original, 'projectId')
-                if (e.key === 'Escape') cancelEdit()
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="h-8 w-[170px] rounded-md border border-input bg-background px-2 text-sm"
-            >
-              <option value="">None</option>
-              {availableProjects.map((proj: any) => (
-                <option key={proj.id} value={proj.id}>{proj.name}</option>
-              ))}
-            </select>
+            <div className="w-[180px]">
+              <select
+                autoFocus
+                value={editedValue ?? row.original.projectId ?? ''}
+                onChange={(e) => setEditedValue(e.target.value || null)}
+                onBlur={() => handleSaveCell(row.original, 'projectId')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveCell(row.original, 'projectId')
+                  if (e.key === 'Escape') cancelEdit()
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
+              >
+                <option value="">None</option>
+                {availableProjects.map((proj: any) => (
+                  <option key={proj.id} value={proj.id}>{proj.name}</option>
+                ))}
+              </select>
+            </div>
           )
         }
         return (
           <div
+            data-editable
             className="w-[180px] truncate cursor-pointer hover:bg-muted rounded px-1 -mx-1"
             title={row.original.projectName}
             onDoubleClick={(e) => {
@@ -328,23 +334,27 @@ function TimeEntriesPage() {
         const isEditing = editingCell?.rowId === row.original.id && editingCell?.field === 'title'
         if (isEditing) {
           return (
-            <Input
-              autoFocus
-              value={editedValue ?? row.original.title}
-              onChange={(e) => setEditedValue(e.target.value)}
-              onBlur={() => handleSaveCell(row.original, 'title')}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveCell(row.original, 'title')
-                if (e.key === 'Escape') cancelEdit()
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="h-8 w-[190px]"
-            />
+            <div className="w-[200px]">
+              <Input
+                autoFocus
+                value={editedValue ?? row.original.title}
+                onChange={(e) => setEditedValue(e.target.value)}
+                onBlur={() => handleSaveCell(row.original, 'title')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveCell(row.original, 'title')
+                  if (e.key === 'Escape') cancelEdit()
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="h-8 w-full"
+              />
+            </div>
           )
         }
         return (
           <div
-            className="w-[200px] font-medium cursor-pointer hover:bg-muted rounded px-1 -mx-1"
+            data-editable
+            className="w-[200px] truncate font-medium cursor-pointer hover:bg-muted rounded px-1 -mx-1"
+            title={row.original.title}
             onDoubleClick={(e) => {
               e.stopPropagation()
               startEdit(row.original.id, 'title', row.original.title)
@@ -366,7 +376,7 @@ function TimeEntriesPage() {
           const h = Math.floor(currentHours)
           const m = Math.round((currentHours % 1) * 60)
           return (
-            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <div className="w-[100px] flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
               <Input
                 type="number"
                 autoFocus
@@ -407,6 +417,7 @@ function TimeEntriesPage() {
         }
         return (
           <div
+            data-editable
             className="w-[80px] text-right cursor-pointer hover:bg-muted rounded px-1 -mx-1"
             onDoubleClick={(e) => {
               e.stopPropagation()
@@ -503,9 +514,12 @@ function TimeEntriesPage() {
         columns={columns}
         data={filteredTimeEntries}
         getRowId={(row) => row.id}
-        onRowClick={(row) => {
+        onRowClick={(row, event) => {
           // Don't navigate if we're editing a cell
           if (editingCell) return
+          // Don't navigate if clicked on an editable cell (let double-click handle it)
+          const target = event.target as HTMLElement
+          if (target.closest('[data-editable]')) return
           navigate({
             to: '/expert/time-entries/$id',
             params: { id: row.original.id },
