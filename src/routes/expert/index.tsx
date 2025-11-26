@@ -1,15 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-export const Route = createFileRoute('/dashboard/')({
-  component: AgentIndexPage,
+export const Route = createFileRoute('/expert/')({
+  component: ExpertIndexPage,
 })
 
-function AgentIndexPage() {
+function ExpertIndexPage() {
   const data = Route.useRouteContext()
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
-      <h2 className="text-2xl font-semibold">Welcome to Agent Dashboard</h2>
+      <h2 className="text-2xl font-semibold">Welcome to Expert Dashboard</h2>
       <p className="text-muted-foreground">
         Select a section from the sidebar to get started:
       </p>

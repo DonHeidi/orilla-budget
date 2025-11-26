@@ -26,7 +26,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 
-const parentRouteApi = getRouteApi('/dashboard/_orgs')
+const parentRouteApi = getRouteApi('/expert/_orgs')
 
 const createAccountFn = createServerFn({ method: 'POST' })
   .inputValidator(createAccountSchema)
@@ -45,7 +45,7 @@ const createAccountFn = createServerFn({ method: 'POST' })
   })
 
 // Route definition
-export const Route = createFileRoute('/dashboard/_orgs/accounts')({
+export const Route = createFileRoute('/expert/_orgs/accounts')({
   component: AccountsPage,
 })
 
@@ -65,10 +65,10 @@ function AccountsPage() {
   const navigate = useNavigate({ from: Route.fullPath })
   const matchRoute = useMatchRoute()
   const isOrganisations = matchRoute({
-    to: '/dashboard/organisations',
+    to: '/expert/organisations',
     fuzzy: true,
   })
-  const isAccounts = matchRoute({ to: '/dashboard/accounts', fuzzy: true })
+  const isAccounts = matchRoute({ to: '/expert/accounts', fuzzy: true })
 
   const accountsWithDetails = useMemo(() => {
     return parentData.accounts.map((account: any) => {
@@ -149,7 +149,7 @@ function AccountsPage() {
 
       <div className="flex gap-2 mb-6 border-b">
         <Link
-          to="/dashboard/organisations"
+          to="/expert/organisations"
           className={`px-4 py-2 font-medium transition-colors ${
             isOrganisations
               ? 'border-b-2 border-blue-600 text-blue-600'
@@ -160,7 +160,7 @@ function AccountsPage() {
           Organisations ({parentData.organisations.length})
         </Link>
         <Link
-          to="/dashboard/accounts"
+          to="/expert/accounts"
           className={`px-4 py-2 font-medium transition-colors ${
             isAccounts
               ? 'border-b-2 border-blue-600 text-blue-600'
@@ -182,7 +182,7 @@ function AccountsPage() {
         getRowId={(row) => row.id}
         onRowClick={(row) => {
           navigate({
-            to: '/dashboard/accounts/$id',
+            to: '/expert/accounts/$id',
             params: { id: row.original.id },
           })
         }}
@@ -221,7 +221,7 @@ function AddAccountSheet({ organisations }: { organisations: any[] }) {
         },
       })
       setCreatedAccessCode(result.accessCode)
-      navigate({ to: '/dashboard/accounts' })
+      navigate({ to: '/expert/accounts' })
     },
   })
 

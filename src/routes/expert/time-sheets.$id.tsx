@@ -118,7 +118,7 @@ const getAvailableEntriesFn = createServerFn({ method: 'POST' }).handler(
   }
 )
 
-export const Route = createFileRoute('/dashboard/time-sheets/$id')({
+export const Route = createFileRoute('/expert/time-sheets/$id')({
   component: TimeSheetDetailPage,
   loader: ({ params }) => getTimeSheetDetailFn({ id: params.id }),
 })
@@ -168,7 +168,7 @@ function TimeSheetDetailPage() {
   const handleDelete = async () => {
     await deleteTimeSheetFn({ id })
     setShowDeleteConfirm(false)
-    router.navigate({ to: '/dashboard/time-sheets' })
+    router.navigate({ to: '/expert/time-sheets' })
   }
 
   const handleSubmit = async () => {
@@ -263,7 +263,7 @@ function TimeSheetDetailPage() {
   return (
     <Sheet
       open={true}
-      onOpenChange={() => router.navigate({ to: '/dashboard/time-sheets' })}
+      onOpenChange={() => router.navigate({ to: '/expert/time-sheets' })}
     >
       <SheetContent className="w-full sm:max-w-[700px] overflow-y-auto">
         <SheetHeader className="space-y-3 pb-6 border-b">

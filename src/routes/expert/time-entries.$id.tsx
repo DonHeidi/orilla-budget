@@ -19,7 +19,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 
-const parentRouteApi = getRouteApi('/dashboard/time-entries')
+const parentRouteApi = getRouteApi('/expert/time-entries')
 
 // Helper functions
 function hoursToTime(hours: number): string {
@@ -60,7 +60,7 @@ const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
 )
 
 // Route definition - no loader needed, uses parent data
-export const Route = createFileRoute('/dashboard/time-entries/$id')({
+export const Route = createFileRoute('/expert/time-entries/$id')({
   component: TimeEntryDetailPage,
 })
 
@@ -85,7 +85,7 @@ function TimeEntryDetailPage() {
         open={true}
         onOpenChange={(open) => {
           if (!open) {
-            navigate({ to: '/dashboard/time-entries' })
+            navigate({ to: '/expert/time-entries' })
           }
         }}
       >
@@ -102,7 +102,7 @@ function TimeEntryDetailPage() {
           <div className="flex gap-3 justify-end pt-6 border-t">
             <Button
               variant="outline"
-              onClick={() => navigate({ to: '/dashboard/time-entries' })}
+              onClick={() => navigate({ to: '/expert/time-entries' })}
             >
               Back to List
             </Button>
@@ -147,7 +147,7 @@ function TimeEntryDetailPage() {
       open={true}
       onOpenChange={(open) => {
         if (!open) {
-          navigate({ to: '/dashboard/time-entries' })
+          navigate({ to: '/expert/time-entries' })
         }
       }}
     >
@@ -418,7 +418,7 @@ function TimeEntryDetailPage() {
         <div className="flex gap-3 justify-end pt-6 border-t">
           <Button
             variant="outline"
-            onClick={() => navigate({ to: '/dashboard/time-entries' })}
+            onClick={() => navigate({ to: '/expert/time-entries' })}
           >
             Close
           </Button>

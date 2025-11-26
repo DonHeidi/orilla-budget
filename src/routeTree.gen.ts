@@ -10,28 +10,34 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PortalRouteImport } from './routes/portal'
+import { Route as ExpertRouteImport } from './routes/expert'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as ExpertIndexRouteImport } from './routes/expert/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as DashboardTimeSheetsRouteImport } from './routes/dashboard/time-sheets'
-import { Route as DashboardTimeEntriesRouteImport } from './routes/dashboard/time-entries'
-import { Route as DashboardProjectsRouteImport } from './routes/dashboard/projects'
-import { Route as DashboardOrgsRouteImport } from './routes/dashboard/_orgs'
+import { Route as ExpertTimeSheetsRouteImport } from './routes/expert/time-sheets'
+import { Route as ExpertTimeEntriesRouteImport } from './routes/expert/time-entries'
+import { Route as ExpertProjectsRouteImport } from './routes/expert/projects'
+import { Route as ExpertOrgsRouteImport } from './routes/expert/_orgs'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
-import { Route as DashboardTimeSheetsIdRouteImport } from './routes/dashboard/time-sheets.$id'
-import { Route as DashboardTimeEntriesIdRouteImport } from './routes/dashboard/time-entries.$id'
-import { Route as DashboardProjectsIdRouteImport } from './routes/dashboard/projects.$id'
-import { Route as DashboardOrgsOrganisationsRouteImport } from './routes/dashboard/_orgs.organisations'
-import { Route as DashboardOrgsAccountsRouteImport } from './routes/dashboard/_orgs.accounts'
+import { Route as ExpertTimeSheetsIdRouteImport } from './routes/expert/time-sheets.$id'
+import { Route as ExpertTimeEntriesIdRouteImport } from './routes/expert/time-entries.$id'
+import { Route as ExpertProjectsIdRouteImport } from './routes/expert/projects.$id'
+import { Route as ExpertOrgsOrganisationsRouteImport } from './routes/expert/_orgs.organisations'
+import { Route as ExpertOrgsAccountsRouteImport } from './routes/expert/_orgs.accounts'
 import { Route as AdminUsersIdRouteImport } from './routes/admin/users.$id'
-import { Route as DashboardOrgsOrganisationsIdRouteImport } from './routes/dashboard/_orgs.organisations.$id'
-import { Route as DashboardOrgsAccountsIdRouteImport } from './routes/dashboard/_orgs.accounts.$id'
+import { Route as ExpertOrgsOrganisationsIdRouteImport } from './routes/expert/_orgs.organisations.$id'
+import { Route as ExpertOrgsAccountsIdRouteImport } from './routes/expert/_orgs.accounts.$id'
 
 const PortalRoute = PortalRouteImport.update({
   id: '/portal',
   path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExpertRoute = ExpertRouteImport.update({
+  id: '/expert',
+  path: '/expert',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -49,142 +55,144 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardIndexRoute = DashboardIndexRouteImport.update({
+const ExpertIndexRoute = ExpertIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => DashboardRoute,
+  getParentRoute: () => ExpertRoute,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
-const DashboardTimeSheetsRoute = DashboardTimeSheetsRouteImport.update({
+const ExpertTimeSheetsRoute = ExpertTimeSheetsRouteImport.update({
   id: '/time-sheets',
   path: '/time-sheets',
-  getParentRoute: () => DashboardRoute,
+  getParentRoute: () => ExpertRoute,
 } as any)
-const DashboardTimeEntriesRoute = DashboardTimeEntriesRouteImport.update({
+const ExpertTimeEntriesRoute = ExpertTimeEntriesRouteImport.update({
   id: '/time-entries',
   path: '/time-entries',
-  getParentRoute: () => DashboardRoute,
+  getParentRoute: () => ExpertRoute,
 } as any)
-const DashboardProjectsRoute = DashboardProjectsRouteImport.update({
+const ExpertProjectsRoute = ExpertProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
-  getParentRoute: () => DashboardRoute,
+  getParentRoute: () => ExpertRoute,
 } as any)
-const DashboardOrgsRoute = DashboardOrgsRouteImport.update({
+const ExpertOrgsRoute = ExpertOrgsRouteImport.update({
   id: '/_orgs',
-  getParentRoute: () => DashboardRoute,
+  getParentRoute: () => ExpertRoute,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
-const DashboardTimeSheetsIdRoute = DashboardTimeSheetsIdRouteImport.update({
+const ExpertTimeSheetsIdRoute = ExpertTimeSheetsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => DashboardTimeSheetsRoute,
+  getParentRoute: () => ExpertTimeSheetsRoute,
 } as any)
-const DashboardTimeEntriesIdRoute = DashboardTimeEntriesIdRouteImport.update({
+const ExpertTimeEntriesIdRoute = ExpertTimeEntriesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => DashboardTimeEntriesRoute,
+  getParentRoute: () => ExpertTimeEntriesRoute,
 } as any)
-const DashboardProjectsIdRoute = DashboardProjectsIdRouteImport.update({
+const ExpertProjectsIdRoute = ExpertProjectsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => DashboardProjectsRoute,
+  getParentRoute: () => ExpertProjectsRoute,
 } as any)
-const DashboardOrgsOrganisationsRoute =
-  DashboardOrgsOrganisationsRouteImport.update({
-    id: '/organisations',
-    path: '/organisations',
-    getParentRoute: () => DashboardOrgsRoute,
-  } as any)
-const DashboardOrgsAccountsRoute = DashboardOrgsAccountsRouteImport.update({
+const ExpertOrgsOrganisationsRoute = ExpertOrgsOrganisationsRouteImport.update({
+  id: '/organisations',
+  path: '/organisations',
+  getParentRoute: () => ExpertOrgsRoute,
+} as any)
+const ExpertOrgsAccountsRoute = ExpertOrgsAccountsRouteImport.update({
   id: '/accounts',
   path: '/accounts',
-  getParentRoute: () => DashboardOrgsRoute,
+  getParentRoute: () => ExpertOrgsRoute,
 } as any)
 const AdminUsersIdRoute = AdminUsersIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => AdminUsersRoute,
 } as any)
-const DashboardOrgsOrganisationsIdRoute =
-  DashboardOrgsOrganisationsIdRouteImport.update({
+const ExpertOrgsOrganisationsIdRoute =
+  ExpertOrgsOrganisationsIdRouteImport.update({
     id: '/$id',
     path: '/$id',
-    getParentRoute: () => DashboardOrgsOrganisationsRoute,
+    getParentRoute: () => ExpertOrgsOrganisationsRoute,
   } as any)
-const DashboardOrgsAccountsIdRoute = DashboardOrgsAccountsIdRouteImport.update({
+const ExpertOrgsAccountsIdRoute = ExpertOrgsAccountsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => DashboardOrgsAccountsRoute,
+  getParentRoute: () => ExpertOrgsAccountsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/dashboard': typeof DashboardOrgsRouteWithChildren
+  '/dashboard': typeof DashboardRoute
+  '/expert': typeof ExpertOrgsRouteWithChildren
   '/portal': typeof PortalRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
-  '/dashboard/projects': typeof DashboardProjectsRouteWithChildren
-  '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
-  '/dashboard/time-sheets': typeof DashboardTimeSheetsRouteWithChildren
+  '/expert/projects': typeof ExpertProjectsRouteWithChildren
+  '/expert/time-entries': typeof ExpertTimeEntriesRouteWithChildren
+  '/expert/time-sheets': typeof ExpertTimeSheetsRouteWithChildren
   '/admin/': typeof AdminIndexRoute
-  '/dashboard/': typeof DashboardIndexRoute
+  '/expert/': typeof ExpertIndexRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
-  '/dashboard/accounts': typeof DashboardOrgsAccountsRouteWithChildren
-  '/dashboard/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
-  '/dashboard/projects/$id': typeof DashboardProjectsIdRoute
-  '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
-  '/dashboard/time-sheets/$id': typeof DashboardTimeSheetsIdRoute
-  '/dashboard/accounts/$id': typeof DashboardOrgsAccountsIdRoute
-  '/dashboard/organisations/$id': typeof DashboardOrgsOrganisationsIdRoute
+  '/expert/accounts': typeof ExpertOrgsAccountsRouteWithChildren
+  '/expert/organisations': typeof ExpertOrgsOrganisationsRouteWithChildren
+  '/expert/projects/$id': typeof ExpertProjectsIdRoute
+  '/expert/time-entries/$id': typeof ExpertTimeEntriesIdRoute
+  '/expert/time-sheets/$id': typeof ExpertTimeSheetsIdRoute
+  '/expert/accounts/$id': typeof ExpertOrgsAccountsIdRoute
+  '/expert/organisations/$id': typeof ExpertOrgsOrganisationsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/portal': typeof PortalRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
-  '/dashboard': typeof DashboardIndexRoute
-  '/dashboard/projects': typeof DashboardProjectsRouteWithChildren
-  '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
-  '/dashboard/time-sheets': typeof DashboardTimeSheetsRouteWithChildren
+  '/expert': typeof ExpertIndexRoute
+  '/expert/projects': typeof ExpertProjectsRouteWithChildren
+  '/expert/time-entries': typeof ExpertTimeEntriesRouteWithChildren
+  '/expert/time-sheets': typeof ExpertTimeSheetsRouteWithChildren
   '/admin': typeof AdminIndexRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
-  '/dashboard/accounts': typeof DashboardOrgsAccountsRouteWithChildren
-  '/dashboard/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
-  '/dashboard/projects/$id': typeof DashboardProjectsIdRoute
-  '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
-  '/dashboard/time-sheets/$id': typeof DashboardTimeSheetsIdRoute
-  '/dashboard/accounts/$id': typeof DashboardOrgsAccountsIdRoute
-  '/dashboard/organisations/$id': typeof DashboardOrgsOrganisationsIdRoute
+  '/expert/accounts': typeof ExpertOrgsAccountsRouteWithChildren
+  '/expert/organisations': typeof ExpertOrgsOrganisationsRouteWithChildren
+  '/expert/projects/$id': typeof ExpertProjectsIdRoute
+  '/expert/time-entries/$id': typeof ExpertTimeEntriesIdRoute
+  '/expert/time-sheets/$id': typeof ExpertTimeSheetsIdRoute
+  '/expert/accounts/$id': typeof ExpertOrgsAccountsIdRoute
+  '/expert/organisations/$id': typeof ExpertOrgsOrganisationsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/dashboard': typeof DashboardRouteWithChildren
+  '/dashboard': typeof DashboardRoute
+  '/expert': typeof ExpertRouteWithChildren
   '/portal': typeof PortalRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
-  '/dashboard/_orgs': typeof DashboardOrgsRouteWithChildren
-  '/dashboard/projects': typeof DashboardProjectsRouteWithChildren
-  '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
-  '/dashboard/time-sheets': typeof DashboardTimeSheetsRouteWithChildren
+  '/expert/_orgs': typeof ExpertOrgsRouteWithChildren
+  '/expert/projects': typeof ExpertProjectsRouteWithChildren
+  '/expert/time-entries': typeof ExpertTimeEntriesRouteWithChildren
+  '/expert/time-sheets': typeof ExpertTimeSheetsRouteWithChildren
   '/admin/': typeof AdminIndexRoute
-  '/dashboard/': typeof DashboardIndexRoute
+  '/expert/': typeof ExpertIndexRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
-  '/dashboard/_orgs/accounts': typeof DashboardOrgsAccountsRouteWithChildren
-  '/dashboard/_orgs/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
-  '/dashboard/projects/$id': typeof DashboardProjectsIdRoute
-  '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
-  '/dashboard/time-sheets/$id': typeof DashboardTimeSheetsIdRoute
-  '/dashboard/_orgs/accounts/$id': typeof DashboardOrgsAccountsIdRoute
-  '/dashboard/_orgs/organisations/$id': typeof DashboardOrgsOrganisationsIdRoute
+  '/expert/_orgs/accounts': typeof ExpertOrgsAccountsRouteWithChildren
+  '/expert/_orgs/organisations': typeof ExpertOrgsOrganisationsRouteWithChildren
+  '/expert/projects/$id': typeof ExpertProjectsIdRoute
+  '/expert/time-entries/$id': typeof ExpertTimeEntriesIdRoute
+  '/expert/time-sheets/$id': typeof ExpertTimeSheetsIdRoute
+  '/expert/_orgs/accounts/$id': typeof ExpertOrgsAccountsIdRoute
+  '/expert/_orgs/organisations/$id': typeof ExpertOrgsOrganisationsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -192,66 +200,70 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/dashboard'
+    | '/expert'
     | '/portal'
     | '/admin/users'
-    | '/dashboard/projects'
-    | '/dashboard/time-entries'
-    | '/dashboard/time-sheets'
+    | '/expert/projects'
+    | '/expert/time-entries'
+    | '/expert/time-sheets'
     | '/admin/'
-    | '/dashboard/'
+    | '/expert/'
     | '/admin/users/$id'
-    | '/dashboard/accounts'
-    | '/dashboard/organisations'
-    | '/dashboard/projects/$id'
-    | '/dashboard/time-entries/$id'
-    | '/dashboard/time-sheets/$id'
-    | '/dashboard/accounts/$id'
-    | '/dashboard/organisations/$id'
+    | '/expert/accounts'
+    | '/expert/organisations'
+    | '/expert/projects/$id'
+    | '/expert/time-entries/$id'
+    | '/expert/time-sheets/$id'
+    | '/expert/accounts/$id'
+    | '/expert/organisations/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/dashboard'
     | '/portal'
     | '/admin/users'
-    | '/dashboard'
-    | '/dashboard/projects'
-    | '/dashboard/time-entries'
-    | '/dashboard/time-sheets'
+    | '/expert'
+    | '/expert/projects'
+    | '/expert/time-entries'
+    | '/expert/time-sheets'
     | '/admin'
     | '/admin/users/$id'
-    | '/dashboard/accounts'
-    | '/dashboard/organisations'
-    | '/dashboard/projects/$id'
-    | '/dashboard/time-entries/$id'
-    | '/dashboard/time-sheets/$id'
-    | '/dashboard/accounts/$id'
-    | '/dashboard/organisations/$id'
+    | '/expert/accounts'
+    | '/expert/organisations'
+    | '/expert/projects/$id'
+    | '/expert/time-entries/$id'
+    | '/expert/time-sheets/$id'
+    | '/expert/accounts/$id'
+    | '/expert/organisations/$id'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/dashboard'
+    | '/expert'
     | '/portal'
     | '/admin/users'
-    | '/dashboard/_orgs'
-    | '/dashboard/projects'
-    | '/dashboard/time-entries'
-    | '/dashboard/time-sheets'
+    | '/expert/_orgs'
+    | '/expert/projects'
+    | '/expert/time-entries'
+    | '/expert/time-sheets'
     | '/admin/'
-    | '/dashboard/'
+    | '/expert/'
     | '/admin/users/$id'
-    | '/dashboard/_orgs/accounts'
-    | '/dashboard/_orgs/organisations'
-    | '/dashboard/projects/$id'
-    | '/dashboard/time-entries/$id'
-    | '/dashboard/time-sheets/$id'
-    | '/dashboard/_orgs/accounts/$id'
-    | '/dashboard/_orgs/organisations/$id'
+    | '/expert/_orgs/accounts'
+    | '/expert/_orgs/organisations'
+    | '/expert/projects/$id'
+    | '/expert/time-entries/$id'
+    | '/expert/time-sheets/$id'
+    | '/expert/_orgs/accounts/$id'
+    | '/expert/_orgs/organisations/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
-  DashboardRoute: typeof DashboardRouteWithChildren
+  DashboardRoute: typeof DashboardRoute
+  ExpertRoute: typeof ExpertRouteWithChildren
   PortalRoute: typeof PortalRoute
 }
 
@@ -262,6 +274,13 @@ declare module '@tanstack/react-router' {
       path: '/portal'
       fullPath: '/portal'
       preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/expert': {
+      id: '/expert'
+      path: '/expert'
+      fullPath: '/expert'
+      preLoaderRoute: typeof ExpertRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -285,12 +304,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard/': {
-      id: '/dashboard/'
+    '/expert/': {
+      id: '/expert/'
       path: '/'
-      fullPath: '/dashboard/'
-      preLoaderRoute: typeof DashboardIndexRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/expert/'
+      preLoaderRoute: typeof ExpertIndexRouteImport
+      parentRoute: typeof ExpertRoute
     }
     '/admin/': {
       id: '/admin/'
@@ -299,33 +318,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/dashboard/time-sheets': {
-      id: '/dashboard/time-sheets'
+    '/expert/time-sheets': {
+      id: '/expert/time-sheets'
       path: '/time-sheets'
-      fullPath: '/dashboard/time-sheets'
-      preLoaderRoute: typeof DashboardTimeSheetsRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/expert/time-sheets'
+      preLoaderRoute: typeof ExpertTimeSheetsRouteImport
+      parentRoute: typeof ExpertRoute
     }
-    '/dashboard/time-entries': {
-      id: '/dashboard/time-entries'
+    '/expert/time-entries': {
+      id: '/expert/time-entries'
       path: '/time-entries'
-      fullPath: '/dashboard/time-entries'
-      preLoaderRoute: typeof DashboardTimeEntriesRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/expert/time-entries'
+      preLoaderRoute: typeof ExpertTimeEntriesRouteImport
+      parentRoute: typeof ExpertRoute
     }
-    '/dashboard/projects': {
-      id: '/dashboard/projects'
+    '/expert/projects': {
+      id: '/expert/projects'
       path: '/projects'
-      fullPath: '/dashboard/projects'
-      preLoaderRoute: typeof DashboardProjectsRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/expert/projects'
+      preLoaderRoute: typeof ExpertProjectsRouteImport
+      parentRoute: typeof ExpertRoute
     }
-    '/dashboard/_orgs': {
-      id: '/dashboard/_orgs'
+    '/expert/_orgs': {
+      id: '/expert/_orgs'
       path: ''
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardOrgsRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/expert'
+      preLoaderRoute: typeof ExpertOrgsRouteImport
+      parentRoute: typeof ExpertRoute
     }
     '/admin/users': {
       id: '/admin/users'
@@ -334,40 +353,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/dashboard/time-sheets/$id': {
-      id: '/dashboard/time-sheets/$id'
+    '/expert/time-sheets/$id': {
+      id: '/expert/time-sheets/$id'
       path: '/$id'
-      fullPath: '/dashboard/time-sheets/$id'
-      preLoaderRoute: typeof DashboardTimeSheetsIdRouteImport
-      parentRoute: typeof DashboardTimeSheetsRoute
+      fullPath: '/expert/time-sheets/$id'
+      preLoaderRoute: typeof ExpertTimeSheetsIdRouteImport
+      parentRoute: typeof ExpertTimeSheetsRoute
     }
-    '/dashboard/time-entries/$id': {
-      id: '/dashboard/time-entries/$id'
+    '/expert/time-entries/$id': {
+      id: '/expert/time-entries/$id'
       path: '/$id'
-      fullPath: '/dashboard/time-entries/$id'
-      preLoaderRoute: typeof DashboardTimeEntriesIdRouteImport
-      parentRoute: typeof DashboardTimeEntriesRoute
+      fullPath: '/expert/time-entries/$id'
+      preLoaderRoute: typeof ExpertTimeEntriesIdRouteImport
+      parentRoute: typeof ExpertTimeEntriesRoute
     }
-    '/dashboard/projects/$id': {
-      id: '/dashboard/projects/$id'
+    '/expert/projects/$id': {
+      id: '/expert/projects/$id'
       path: '/$id'
-      fullPath: '/dashboard/projects/$id'
-      preLoaderRoute: typeof DashboardProjectsIdRouteImport
-      parentRoute: typeof DashboardProjectsRoute
+      fullPath: '/expert/projects/$id'
+      preLoaderRoute: typeof ExpertProjectsIdRouteImport
+      parentRoute: typeof ExpertProjectsRoute
     }
-    '/dashboard/_orgs/organisations': {
-      id: '/dashboard/_orgs/organisations'
+    '/expert/_orgs/organisations': {
+      id: '/expert/_orgs/organisations'
       path: '/organisations'
-      fullPath: '/dashboard/organisations'
-      preLoaderRoute: typeof DashboardOrgsOrganisationsRouteImport
-      parentRoute: typeof DashboardOrgsRoute
+      fullPath: '/expert/organisations'
+      preLoaderRoute: typeof ExpertOrgsOrganisationsRouteImport
+      parentRoute: typeof ExpertOrgsRoute
     }
-    '/dashboard/_orgs/accounts': {
-      id: '/dashboard/_orgs/accounts'
+    '/expert/_orgs/accounts': {
+      id: '/expert/_orgs/accounts'
       path: '/accounts'
-      fullPath: '/dashboard/accounts'
-      preLoaderRoute: typeof DashboardOrgsAccountsRouteImport
-      parentRoute: typeof DashboardOrgsRoute
+      fullPath: '/expert/accounts'
+      preLoaderRoute: typeof ExpertOrgsAccountsRouteImport
+      parentRoute: typeof ExpertOrgsRoute
     }
     '/admin/users/$id': {
       id: '/admin/users/$id'
@@ -376,19 +395,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersIdRouteImport
       parentRoute: typeof AdminUsersRoute
     }
-    '/dashboard/_orgs/organisations/$id': {
-      id: '/dashboard/_orgs/organisations/$id'
+    '/expert/_orgs/organisations/$id': {
+      id: '/expert/_orgs/organisations/$id'
       path: '/$id'
-      fullPath: '/dashboard/organisations/$id'
-      preLoaderRoute: typeof DashboardOrgsOrganisationsIdRouteImport
-      parentRoute: typeof DashboardOrgsOrganisationsRoute
+      fullPath: '/expert/organisations/$id'
+      preLoaderRoute: typeof ExpertOrgsOrganisationsIdRouteImport
+      parentRoute: typeof ExpertOrgsOrganisationsRoute
     }
-    '/dashboard/_orgs/accounts/$id': {
-      id: '/dashboard/_orgs/accounts/$id'
+    '/expert/_orgs/accounts/$id': {
+      id: '/expert/_orgs/accounts/$id'
       path: '/$id'
-      fullPath: '/dashboard/accounts/$id'
-      preLoaderRoute: typeof DashboardOrgsAccountsIdRouteImport
-      parentRoute: typeof DashboardOrgsAccountsRoute
+      fullPath: '/expert/accounts/$id'
+      preLoaderRoute: typeof ExpertOrgsAccountsIdRouteImport
+      parentRoute: typeof ExpertOrgsAccountsRoute
     }
   }
 }
@@ -417,104 +436,103 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
-interface DashboardOrgsAccountsRouteChildren {
-  DashboardOrgsAccountsIdRoute: typeof DashboardOrgsAccountsIdRoute
+interface ExpertOrgsAccountsRouteChildren {
+  ExpertOrgsAccountsIdRoute: typeof ExpertOrgsAccountsIdRoute
 }
 
-const DashboardOrgsAccountsRouteChildren: DashboardOrgsAccountsRouteChildren = {
-  DashboardOrgsAccountsIdRoute: DashboardOrgsAccountsIdRoute,
+const ExpertOrgsAccountsRouteChildren: ExpertOrgsAccountsRouteChildren = {
+  ExpertOrgsAccountsIdRoute: ExpertOrgsAccountsIdRoute,
 }
 
-const DashboardOrgsAccountsRouteWithChildren =
-  DashboardOrgsAccountsRoute._addFileChildren(
-    DashboardOrgsAccountsRouteChildren,
-  )
+const ExpertOrgsAccountsRouteWithChildren =
+  ExpertOrgsAccountsRoute._addFileChildren(ExpertOrgsAccountsRouteChildren)
 
-interface DashboardOrgsOrganisationsRouteChildren {
-  DashboardOrgsOrganisationsIdRoute: typeof DashboardOrgsOrganisationsIdRoute
+interface ExpertOrgsOrganisationsRouteChildren {
+  ExpertOrgsOrganisationsIdRoute: typeof ExpertOrgsOrganisationsIdRoute
 }
 
-const DashboardOrgsOrganisationsRouteChildren: DashboardOrgsOrganisationsRouteChildren =
+const ExpertOrgsOrganisationsRouteChildren: ExpertOrgsOrganisationsRouteChildren =
   {
-    DashboardOrgsOrganisationsIdRoute: DashboardOrgsOrganisationsIdRoute,
+    ExpertOrgsOrganisationsIdRoute: ExpertOrgsOrganisationsIdRoute,
   }
 
-const DashboardOrgsOrganisationsRouteWithChildren =
-  DashboardOrgsOrganisationsRoute._addFileChildren(
-    DashboardOrgsOrganisationsRouteChildren,
+const ExpertOrgsOrganisationsRouteWithChildren =
+  ExpertOrgsOrganisationsRoute._addFileChildren(
+    ExpertOrgsOrganisationsRouteChildren,
   )
 
-interface DashboardOrgsRouteChildren {
-  DashboardOrgsAccountsRoute: typeof DashboardOrgsAccountsRouteWithChildren
-  DashboardOrgsOrganisationsRoute: typeof DashboardOrgsOrganisationsRouteWithChildren
+interface ExpertOrgsRouteChildren {
+  ExpertOrgsAccountsRoute: typeof ExpertOrgsAccountsRouteWithChildren
+  ExpertOrgsOrganisationsRoute: typeof ExpertOrgsOrganisationsRouteWithChildren
 }
 
-const DashboardOrgsRouteChildren: DashboardOrgsRouteChildren = {
-  DashboardOrgsAccountsRoute: DashboardOrgsAccountsRouteWithChildren,
-  DashboardOrgsOrganisationsRoute: DashboardOrgsOrganisationsRouteWithChildren,
+const ExpertOrgsRouteChildren: ExpertOrgsRouteChildren = {
+  ExpertOrgsAccountsRoute: ExpertOrgsAccountsRouteWithChildren,
+  ExpertOrgsOrganisationsRoute: ExpertOrgsOrganisationsRouteWithChildren,
 }
 
-const DashboardOrgsRouteWithChildren = DashboardOrgsRoute._addFileChildren(
-  DashboardOrgsRouteChildren,
+const ExpertOrgsRouteWithChildren = ExpertOrgsRoute._addFileChildren(
+  ExpertOrgsRouteChildren,
 )
 
-interface DashboardProjectsRouteChildren {
-  DashboardProjectsIdRoute: typeof DashboardProjectsIdRoute
+interface ExpertProjectsRouteChildren {
+  ExpertProjectsIdRoute: typeof ExpertProjectsIdRoute
 }
 
-const DashboardProjectsRouteChildren: DashboardProjectsRouteChildren = {
-  DashboardProjectsIdRoute: DashboardProjectsIdRoute,
+const ExpertProjectsRouteChildren: ExpertProjectsRouteChildren = {
+  ExpertProjectsIdRoute: ExpertProjectsIdRoute,
 }
 
-const DashboardProjectsRouteWithChildren =
-  DashboardProjectsRoute._addFileChildren(DashboardProjectsRouteChildren)
-
-interface DashboardTimeEntriesRouteChildren {
-  DashboardTimeEntriesIdRoute: typeof DashboardTimeEntriesIdRoute
-}
-
-const DashboardTimeEntriesRouteChildren: DashboardTimeEntriesRouteChildren = {
-  DashboardTimeEntriesIdRoute: DashboardTimeEntriesIdRoute,
-}
-
-const DashboardTimeEntriesRouteWithChildren =
-  DashboardTimeEntriesRoute._addFileChildren(DashboardTimeEntriesRouteChildren)
-
-interface DashboardTimeSheetsRouteChildren {
-  DashboardTimeSheetsIdRoute: typeof DashboardTimeSheetsIdRoute
-}
-
-const DashboardTimeSheetsRouteChildren: DashboardTimeSheetsRouteChildren = {
-  DashboardTimeSheetsIdRoute: DashboardTimeSheetsIdRoute,
-}
-
-const DashboardTimeSheetsRouteWithChildren =
-  DashboardTimeSheetsRoute._addFileChildren(DashboardTimeSheetsRouteChildren)
-
-interface DashboardRouteChildren {
-  DashboardOrgsRoute: typeof DashboardOrgsRouteWithChildren
-  DashboardProjectsRoute: typeof DashboardProjectsRouteWithChildren
-  DashboardTimeEntriesRoute: typeof DashboardTimeEntriesRouteWithChildren
-  DashboardTimeSheetsRoute: typeof DashboardTimeSheetsRouteWithChildren
-  DashboardIndexRoute: typeof DashboardIndexRoute
-}
-
-const DashboardRouteChildren: DashboardRouteChildren = {
-  DashboardOrgsRoute: DashboardOrgsRouteWithChildren,
-  DashboardProjectsRoute: DashboardProjectsRouteWithChildren,
-  DashboardTimeEntriesRoute: DashboardTimeEntriesRouteWithChildren,
-  DashboardTimeSheetsRoute: DashboardTimeSheetsRouteWithChildren,
-  DashboardIndexRoute: DashboardIndexRoute,
-}
-
-const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
-  DashboardRouteChildren,
+const ExpertProjectsRouteWithChildren = ExpertProjectsRoute._addFileChildren(
+  ExpertProjectsRouteChildren,
 )
+
+interface ExpertTimeEntriesRouteChildren {
+  ExpertTimeEntriesIdRoute: typeof ExpertTimeEntriesIdRoute
+}
+
+const ExpertTimeEntriesRouteChildren: ExpertTimeEntriesRouteChildren = {
+  ExpertTimeEntriesIdRoute: ExpertTimeEntriesIdRoute,
+}
+
+const ExpertTimeEntriesRouteWithChildren =
+  ExpertTimeEntriesRoute._addFileChildren(ExpertTimeEntriesRouteChildren)
+
+interface ExpertTimeSheetsRouteChildren {
+  ExpertTimeSheetsIdRoute: typeof ExpertTimeSheetsIdRoute
+}
+
+const ExpertTimeSheetsRouteChildren: ExpertTimeSheetsRouteChildren = {
+  ExpertTimeSheetsIdRoute: ExpertTimeSheetsIdRoute,
+}
+
+const ExpertTimeSheetsRouteWithChildren =
+  ExpertTimeSheetsRoute._addFileChildren(ExpertTimeSheetsRouteChildren)
+
+interface ExpertRouteChildren {
+  ExpertOrgsRoute: typeof ExpertOrgsRouteWithChildren
+  ExpertProjectsRoute: typeof ExpertProjectsRouteWithChildren
+  ExpertTimeEntriesRoute: typeof ExpertTimeEntriesRouteWithChildren
+  ExpertTimeSheetsRoute: typeof ExpertTimeSheetsRouteWithChildren
+  ExpertIndexRoute: typeof ExpertIndexRoute
+}
+
+const ExpertRouteChildren: ExpertRouteChildren = {
+  ExpertOrgsRoute: ExpertOrgsRouteWithChildren,
+  ExpertProjectsRoute: ExpertProjectsRouteWithChildren,
+  ExpertTimeEntriesRoute: ExpertTimeEntriesRouteWithChildren,
+  ExpertTimeSheetsRoute: ExpertTimeSheetsRouteWithChildren,
+  ExpertIndexRoute: ExpertIndexRoute,
+}
+
+const ExpertRouteWithChildren =
+  ExpertRoute._addFileChildren(ExpertRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
-  DashboardRoute: DashboardRouteWithChildren,
+  DashboardRoute: DashboardRoute,
+  ExpertRoute: ExpertRouteWithChildren,
   PortalRoute: PortalRoute,
 }
 export const routeTree = rootRouteImport
