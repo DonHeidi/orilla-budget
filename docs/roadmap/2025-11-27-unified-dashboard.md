@@ -13,10 +13,11 @@ This document details the unified dashboard architecture that merges the Expert 
 
 ## Design Principles
 
-1. **Single entry point** - All users (internal and clients) access `/dashboard`
+1. **Single entry point** - All users access `/dashboard`
 2. **Permission-based visibility** - UI adapts to user's permissions; unauthorized items are hidden completely
-3. **Data scoping** - Clients only see their organisation's data; internal users see all
-4. **Consistent experience** - Same components, different data/capabilities based on role
+3. **Project-scoped data** - Users see data from projects they're members of
+4. **Consistent experience** - Same components, different data/capabilities based on project role
+5. **Context switching** - Users with multiple project roles can switch between project contexts
 
 ---
 
@@ -29,21 +30,22 @@ src/routes/
 ├── dashboard.tsx                 # Dashboard layout with AuthProvider + Sidebar
 ├── dashboard/
 │   ├── login.tsx                 # Email/password login (public)
-│   ├── invite.$code.tsx          # Client invitation acceptance (public)
+│   ├── register.tsx              # New user registration (public)
+│   ├── invite.$code.tsx          # Invitation acceptance (public)
 │   ├── _authenticated.tsx        # Auth guard layout (pathless)
 │   └── _authenticated/
 │       ├── index.tsx             # Dashboard home/overview
-│       ├── time-entries.tsx      # Time entries list
-│       ├── time-entries.$id.tsx  # Time entry detail
-│       ├── time-sheets.tsx       # Time sheets list
-│       ├── time-sheets.$id.tsx   # Time sheet detail
-│       ├── projects.tsx          # Projects list
-│       ├── projects.$id.tsx      # Project detail
-│       ├── organisations.tsx     # Organisations list
+│       ├── projects.tsx          # Projects list (user's memberships)
+│       ├── projects.$id.tsx      # Project detail + nested routes
+│       ├── projects.$id/
+│       │   ├── time-entries.tsx  # Project time entries
+│       │   ├── time-sheets.tsx   # Project time sheets
+│       │   └── members.tsx       # Project members
+│       ├── contacts.tsx          # Contact book
+│       ├── contacts.$id.tsx      # Contact detail
+│       ├── organisations.tsx     # Organisations (admin only)
 │       ├── organisations.$id.tsx # Organisation detail
-│       ├── accounts.tsx          # Accounts list
-│       ├── accounts.$id.tsx      # Account detail
-│       ├── users.tsx             # User management
+│       ├── users.tsx             # User management (admin only)
 │       ├── users.$id.tsx         # User detail
 │       └── settings.tsx          # User settings/profile
 ```
@@ -55,13 +57,13 @@ src/routes/
 | Old Route | New Route | Visible To |
 |-----------|-----------|------------|
 | `/expert` | `/dashboard` | All authenticated users |
-| `/expert/time-entries` | `/dashboard/time-entries` | All (scoped for clients) |
-| `/expert/time-sheets` | `/dashboard/time-sheets` | All (scoped for clients) |
-| `/expert/projects` | `/dashboard/projects` | All (scoped for clients) |
+| `/expert/time-entries` | `/dashboard/projects/$id/time-entries` | Project members |
+| `/expert/time-sheets` | `/dashboard/projects/$id/time-sheets` | Project members |
+| `/expert/projects` | `/dashboard/projects` | All (filtered by membership) |
 | `/expert/organisations` | `/dashboard/organisations` | admin, super_admin |
-| `/expert/accounts` | `/dashboard/accounts` | admin, super_admin |
+| `/expert/accounts` | `/dashboard/contacts` | All (personal contact book) |
 | `/admin/users` | `/dashboard/users` | admin, super_admin |
-| `/portal` | `/dashboard` (client login) | Removed - clients use unified dashboard |
+| `/portal` | `/dashboard` | Removed - all users use unified dashboard |
 
 ---
 
@@ -72,14 +74,15 @@ src/routes/
 ```typescript
 // src/lib/navigation.ts
 import type { LucideIcon } from 'lucide-react'
-import type { Permission } from './permissions'
+import type { SystemPermission } from './permissions'
 
 export interface NavItem {
   id: string
   label: string
   href: string
   icon: LucideIcon
-  requiredPermissions?: Permission[]  // Show if user has ANY of these
+  systemPermissions?: SystemPermission[]  // Show if user has ANY of these (admin routes)
+  requiresProjects?: boolean               // Show if user has any project memberships
   children?: NavItem[]
 }
 
@@ -87,7 +90,8 @@ export interface NavGroup {
   id: string
   label: string
   items: NavItem[]
-  requiredPermissions?: Permission[]  // Show group if user has ANY of these
+  systemPermissions?: SystemPermission[]
+  requiresProjects?: boolean
 }
 ```
 
@@ -96,75 +100,59 @@ export interface NavGroup {
 ```typescript
 // src/lib/navigation.ts
 import {
-  Clock,
-  FileText,
   FolderKanban,
   Building2,
   Users,
   UserCog,
   Settings,
+  Contact,
 } from 'lucide-react'
 
 export const navigationConfig: NavGroup[] = [
   {
-    id: 'time-tracking',
-    label: 'Time Tracking',
-    items: [
-      {
-        id: 'time-entries',
-        label: 'Time Entries',
-        href: '/dashboard/time-entries',
-        icon: Clock,
-        requiredPermissions: ['time-entries:view'],
-      },
-      {
-        id: 'time-sheets',
-        label: 'Time Sheets',
-        href: '/dashboard/time-sheets',
-        icon: FileText,
-        requiredPermissions: ['time-sheets:view'],
-      },
-    ],
-  },
-  {
-    id: 'management',
-    label: 'Management',
-    requiredPermissions: ['projects:view'],
+    id: 'work',
+    label: 'Work',
+    requiresProjects: true,
     items: [
       {
         id: 'projects',
         label: 'Projects',
         href: '/dashboard/projects',
         icon: FolderKanban,
-        requiredPermissions: ['projects:view'],
+        requiresProjects: true,
       },
+    ],
+  },
+  {
+    id: 'people',
+    label: 'People',
+    items: [
       {
-        id: 'organisations',
-        label: 'Organisations',
-        href: '/dashboard/organisations',
-        icon: Building2,
-        requiredPermissions: ['organisations:view'],
-      },
-      {
-        id: 'accounts',
-        label: 'Accounts',
-        href: '/dashboard/accounts',
-        icon: Users,
-        requiredPermissions: ['accounts:view'],
+        id: 'contacts',
+        label: 'Contacts',
+        href: '/dashboard/contacts',
+        icon: Contact,
       },
     ],
   },
   {
     id: 'administration',
     label: 'Administration',
-    requiredPermissions: ['users:view'],
+    systemPermissions: ['users:view', 'organisations:view'],
     items: [
+      {
+        id: 'organisations',
+        label: 'Organisations',
+        href: '/dashboard/organisations',
+        icon: Building2,
+        systemPermissions: ['organisations:view'],
+      },
       {
         id: 'users',
         label: 'Users',
         href: '/dashboard/users',
         icon: UserCog,
-        requiredPermissions: ['users:view'],
+        systemPermissions: ['users:view'],
       },
     ],
   },
@@ -176,7 +164,6 @@ export const footerNavigation: NavItem[] = [
     label: 'Settings',
     href: '/dashboard/settings',
     icon: Settings,
-    requiredPermissions: ['settings:view'],
   },
 ]
 ```
@@ -189,6 +176,7 @@ export const footerNavigation: NavItem[] = [
 // src/hooks/useNavigation.ts
 import { useMemo } from 'react'
 import { useAuth } from './useAuth'
+import { hasSystemPermission } from '@/lib/permissions'
 import {
   navigationConfig,
   footerNavigation,
@@ -197,14 +185,24 @@ import {
 } from '@/lib/navigation'
 
 export function useNavigation() {
-  const { canAny } = useAuth()
+  const { user, projectMemberships } = useAuth()
+  const hasProjects = projectMemberships.length > 0
 
   const filteredNavigation = useMemo(() => {
     const filterItems = (items: NavItem[]): NavItem[] => {
       return items
         .filter(item => {
-          if (!item.requiredPermissions) return true
-          return canAny(item.requiredPermissions)
+          // Check system permissions (admin routes)
+          if (item.systemPermissions) {
+            return item.systemPermissions.some(p =>
+              hasSystemPermission(user ?? {}, p)
+            )
+          }
+          // Check if requires project memberships
+          if (item.requiresProjects && !hasProjects) {
+            return false
+          }
+          return true
         })
         .map(item => ({
           ...item,
@@ -215,8 +213,15 @@ export function useNavigation() {
     const filterGroups = (groups: NavGroup[]): NavGroup[] => {
       return groups
         .filter(group => {
-          if (!group.requiredPermissions) return true
-          return canAny(group.requiredPermissions)
+          if (group.systemPermissions) {
+            return group.systemPermissions.some(p =>
+              hasSystemPermission(user ?? {}, p)
+            )
+          }
+          if (group.requiresProjects && !hasProjects) {
+            return false
+          }
+          return true
         })
         .map(group => ({
           ...group,
@@ -226,14 +231,18 @@ export function useNavigation() {
     }
 
     return filterGroups(navigationConfig)
-  }, [canAny])
+  }, [user, hasProjects])
 
   const filteredFooter = useMemo(() => {
     return footerNavigation.filter(item => {
-      if (!item.requiredPermissions) return true
-      return canAny(item.requiredPermissions)
+      if (item.systemPermissions) {
+        return item.systemPermissions.some(p =>
+          hasSystemPermission(user ?? {}, p)
+        )
+      }
+      return true
     })
-  }, [canAny])
+  }, [user])
 
   return {
     navigation: filteredNavigation,
@@ -250,42 +259,41 @@ export function useNavigation() {
 
 ```typescript
 // src/lib/auth/types.ts
-import type { Permission } from '../permissions'
+import type { SystemPermission, ProjectPermission } from '../permissions'
 
-export type UserType = 'internal' | 'client'
-
-export interface InternalUser {
+export interface AuthenticatedUser {
   id: string
-  type: 'internal'
   handle: string
   email: string
-  role: 'super_admin' | 'admin' | 'expert' | 'viewer'
+  role: 'super_admin' | 'admin' | null  // Optional system role
+  pii?: {
+    name?: string
+  }
 }
 
-export interface ClientUser {
-  id: string
-  type: 'client'
-  name: string
-  email: string
-  role: 'contact' | 'project_manager' | 'finance'
+export interface ProjectMembership {
+  projectId: string
+  projectName: string
   organisationId: string
   organisationName: string
+  role: 'owner' | 'expert' | 'reviewer' | 'client' | 'viewer'
 }
-
-export type AuthenticatedUser = InternalUser | ClientUser
 
 export interface AuthContextValue {
   user: AuthenticatedUser | null
   isAuthenticated: boolean
   isLoading: boolean
-  isInternal: boolean
-  isClient: boolean
-  organisationScope: string | null  // Client's org ID, or null for internal
+  isSystemAdmin: boolean  // Has super_admin or admin role
+  projectMemberships: ProjectMembership[]
 
-  // Permission helpers
-  can: (permission: Permission) => boolean
-  canAny: (permissions: Permission[]) => boolean
-  canAll: (permissions: Permission[]) => boolean
+  // System permission helpers
+  canSystem: (permission: SystemPermission) => boolean
+
+  // Project permission helpers
+  canOnProject: (projectId: string, permission: ProjectPermission) => boolean
+  canAnyOnProject: (projectId: string, permissions: ProjectPermission[]) => boolean
+  getProjectRole: (projectId: string) => string | null
+  getProjectMembership: (projectId: string) => ProjectMembership | null
 
   // Actions
   login: (email: string, password: string) => Promise<void>
@@ -298,40 +306,70 @@ export interface AuthContextValue {
 ```typescript
 // src/components/auth-provider.tsx
 import { createContext, useContext, useState, useCallback } from 'react'
-import { hasPermission, hasAnyPermission, hasAllPermissions } from '@/lib/permissions'
-import type { AuthContextValue, AuthenticatedUser, Permission } from '@/lib/auth/types'
+import {
+  hasSystemPermission,
+  hasProjectPermission,
+  PROJECT_ROLE_PERMISSIONS,
+} from '@/lib/permissions'
+import type {
+  AuthContextValue,
+  AuthenticatedUser,
+  ProjectMembership,
+  SystemPermission,
+  ProjectPermission,
+} from '@/lib/auth/types'
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 interface AuthProviderProps {
   children: React.ReactNode
   initialUser: AuthenticatedUser | null
+  initialMemberships: ProjectMembership[]
 }
 
-export function AuthProvider({ children, initialUser }: AuthProviderProps) {
+export function AuthProvider({
+  children,
+  initialUser,
+  initialMemberships,
+}: AuthProviderProps) {
   const [user, setUser] = useState<AuthenticatedUser | null>(initialUser)
+  const [projectMemberships, setProjectMemberships] = useState(initialMemberships)
   const [isLoading, setIsLoading] = useState(false)
 
-  const can = useCallback((permission: Permission) => {
+  const isSystemAdmin = user?.role === 'super_admin' || user?.role === 'admin'
+
+  const canSystem = useCallback((permission: SystemPermission) => {
     if (!user) return false
-    return hasPermission(user, permission)
+    return hasSystemPermission(user, permission)
   }, [user])
 
-  const canAny = useCallback((permissions: Permission[]) => {
-    if (!user) return false
-    return hasAnyPermission(user, permissions)
-  }, [user])
+  const getProjectMembership = useCallback((projectId: string) => {
+    return projectMemberships.find(m => m.projectId === projectId) ?? null
+  }, [projectMemberships])
 
-  const canAll = useCallback((permissions: Permission[]) => {
-    if (!user) return false
-    return hasAllPermissions(user, permissions)
-  }, [user])
+  const getProjectRole = useCallback((projectId: string) => {
+    return getProjectMembership(projectId)?.role ?? null
+  }, [getProjectMembership])
+
+  const canOnProject = useCallback((projectId: string, permission: ProjectPermission) => {
+    // System admins can do anything
+    if (isSystemAdmin) return true
+
+    const membership = getProjectMembership(projectId)
+    if (!membership) return false
+    return hasProjectPermission(membership, permission)
+  }, [isSystemAdmin, getProjectMembership])
+
+  const canAnyOnProject = useCallback((projectId: string, permissions: ProjectPermission[]) => {
+    return permissions.some(p => canOnProject(projectId, p))
+  }, [canOnProject])
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true)
     try {
       const result = await loginFn({ data: { email, password } })
       setUser(result.user)
+      setProjectMemberships(result.projectMemberships)
     } finally {
       setIsLoading(false)
     }
@@ -340,18 +378,20 @@ export function AuthProvider({ children, initialUser }: AuthProviderProps) {
   const logout = useCallback(async () => {
     await logoutFn()
     setUser(null)
+    setProjectMemberships([])
   }, [])
 
   const value: AuthContextValue = {
     user,
     isAuthenticated: !!user,
     isLoading,
-    isInternal: user?.type === 'internal',
-    isClient: user?.type === 'client',
-    organisationScope: user?.type === 'client' ? user.organisationId : null,
-    can,
-    canAny,
-    canAll,
+    isSystemAdmin,
+    projectMemberships,
+    canSystem,
+    canOnProject,
+    canAnyOnProject,
+    getProjectRole,
+    getProjectMembership,
     login,
     logout,
   }
@@ -376,32 +416,61 @@ export function useAuth() {
 
 ## UI Components
 
-### PermissionGate Component
+### PermissionGate Components
 
-Conditionally renders children based on user permissions.
+Two gate components: one for system permissions, one for project permissions.
 
 ```typescript
-// src/components/PermissionGate.tsx
-import type { Permission } from '@/lib/permissions'
+// src/components/SystemPermissionGate.tsx
+import type { SystemPermission } from '@/lib/permissions'
 import { useAuth } from '@/hooks/useAuth'
 
-interface PermissionGateProps {
-  permissions: Permission | Permission[]
+interface SystemPermissionGateProps {
+  permissions: SystemPermission | SystemPermission[]
+  fallback?: React.ReactNode
+  children: React.ReactNode
+}
+
+export function SystemPermissionGate({
+  permissions,
+  fallback = null,
+  children,
+}: SystemPermissionGateProps) {
+  const { canSystem } = useAuth()
+
+  const perms = Array.isArray(permissions) ? permissions : [permissions]
+  const hasAccess = perms.some(p => canSystem(p))
+
+  return hasAccess ? <>{children}</> : <>{fallback}</>
+}
+```
+
+```typescript
+// src/components/ProjectPermissionGate.tsx
+import type { ProjectPermission } from '@/lib/permissions'
+import { useAuth } from '@/hooks/useAuth'
+
+interface ProjectPermissionGateProps {
+  projectId: string
+  permissions: ProjectPermission | ProjectPermission[]
   mode?: 'any' | 'all'
   fallback?: React.ReactNode
   children: React.ReactNode
 }
 
-export function PermissionGate({
+export function ProjectPermissionGate({
+  projectId,
   permissions,
   mode = 'any',
   fallback = null,
   children,
-}: PermissionGateProps) {
-  const { can, canAny, canAll } = useAuth()
+}: ProjectPermissionGateProps) {
+  const { canOnProject, canAnyOnProject } = useAuth()
 
   const perms = Array.isArray(permissions) ? permissions : [permissions]
-  const hasAccess = mode === 'all' ? canAll(perms) : canAny(perms)
+  const hasAccess = mode === 'all'
+    ? perms.every(p => canOnProject(projectId, p))
+    : canAnyOnProject(projectId, perms)
 
   return hasAccess ? <>{children}</> : <>{fallback}</>
 }
@@ -410,28 +479,32 @@ export function PermissionGate({
 **Usage Examples:**
 
 ```tsx
-// Single permission
-<PermissionGate permissions="users:create">
+// System permission (admin routes)
+<SystemPermissionGate permissions="users:create">
   <Button>Add User</Button>
-</PermissionGate>
+</SystemPermissionGate>
 
-// Any of multiple permissions
-<PermissionGate permissions={['time-sheets:approve', 'time-entries:approve']}>
-  <Button>Approve</Button>
-</PermissionGate>
+// Project permission
+<ProjectPermissionGate projectId={projectId} permissions="time-entries:create">
+  <Button>New Time Entry</Button>
+</ProjectPermissionGate>
 
-// All permissions required
-<PermissionGate permissions={['projects:edit', 'projects:delete']} mode="all">
-  <Button variant="destructive">Delete Project</Button>
-</PermissionGate>
+// Multiple project permissions (any)
+<ProjectPermissionGate
+  projectId={projectId}
+  permissions={['time-sheets:approve', 'project:manage-members']}
+>
+  <Button>Manage</Button>
+</ProjectPermissionGate>
 
 // With fallback
-<PermissionGate
-  permissions="organisations:edit"
+<ProjectPermissionGate
+  projectId={projectId}
+  permissions="project:edit"
   fallback={<span className="text-muted-foreground">View only</span>}
 >
-  <Button>Edit Organisation</Button>
-</PermissionGate>
+  <Button>Edit Project</Button>
+</ProjectPermissionGate>
 ```
 
 ### DashboardSidebar Component
@@ -458,23 +531,24 @@ import { LogOut } from 'lucide-react'
 
 export function DashboardSidebar() {
   const { navigation, footer } = useNavigation()
-  const { user, isClient, logout } = useAuth()
+  const { user, projectMemberships, logout } = useAuth()
   const location = useLocation()
+
+  // Get display name from PII or fall back to handle/email
+  const displayName = user?.pii?.name || user?.handle || user?.email || 'User'
 
   return (
     <Sidebar>
       <SidebarHeader className="border-b px-4 py-3">
-        {isClient ? (
-          <div>
-            <p className="font-medium">{user?.organisationName}</p>
-            <p className="text-sm text-muted-foreground">{user?.name}</p>
-          </div>
-        ) : (
-          <div>
-            <p className="font-medium">Orilla Budget</p>
-            <p className="text-sm text-muted-foreground">{user?.handle}</p>
-          </div>
-        )}
+        <div>
+          <p className="font-medium">Orilla Budget</p>
+          <p className="text-sm text-muted-foreground">{displayName}</p>
+          {projectMemberships.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {projectMemberships.length} project{projectMemberships.length !== 1 ? 's' : ''}
+            </p>
+          )}
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
@@ -617,38 +691,44 @@ function UsersPage() {
 
 ## Data Scoping
 
-### Scoped Repository Methods
+### Project-Scoped Repository Methods
+
+Data is scoped by project membership, not organisation.
 
 ```typescript
 // src/repositories/timeEntry.repository.ts
 import { db } from '@/db'
-import { timeEntries } from '@/db/schema'
-import { eq } from 'drizzle-orm'
-
-export interface QueryScope {
-  organisationId?: string
-}
+import { timeEntries, projectMembers } from '@/db/schema'
+import { eq, inArray } from 'drizzle-orm'
 
 export const timeEntryRepository = {
   /**
-   * Find all time entries, optionally scoped to an organisation
+   * Find all time entries for projects the user is a member of
    */
-  async findAllScoped(scope: QueryScope = {}): Promise<TimeEntry[]> {
-    if (scope.organisationId) {
-      return db
-        .select()
-        .from(timeEntries)
-        .where(eq(timeEntries.organisationId, scope.organisationId))
-    }
-    return db.select().from(timeEntries)
+  async findByProjectIds(projectIds: string[]): Promise<TimeEntry[]> {
+    if (projectIds.length === 0) return []
+    return db
+      .select()
+      .from(timeEntries)
+      .where(inArray(timeEntries.projectId, projectIds))
   },
 
   /**
-   * Find time entry by ID, with optional scope check
+   * Find time entries for a specific project
    */
-  async findByIdScoped(
+  async findByProjectId(projectId: string): Promise<TimeEntry[]> {
+    return db
+      .select()
+      .from(timeEntries)
+      .where(eq(timeEntries.projectId, projectId))
+  },
+
+  /**
+   * Find time entry by ID, with project access check
+   */
+  async findByIdWithAccess(
     id: string,
-    scope: QueryScope = {}
+    allowedProjectIds: string[]
   ): Promise<TimeEntry | undefined> {
     const entry = await db
       .select()
@@ -658,9 +738,9 @@ export const timeEntryRepository = {
 
     if (!entry) return undefined
 
-    // If scoped, verify the entry belongs to the organisation
-    if (scope.organisationId && entry.organisationId !== scope.organisationId) {
-      return undefined  // Not found (for this user's scope)
+    // Verify user has access to this project
+    if (!allowedProjectIds.includes(entry.projectId)) {
+      return undefined
     }
 
     return entry
@@ -668,30 +748,32 @@ export const timeEntryRepository = {
 }
 ```
 
-### Server Function with Scoping
+### Server Function with Project Scoping
 
 ```typescript
-// src/routes/dashboard/_authenticated/time-entries.tsx
+// src/routes/dashboard/_authenticated/projects.$id/time-entries.tsx
 import { createServerFn } from '@tanstack/start'
 import { getSessionFromContext } from '@/lib/auth/session'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
-import { projectRepository } from '@/repositories/project.repository'
+import { canOnProject } from '@/lib/permissions'
 
-const getTimeEntriesDataFn = createServerFn({ method: 'GET' })
-  .handler(async (ctx) => {
-    const session = await getSessionFromContext(ctx)
+const getProjectTimeEntriesFn = createServerFn({ method: 'GET' })
+  .validator(z.object({ projectId: z.string() }))
+  .handler(async ({ data, context }) => {
+    const session = await getSessionFromContext(context)
 
-    // Determine scope based on user type
-    const scope = session.organisationId
-      ? { organisationId: session.organisationId }
-      : {}
+    // Check access: system admin or project member
+    const membership = session.projectMemberships.find(
+      m => m.projectId === data.projectId
+    )
 
-    const [timeEntries, projects] = await Promise.all([
-      timeEntryRepository.findAllScoped(scope),
-      projectRepository.findAllScoped(scope),
-    ])
+    if (!session.user.role && !membership) {
+      throw new Error('Forbidden: No access to this project')
+    }
 
-    return { timeEntries, projects }
+    const timeEntries = await timeEntryRepository.findByProjectId(data.projectId)
+
+    return { timeEntries }
   })
 ```
 
@@ -709,18 +791,24 @@ import { getCurrentSessionFn } from '@/lib/auth/session'
 
 export const Route = createFileRoute('/dashboard')({
   loader: async () => {
-    // Load session for AuthProvider initial state
+    // Load session including project memberships
     const session = await getCurrentSessionFn()
-    return { initialUser: session.user }
+    return {
+      initialUser: session.user,
+      initialMemberships: session.projectMemberships,
+    }
   },
   component: DashboardLayout,
 })
 
 function DashboardLayout() {
-  const { initialUser } = Route.useLoaderData()
+  const { initialUser, initialMemberships } = Route.useLoaderData()
 
   return (
-    <AuthProvider initialUser={initialUser}>
+    <AuthProvider
+      initialUser={initialUser}
+      initialMemberships={initialMemberships}
+    >
       <SidebarProvider>
         <DashboardSidebar />
         <SidebarInset>
@@ -856,31 +944,56 @@ function LoginPage() {
 | `src/routes/expert/*` | Replaced by `/dashboard/_authenticated/*` |
 | `src/routes/admin.tsx` | Merged into `/dashboard` |
 | `src/routes/admin/*` | Merged into `/dashboard/_authenticated/*` |
-| `src/routes/portal.tsx` | Clients use unified dashboard |
+| `src/routes/portal.tsx` | Unified dashboard |
+| `src/repositories/account.repository.ts` | Replaced by `contact.repository.ts` |
 
 ---
 
 ## Migration Checklist
 
-- [ ] Create `src/lib/navigation.ts` with navigation config
+### Phase 1: Authentication Foundation
+- [ ] Create `pii` table
+- [ ] Update `users` table with auth fields
+- [ ] Create `sessions` table
+- [ ] Create `src/lib/auth.ts` (password hashing)
+- [ ] Create `src/repositories/session.repository.ts`
+- [ ] Create `src/repositories/pii.repository.ts`
+- [ ] Create `src/routes/dashboard/login.tsx`
+- [ ] Create `src/routes/dashboard/_authenticated.tsx`
+
+### Phase 2: Permission System
+- [ ] Create `src/lib/permissions.ts`
+- [ ] Create `src/lib/navigation.ts`
 - [ ] Create `src/hooks/useNavigation.ts`
 - [ ] Create `src/components/auth-provider.tsx`
 - [ ] Create `src/hooks/useAuth.ts`
-- [ ] Create `src/components/PermissionGate.tsx`
+- [ ] Create `src/components/SystemPermissionGate.tsx`
+- [ ] Create `src/components/ProjectPermissionGate.tsx`
 - [ ] Create `src/components/DashboardSidebar.tsx`
+
+### Phase 3: Dashboard Migration
+- [ ] Create `projectMembers` table
+- [ ] Create `src/repositories/projectMember.repository.ts`
 - [ ] Create `src/routes/dashboard.tsx` layout
-- [ ] Create `src/routes/dashboard/login.tsx`
-- [ ] Create `src/routes/dashboard/invite.$code.tsx`
-- [ ] Create `src/routes/dashboard/_authenticated.tsx`
-- [ ] Migrate time-entries routes
-- [ ] Migrate time-sheets routes
-- [ ] Migrate projects routes
-- [ ] Migrate organisations routes
-- [ ] Migrate accounts routes
-- [ ] Migrate users routes (from admin)
+- [ ] Migrate projects routes (with nested time-entries/time-sheets)
+- [ ] Migrate organisations routes (admin only)
+- [ ] Migrate users routes (admin only)
 - [ ] Create settings route
-- [ ] Add scoped repository methods
-- [ ] Update server functions with scoping
-- [ ] Test all permission combinations
+- [ ] Update server functions with project scoping
 - [ ] Delete old routes
+
+### Phase 4: Contacts & Invitations
+- [ ] Create `contacts` table
+- [ ] Create `invitations` table
+- [ ] Create `src/repositories/contact.repository.ts`
+- [ ] Create `src/repositories/invitation.repository.ts`
+- [ ] Create `src/routes/dashboard/invite.$code.tsx`
+- [ ] Create contacts management routes
+- [ ] Set up email provider
+
+### Testing
+- [ ] Test all permission combinations
+- [ ] Test project-scoped data access
+- [ ] Test invitation flow (new user + existing user)
+- [ ] Test PII deletion scenarios
 - [ ] Update any internal links
