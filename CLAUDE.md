@@ -319,39 +319,37 @@ perf(db): add index on project queries
 
 ### Git Worktree Workflow
 
-This project uses **git worktrees** for parallel development. Worktrees allow multiple branches to be checked out simultaneously in separate directories, enabling isolated work on features, fixes, and experiments.
+This project **requires git worktrees** for all development work. The main branch should always remain clean and stable. All features, fixes, and experiments MUST be developed in worktrees.
 
-#### When Claude Code Should Suggest Worktrees
+#### Mandatory Worktree Policy
 
-**IMPORTANT**: Claude Code should automatically detect when a worktree is appropriate and suggest creating one. Suggest worktrees for:
+**CRITICAL**: Claude Code MUST create a worktree before making any code changes. Never commit directly to main.
+
+**When to create a worktree** - ALWAYS, for any work including:
 
 1. **New Features** - Any `feat(*)` work that adds functionality
 2. **Database Changes** - Schema modifications, migrations, or data model changes
-3. **Bug Fixes** - Any `fix(*)` work that needs isolation from ongoing development
-4. **Experiments** - Exploratory work that might be discarded
+3. **Bug Fixes** - Any `fix(*)` work
+4. **Refactoring** - Any `refactor(*)` work
+5. **Documentation changes** - Any `docs(*)` work that modifies code-related docs
+6. **Experiments** - Exploratory work that might be discarded
+
+**The only exceptions** (no worktree needed):
+- Trivial typo fixes in markdown files
+- Updating the roadmap document table in CLAUDE.md
 
 **Detection Logic for Claude Code**:
 
 ```
-IF user requests:
-  - "I want to work on..."
-  - "I'd like to work on..."
-  - "Let's work on..."
-  - "Can we work on..."
-  - "I'm going to work on..."
-  - "add a new feature..."
-  - "implement X functionality..."
-  - "create a new Y..."
-  - "fix the Z bug..."
-  - "change the database schema..."
-  - "try implementing..."
-  - "experiment with..."
-THEN:
-  1. Check for uncommitted changes (git status)
-  2. If uncommitted changes exist:
-     - Ask user: "You have uncommitted changes. Would you like to (a) commit them first, (b) stash them, or (c) create a worktree to preserve current state?"
-  3. Suggest worktree with conventional branch name
-  4. Provide complete setup commands
+IF user requests any code change or feature work:
+  1. STOP - Do not make changes in main
+  2. Check current branch (git branch --show-current)
+  3. If on main:
+     a. Check for uncommitted changes (git status)
+     b. If uncommitted changes exist, ask user to commit or stash first
+     c. Create worktree with conventional branch name
+     d. Navigate to worktree and set up environment
+  4. If already in a worktree, proceed with work
 ```
 
 #### Creating a Worktree
@@ -498,29 +496,55 @@ git worktree list
 ```
 User: "Add a new expense tracking feature"
 
-Claude: I'll create a worktree for this feature to keep it isolated from the main branch.
+Claude: I'll create a worktree for this feature. Let me check the current state first.
 
-[Checks git status]
-Claude: You have uncommitted changes. Would you like to commit them first, or should I create a worktree to preserve your current work state?
+[Runs: git branch --show-current]
+Output: main
 
-User: Create worktree
+[Runs: git status]
+Output: nothing to commit, working tree clean
 
-Claude: I'll set up a feature worktree:
+Claude: Creating the worktree now:
 
-[Provides commands:]
+[Runs commands:]
 git worktree add ../feature-expense-tracking feature/expense-tracking
 cd ../feature-expense-tracking
 bun install
 cp ../orilla-budget/data.db ./data.db
 bun run db:migrate
 
+Claude: Worktree ready. Now implementing the feature...
+
 [Proceeds with implementation in worktree]
 
-Claude: Feature complete! When you're ready to merge:
-1. Commit changes
-2. Push branch
-3. Create PR
-4. After merge, run: git worktree remove ../feature-expense-tracking
+Claude: Feature complete! The changes are committed in the feature/expense-tracking branch.
+
+To merge:
+1. Push branch: git push -u origin feature/expense-tracking
+2. Create PR on GitHub
+3. After merge, clean up: git worktree remove ../feature-expense-tracking
+```
+
+```
+User: "Fix the login bug"
+
+Claude: I need to create a worktree first.
+
+[Runs: git branch --show-current]
+Output: main
+
+[Runs: git status]
+Output: modified: src/components/Button.tsx
+
+Claude: You have uncommitted changes on main. Please commit or stash them first:
+- To commit: git add . && git commit -m "wip: describe changes"
+- To stash: git stash
+
+User: git stash
+
+Claude: Changes stashed. Now creating the worktree:
+
+[Creates worktree and proceeds...]
 ```
 
 ## Architecture
