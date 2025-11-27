@@ -7,59 +7,87 @@
 
 ## Overview
 
-This document details the granular permission system for Orilla Budget. The system defines ~25 individual permissions that are mapped to 7 roles (4 internal, 3 client).
+This document details the granular permission system for Orilla Budget. The system uses a two-tier model:
+
+1. **System permissions** - For platform administration (optional, from `users.role`)
+2. **Project permissions** - For project-specific access (from `projectMembers.role`)
+
+Most users will only have project permissions. System permissions are reserved for platform administrators.
 
 ---
 
 ## Permission Definitions
 
+### System Permissions (Platform-Level)
+
 ```typescript
 // src/lib/permissions.ts
-export const PERMISSIONS = {
-  // Time Entries
-  'time-entries:view': 'View time entries',
-  'time-entries:view-all': 'View all time entries (cross-org)',
-  'time-entries:create': 'Create time entries',
-  'time-entries:edit': 'Edit time entries',
-  'time-entries:delete': 'Delete time entries',
-  'time-entries:approve': 'Approve time entries',
 
-  // Time Sheets
+/**
+ * System permissions - granted by users.role (super_admin, admin)
+ * These are for platform administration, not project work.
+ */
+export const SYSTEM_PERMISSIONS = {
+  // Users (platform-level)
+  'users:view': 'View all platform users',
+  'users:create': 'Create new users',
+  'users:edit': 'Edit user accounts',
+  'users:delete': 'Delete user accounts',
+
+  // Organisations (platform-level)
+  'organisations:view': 'View all organisations',
+  'organisations:create': 'Create organisations',
+  'organisations:edit': 'Edit organisations',
+  'organisations:delete': 'Delete organisations',
+
+  // Platform settings
+  'platform:manage': 'Manage platform settings',
+} as const
+
+export type SystemPermission = keyof typeof SYSTEM_PERMISSIONS
+```
+
+### Project Permissions (Project-Level)
+
+```typescript
+/**
+ * Project permissions - granted by projectMembers.role
+ * Scoped to specific projects the user is a member of.
+ */
+export const PROJECT_PERMISSIONS = {
+  // Time Entries (within project)
+  'time-entries:view': 'View time entries',
+  'time-entries:create': 'Create time entries',
+  'time-entries:edit-own': 'Edit own time entries',
+  'time-entries:edit-all': 'Edit any time entry',
+  'time-entries:delete-own': 'Delete own time entries',
+  'time-entries:delete-all': 'Delete any time entry',
+
+  // Time Sheets (within project)
   'time-sheets:view': 'View time sheets',
   'time-sheets:create': 'Create time sheets',
   'time-sheets:edit': 'Edit time sheets',
   'time-sheets:submit': 'Submit time sheets for approval',
   'time-sheets:approve': 'Approve/reject time sheets',
 
-  // Projects
-  'projects:view': 'View projects',
-  'projects:view-all': 'View all projects (cross-org)',
-  'projects:create': 'Create projects',
-  'projects:edit': 'Edit projects',
-  'projects:delete': 'Delete projects',
+  // Project management
+  'project:view': 'View project details',
+  'project:edit': 'Edit project settings',
+  'project:delete': 'Delete the project',
+  'project:invite': 'Invite members to project',
+  'project:manage-members': 'Manage project membership',
 
-  // Organisations
-  'organisations:view': 'View organisations',
-  'organisations:create': 'Create organisations',
-  'organisations:edit': 'Edit organisations',
-  'organisations:delete': 'Delete organisations',
+  // Contacts (within project context)
+  'contacts:view': 'View project contacts',
+  'contacts:invite': 'Invite contacts to project',
+} as const
 
-  // Accounts
-  'accounts:view': 'View accounts',
-  'accounts:create': 'Create accounts',
-  'accounts:edit': 'Edit accounts',
-  'accounts:delete': 'Delete accounts',
-  'accounts:invite': 'Send account invitations',
+export type ProjectPermission = keyof typeof PROJECT_PERMISSIONS
 
-  // Users (internal)
-  'users:view': 'View users',
-  'users:create': 'Create users',
-  'users:edit': 'Edit users',
-  'users:delete': 'Delete users',
-
-  // Settings
-  'settings:view': 'View own settings',
-  'settings:edit': 'Edit own settings',
+// Combined for convenience
+export const PERMISSIONS = {
+  ...SYSTEM_PERMISSIONS,
+  ...PROJECT_PERMISSIONS,
 } as const
 
 export type Permission = keyof typeof PERMISSIONS
@@ -69,99 +97,85 @@ export type Permission = keyof typeof PERMISSIONS
 
 ## Role-to-Permission Mapping
 
-### Internal Roles
+### System Roles (users.role)
+
+System roles grant platform-wide permissions. Most users won't have a system role.
 
 ```typescript
-export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
-  super_admin: Object.keys(PERMISSIONS) as Permission[],  // All permissions
+export const SYSTEM_ROLE_PERMISSIONS: Record<string, SystemPermission[]> = {
+  super_admin: Object.keys(SYSTEM_PERMISSIONS) as SystemPermission[],  // All system permissions
 
   admin: [
-    // Time Entries - full access
-    'time-entries:view', 'time-entries:view-all', 'time-entries:create',
-    'time-entries:edit', 'time-entries:delete', 'time-entries:approve',
-    // Time Sheets - full access
-    'time-sheets:view', 'time-sheets:create', 'time-sheets:edit',
-    'time-sheets:submit', 'time-sheets:approve',
-    // Projects - full access
-    'projects:view', 'projects:view-all', 'projects:create',
-    'projects:edit', 'projects:delete',
+    // Users - can manage but not delete
+    'users:view', 'users:create', 'users:edit',
     // Organisations - full access
     'organisations:view', 'organisations:create',
     'organisations:edit', 'organisations:delete',
-    // Accounts - full access
-    'accounts:view', 'accounts:create', 'accounts:edit',
-    'accounts:delete', 'accounts:invite',
-    // Users - can manage but not delete
-    'users:view', 'users:create', 'users:edit',
-    // Settings
-    'settings:view', 'settings:edit',
-  ],
-
-  expert: [
-    // Time Entries - CRUD, no approve
-    'time-entries:view', 'time-entries:view-all', 'time-entries:create',
-    'time-entries:edit', 'time-entries:delete',
-    // Time Sheets - CRUD, no approve
-    'time-sheets:view', 'time-sheets:create', 'time-sheets:edit',
-    'time-sheets:submit',
-    // Projects - view all, create, edit (no delete)
-    'projects:view', 'projects:view-all', 'projects:create',
-    'projects:edit',
-    // Organisations - view only
-    'organisations:view',
-    // Accounts - view only
-    'accounts:view',
-    // Settings
-    'settings:view', 'settings:edit',
-  ],
-
-  viewer: [
-    // Read-only access
-    'time-entries:view', 'time-entries:view-all',
-    'time-sheets:view',
-    'projects:view', 'projects:view-all',
-    'organisations:view',
-    'settings:view',
   ],
 }
 ```
 
-### Client Roles
+### Project Roles (projectMembers.role)
 
-Client roles are scoped to their organisation - they only see data for their org.
+Project roles grant permissions scoped to specific projects.
 
 ```typescript
-// Client roles (continued in ROLE_PERMISSIONS)
-{
-  project_manager: [
-    // Time Entries - CRUD within their org
-    'time-entries:view', 'time-entries:create', 'time-entries:edit',
-    // Time Sheets - CRUD, submit within their org
+export const PROJECT_ROLE_PERMISSIONS: Record<string, ProjectPermission[]> = {
+  owner: [
+    // Full project control
+    'project:view', 'project:edit', 'project:delete',
+    'project:invite', 'project:manage-members',
+    // Time entries - full access
+    'time-entries:view', 'time-entries:create',
+    'time-entries:edit-own', 'time-entries:edit-all',
+    'time-entries:delete-own', 'time-entries:delete-all',
+    // Time sheets - full access
     'time-sheets:view', 'time-sheets:create', 'time-sheets:edit',
-    'time-sheets:submit',
-    // Projects - view only
-    'projects:view',
-    // Settings
-    'settings:view', 'settings:edit',
+    'time-sheets:submit', 'time-sheets:approve',
+    // Contacts
+    'contacts:view', 'contacts:invite',
   ],
 
-  finance: [
-    // Time Entries - view only
+  expert: [
+    // Project - view only
+    'project:view',
+    // Time entries - CRUD own, view all
+    'time-entries:view', 'time-entries:create',
+    'time-entries:edit-own', 'time-entries:delete-own',
+    // Time sheets - create and submit
+    'time-sheets:view', 'time-sheets:create',
+    'time-sheets:edit', 'time-sheets:submit',
+    // Contacts - view only
+    'contacts:view',
+  ],
+
+  reviewer: [
+    // Project - view only
+    'project:view',
+    // Time entries - view only
     'time-entries:view',
-    // Time Sheets - view and approve
+    // Time sheets - view and approve
     'time-sheets:view', 'time-sheets:approve',
-    // Projects - view only
-    'projects:view',
-    // Settings
-    'settings:view',
+    // Contacts - view only
+    'contacts:view',
   ],
 
-  contact: [
+  client: [
+    // Project - view only
+    'project:view',
+    // Time entries - view only
+    'time-entries:view',
+    // Time sheets - view only
+    'time-sheets:view',
+    // Contacts - can invite others
+    'contacts:view', 'contacts:invite',
+  ],
+
+  viewer: [
     // Minimal read-only access
+    'project:view',
     'time-entries:view',
     'time-sheets:view',
-    'projects:view',
-    'settings:view',
   ],
 }
 ```
@@ -170,71 +184,59 @@ Client roles are scoped to their organisation - they only see data for their org
 
 ## Permission Matrix
 
-### Time Entries
+### System Permissions (by users.role)
 
-| Permission | super_admin | admin | expert | viewer | project_manager | finance | contact |
-|------------|-------------|-------|--------|--------|-----------------|---------|---------|
-| view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| view-all | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| create | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
-| edit | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
-| delete | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| approve | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Permission | super_admin | admin |
+|------------|-------------|-------|
+| users:view | ✅ | ✅ |
+| users:create | ✅ | ✅ |
+| users:edit | ✅ | ✅ |
+| users:delete | ✅ | ❌ |
+| organisations:view | ✅ | ✅ |
+| organisations:create | ✅ | ✅ |
+| organisations:edit | ✅ | ✅ |
+| organisations:delete | ✅ | ✅ |
+| platform:manage | ✅ | ❌ |
 
-### Time Sheets
+### Project Permissions (by projectMembers.role)
 
-| Permission | super_admin | admin | expert | viewer | project_manager | finance | contact |
-|------------|-------------|-------|--------|--------|-----------------|---------|---------|
-| view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| create | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
-| edit | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
-| submit | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
-| approve | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
+#### Time Entries
 
-### Projects
+| Permission | owner | expert | reviewer | client | viewer |
+|------------|-------|--------|----------|--------|--------|
+| view | ✅ | ✅ | ✅ | ✅ | ✅ |
+| create | ✅ | ✅ | ❌ | ❌ | ❌ |
+| edit-own | ✅ | ✅ | ❌ | ❌ | ❌ |
+| edit-all | ✅ | ❌ | ❌ | ❌ | ❌ |
+| delete-own | ✅ | ✅ | ❌ | ❌ | ❌ |
+| delete-all | ✅ | ❌ | ❌ | ❌ | ❌ |
 
-| Permission | super_admin | admin | expert | viewer | project_manager | finance | contact |
-|------------|-------------|-------|--------|--------|-----------------|---------|---------|
-| view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| view-all | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| create | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| edit | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| delete | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+#### Time Sheets
 
-### Organisations
+| Permission | owner | expert | reviewer | client | viewer |
+|------------|-------|--------|----------|--------|--------|
+| view | ✅ | ✅ | ✅ | ✅ | ✅ |
+| create | ✅ | ✅ | ❌ | ❌ | ❌ |
+| edit | ✅ | ✅ | ❌ | ❌ | ❌ |
+| submit | ✅ | ✅ | ❌ | ❌ | ❌ |
+| approve | ✅ | ❌ | ✅ | ❌ | ❌ |
 
-| Permission | super_admin | admin | expert | viewer | project_manager | finance | contact |
-|------------|-------------|-------|--------|--------|-----------------|---------|---------|
-| view | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| create | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| edit | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| delete | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+#### Project Management
 
-### Accounts
+| Permission | owner | expert | reviewer | client | viewer |
+|------------|-------|--------|----------|--------|--------|
+| project:view | ✅ | ✅ | ✅ | ✅ | ✅ |
+| project:edit | ✅ | ❌ | ❌ | ❌ | ❌ |
+| project:delete | ✅ | ❌ | ❌ | ❌ | ❌ |
+| project:invite | ✅ | ❌ | ❌ | ❌ | ❌ |
+| project:manage-members | ✅ | ❌ | ❌ | ❌ | ❌ |
 
-| Permission | super_admin | admin | expert | viewer | project_manager | finance | contact |
-|------------|-------------|-------|--------|--------|-----------------|---------|---------|
-| view | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| create | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| edit | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| delete | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| invite | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+#### Contacts
 
-### Users
-
-| Permission | super_admin | admin | expert | viewer | project_manager | finance | contact |
-|------------|-------------|-------|--------|--------|-----------------|---------|---------|
-| view | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| create | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| edit | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| delete | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-
-### Settings
-
-| Permission | super_admin | admin | expert | viewer | project_manager | finance | contact |
-|------------|-------------|-------|--------|--------|-----------------|---------|---------|
-| view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| edit | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| Permission | owner | expert | reviewer | client | viewer |
+|------------|-------|--------|----------|--------|--------|
+| contacts:view | ✅ | ✅ | ✅ | ✅ | ❌ |
+| contacts:invite | ✅ | ❌ | ❌ | ✅ | ❌ |
 
 ---
 
@@ -246,55 +248,69 @@ Client roles are scoped to their organisation - they only see data for their org
 // src/lib/permissions.ts
 
 /**
- * Check if a user/account has a specific permission
+ * Check if a user has a system permission (via users.role)
  */
-export function hasPermission(
-  user: { role: string },
-  permission: Permission
+export function hasSystemPermission(
+  user: { role?: string | null },
+  permission: SystemPermission
 ): boolean {
-  const permissions = ROLE_PERMISSIONS[user.role] || []
+  if (!user.role) return false
+  const permissions = SYSTEM_ROLE_PERMISSIONS[user.role] || []
   return permissions.includes(permission)
 }
 
 /**
- * Check if a user/account has ANY of the specified permissions
+ * Check if a user has a project permission (via projectMembers.role)
  */
-export function hasAnyPermission(
-  user: { role: string },
-  permissions: Permission[]
+export function hasProjectPermission(
+  membership: { role: string },
+  permission: ProjectPermission
 ): boolean {
-  return permissions.some(p => hasPermission(user, p))
+  const permissions = PROJECT_ROLE_PERMISSIONS[membership.role] || []
+  return permissions.includes(permission)
 }
 
 /**
- * Check if a user/account has ALL of the specified permissions
+ * Check if user can perform action on a specific project
+ * Combines system role check (admins can do anything) with project membership
  */
-export function hasAllPermissions(
-  user: { role: string },
-  permissions: Permission[]
+export function canOnProject(
+  user: { role?: string | null },
+  projectMembership: { role: string } | null,
+  permission: ProjectPermission
 ): boolean {
-  return permissions.every(p => hasPermission(user, p))
+  // System admins have full access
+  if (user.role === 'super_admin' || user.role === 'admin') {
+    return true
+  }
+
+  // Check project membership
+  if (!projectMembership) return false
+  return hasProjectPermission(projectMembership, permission)
 }
 
 /**
- * Get all permissions for a role
+ * Check if user has ANY of the specified project permissions
  */
-export function getPermissionsForRole(role: string): Permission[] {
-  return ROLE_PERMISSIONS[role] || []
+export function hasAnyProjectPermission(
+  membership: { role: string },
+  permissions: ProjectPermission[]
+): boolean {
+  return permissions.some(p => hasProjectPermission(membership, p))
 }
 
 /**
- * Check if a role is an internal (user) role
+ * Check if a role is a system (admin) role
  */
-export function isInternalRole(role: string): boolean {
-  return ['super_admin', 'admin', 'expert', 'viewer'].includes(role)
+export function isSystemRole(role: string | null | undefined): boolean {
+  return role === 'super_admin' || role === 'admin'
 }
 
 /**
- * Check if a role is a client (account) role
+ * Get all project permissions for a role
  */
-export function isClientRole(role: string): boolean {
-  return ['project_manager', 'finance', 'contact'].includes(role)
+export function getProjectPermissionsForRole(role: string): ProjectPermission[] {
+  return PROJECT_ROLE_PERMISSIONS[role] || []
 }
 ```
 
@@ -304,29 +320,44 @@ export function isClientRole(role: string): boolean {
 // src/lib/permissions.ts
 
 /**
- * Maps routes to required permissions
- * User needs ANY of the listed permissions to access the route
+ * System routes - require system permissions
  */
-export const ROUTE_PERMISSIONS: Record<string, Permission[]> = {
-  '/dashboard/time-entries': ['time-entries:view'],
-  '/dashboard/time-sheets': ['time-sheets:view'],
-  '/dashboard/projects': ['projects:view'],
-  '/dashboard/organisations': ['organisations:view'],
-  '/dashboard/accounts': ['accounts:view'],
+export const SYSTEM_ROUTE_PERMISSIONS: Record<string, SystemPermission[]> = {
   '/dashboard/users': ['users:view'],
-  '/dashboard/settings': ['settings:view'],
+  '/dashboard/organisations': ['organisations:view'],
 }
 
 /**
- * Check if a user can access a specific route
+ * Check if user can access a system route
  */
-export function canAccessRoute(
-  user: { role: string },
+export function canAccessSystemRoute(
+  user: { role?: string | null },
   route: string
 ): boolean {
-  const requiredPermissions = ROUTE_PERMISSIONS[route]
-  if (!requiredPermissions) return true  // No restrictions defined
-  return hasAnyPermission(user, requiredPermissions)
+  const requiredPermissions = SYSTEM_ROUTE_PERMISSIONS[route]
+  if (!requiredPermissions) return true  // Not a system route
+  if (!user.role) return false
+  return requiredPermissions.some(p => hasSystemPermission(user, p))
+}
+
+/**
+ * Project routes - accessible if user has ANY project membership
+ * Specific project access is checked at the data level
+ */
+export const PROJECT_ROUTES = [
+  '/dashboard/projects',
+  '/dashboard/time-entries',
+  '/dashboard/time-sheets',
+  '/dashboard/contacts',
+]
+
+/**
+ * Check if user can access project routes (has any project membership)
+ */
+export function canAccessProjectRoutes(
+  projectMemberships: { projectId: string; role: string }[]
+): boolean {
+  return projectMemberships.length > 0
 }
 ```
 
@@ -338,16 +369,29 @@ export function canAccessRoute(
 
 ```typescript
 // src/lib/auth/types.ts
-import type { Permission } from '../permissions'
+import type { SystemPermission, ProjectPermission } from '../permissions'
+
+export interface ProjectMembership {
+  projectId: string
+  projectName: string
+  role: 'owner' | 'expert' | 'reviewer' | 'client' | 'viewer'
+}
 
 export interface AuthContextValue {
   user: AuthenticatedUser | null
   isAuthenticated: boolean
+  isSystemAdmin: boolean  // Has super_admin or admin role
+  projectMemberships: ProjectMembership[]
 
-  // Permission helpers bound to current user
-  can: (permission: Permission) => boolean
-  canAny: (permissions: Permission[]) => boolean
-  canAll: (permissions: Permission[]) => boolean
+  // System permission helpers
+  canSystem: (permission: SystemPermission) => boolean
+
+  // Project permission helpers (requires project context)
+  canOnProject: (projectId: string, permission: ProjectPermission) => boolean
+  canAnyOnProject: (projectId: string, permissions: ProjectPermission[]) => boolean
+
+  // Get user's role on a specific project
+  getProjectRole: (projectId: string) => string | null
 }
 ```
 
@@ -357,15 +401,28 @@ See [Unified Dashboard](./2025-11-27-unified-dashboard.md#authprovider-component
 
 ```typescript
 // Usage in components:
-function MyComponent() {
-  const { can, canAny } = useAuth()
+function ProjectTimeEntries({ projectId }: { projectId: string }) {
+  const { canOnProject, isSystemAdmin } = useAuth()
 
   return (
     <div>
-      {can('projects:create') && <Button>New Project</Button>}
-      {canAny(['time-sheets:approve', 'time-entries:approve']) && (
-        <Button>Approve</Button>
+      {/* System admins or project members with permission */}
+      {canOnProject(projectId, 'time-entries:create') && (
+        <Button>New Time Entry</Button>
       )}
+      {canOnProject(projectId, 'time-sheets:approve') && (
+        <Button>Approve Time Sheet</Button>
+      )}
+    </div>
+  )
+}
+
+function AdminPanel() {
+  const { canSystem } = useAuth()
+
+  return (
+    <div>
+      {canSystem('users:create') && <Button>Add User</Button>}
     </div>
   )
 }
@@ -380,33 +437,38 @@ function MyComponent() {
 ```typescript
 // src/lib/auth/middleware.ts
 import { redirect } from '@tanstack/react-router'
-import { hasPermission, hasAnyPermission, type Permission } from '../permissions'
+import { hasSystemPermission, type SystemPermission } from '../permissions'
 
 /**
- * Create a beforeLoad guard that requires specific permissions
+ * Create a beforeLoad guard that requires system permissions
  */
-export function requirePermission(permission: Permission) {
-  return async ({ context }: { context: { auth: AuthContext } }) => {
+export function requireSystemPermission(permission: SystemPermission) {
+  return async ({ context }: { context: { auth: AuthSession } }) => {
     if (!context.auth.user) {
       throw redirect({ to: '/dashboard/login' })
     }
 
-    if (!hasPermission(context.auth.user, permission)) {
+    if (!hasSystemPermission(context.auth.user, permission)) {
       throw redirect({ to: '/dashboard' })  // or throw 403
     }
   }
 }
 
 /**
- * Create a beforeLoad guard that requires any of the specified permissions
+ * Create a beforeLoad guard that requires any project membership
  */
-export function requireAnyPermission(permissions: Permission[]) {
-  return async ({ context }: { context: { auth: AuthContext } }) => {
+export function requireAnyProjectMembership() {
+  return async ({ context }: { context: { auth: AuthSession } }) => {
     if (!context.auth.user) {
       throw redirect({ to: '/dashboard/login' })
     }
 
-    if (!hasAnyPermission(context.auth.user, permissions)) {
+    // System admins always have access
+    if (context.auth.user.role === 'super_admin' || context.auth.user.role === 'admin') {
+      return
+    }
+
+    if (context.auth.projectMemberships.length === 0) {
       throw redirect({ to: '/dashboard' })
     }
   }
@@ -416,13 +478,13 @@ export function requireAnyPermission(permissions: Permission[]) {
 ### Server Function Authorization
 
 ```typescript
-// Example: Protected server function
+// Example: Protected server function with project-scoped permission
 import { createServerFn } from '@tanstack/start'
-import { hasPermission } from '@/lib/permissions'
+import { canOnProject } from '@/lib/permissions'
 import { getSessionFromContext } from '@/lib/auth'
 
-const deleteProjectFn = createServerFn({ method: 'POST' })
-  .validator(z.object({ projectId: z.string() }))
+const deleteTimeEntryFn = createServerFn({ method: 'POST' })
+  .validator(z.object({ timeEntryId: z.string(), projectId: z.string() }))
   .handler(async ({ data, context }) => {
     const session = await getSessionFromContext(context)
 
@@ -430,11 +492,22 @@ const deleteProjectFn = createServerFn({ method: 'POST' })
       throw new Error('Unauthorized')
     }
 
-    if (!hasPermission(session.user, 'projects:delete')) {
-      throw new Error('Forbidden: You do not have permission to delete projects')
+    // Get user's membership for this project
+    const membership = session.projectMemberships.find(
+      m => m.projectId === data.projectId
+    )
+
+    // Check permission (admins bypass, otherwise check membership)
+    if (!canOnProject(session.user, membership ?? null, 'time-entries:delete-all')) {
+      // Check if they can at least delete their own
+      const entry = await timeEntryRepository.findById(data.timeEntryId)
+      if (entry?.userId !== session.user.id ||
+          !canOnProject(session.user, membership ?? null, 'time-entries:delete-own')) {
+        throw new Error('Forbidden: You do not have permission to delete this time entry')
+      }
     }
 
-    await projectRepository.delete(data.projectId)
+    await timeEntryRepository.delete(data.timeEntryId)
     return { success: true }
   })
 ```
@@ -446,48 +519,46 @@ const deleteProjectFn = createServerFn({ method: 'POST' })
 ```typescript
 // src/schemas.ts
 
-export const permissionSchema = z.enum([
+export const systemPermissionSchema = z.enum([
+  'users:view',
+  'users:create',
+  'users:edit',
+  'users:delete',
+  'organisations:view',
+  'organisations:create',
+  'organisations:edit',
+  'organisations:delete',
+  'platform:manage',
+])
+
+export const projectPermissionSchema = z.enum([
   'time-entries:view',
-  'time-entries:view-all',
   'time-entries:create',
-  'time-entries:edit',
-  'time-entries:delete',
-  'time-entries:approve',
+  'time-entries:edit-own',
+  'time-entries:edit-all',
+  'time-entries:delete-own',
+  'time-entries:delete-all',
   'time-sheets:view',
   'time-sheets:create',
   'time-sheets:edit',
   'time-sheets:submit',
   'time-sheets:approve',
-  'projects:view',
-  'projects:view-all',
-  'projects:create',
-  'projects:edit',
-  'projects:delete',
-  'organisations:view',
-  'organisations:create',
-  'organisations:edit',
-  'organisations:delete',
-  'accounts:view',
-  'accounts:create',
-  'accounts:edit',
-  'accounts:delete',
-  'accounts:invite',
-  'users:view',
-  'users:create',
-  'users:edit',
-  'users:delete',
-  'settings:view',
-  'settings:edit',
+  'project:view',
+  'project:edit',
+  'project:delete',
+  'project:invite',
+  'project:manage-members',
+  'contacts:view',
+  'contacts:invite',
 ])
 
-export const internalRoleSchema = z.enum(['super_admin', 'admin', 'expert', 'viewer'])
-export const clientRoleSchema = z.enum(['project_manager', 'finance', 'contact'])
-export const roleSchema = z.union([internalRoleSchema, clientRoleSchema])
+export const systemRoleSchema = z.enum(['super_admin', 'admin'])
+export const projectRoleSchema = z.enum(['owner', 'expert', 'reviewer', 'client', 'viewer'])
 
-export type Permission = z.infer<typeof permissionSchema>
-export type InternalRole = z.infer<typeof internalRoleSchema>
-export type ClientRole = z.infer<typeof clientRoleSchema>
-export type Role = z.infer<typeof roleSchema>
+export type SystemPermission = z.infer<typeof systemPermissionSchema>
+export type ProjectPermission = z.infer<typeof projectPermissionSchema>
+export type SystemRole = z.infer<typeof systemRoleSchema>
+export type ProjectRole = z.infer<typeof projectRoleSchema>
 ```
 
 ---
@@ -498,35 +569,44 @@ export type Role = z.infer<typeof roleSchema>
 // src/test/permission-helpers.ts
 
 /**
- * Create a mock user with a specific role for testing
+ * Create a mock user with optional system role
  */
-export function createMockUser(role: string) {
-  return { role }
+export function createMockUser(role?: 'super_admin' | 'admin' | null) {
+  return { id: 'test-user', role: role ?? null }
 }
 
 /**
- * Test that a role has expected permissions
+ * Create a mock project membership
  */
-export function expectRolePermissions(
-  role: string,
-  expectedPermissions: Permission[]
+export function createMockMembership(
+  role: 'owner' | 'expert' | 'reviewer' | 'client' | 'viewer'
 ) {
-  const user = createMockUser(role)
+  return { projectId: 'test-project', role }
+}
+
+/**
+ * Test that a project role has expected permissions
+ */
+export function expectProjectRolePermissions(
+  role: string,
+  expectedPermissions: ProjectPermission[]
+) {
+  const membership = createMockMembership(role as any)
   for (const permission of expectedPermissions) {
-    expect(hasPermission(user, permission)).toBe(true)
+    expect(hasProjectPermission(membership, permission)).toBe(true)
   }
 }
 
 /**
- * Test that a role does NOT have certain permissions
+ * Test that a project role does NOT have certain permissions
  */
-export function expectRoleLacksPermissions(
+export function expectProjectRoleLacksPermissions(
   role: string,
-  forbiddenPermissions: Permission[]
+  forbiddenPermissions: ProjectPermission[]
 ) {
-  const user = createMockUser(role)
+  const membership = createMockMembership(role as any)
   for (const permission of forbiddenPermissions) {
-    expect(hasPermission(user, permission)).toBe(false)
+    expect(hasProjectPermission(membership, permission)).toBe(false)
   }
 }
 ```
@@ -535,48 +615,74 @@ export function expectRoleLacksPermissions(
 
 ## Future Considerations
 
-### Custom Permissions (Phase 5+)
+### Custom Project Permissions (Phase 5+)
 
-If granular per-user permissions become necessary:
+If granular per-member permission overrides become necessary:
 
 ```typescript
 // Potential future schema
-export const userPermissions = sqliteTable('user_permissions', {
+export const memberPermissionOverrides = sqliteTable('member_permission_overrides', {
   id: text('id').primaryKey(),
-  userId: text('user_id').references(() => users.id),
+  projectMemberId: text('project_member_id').references(() => projectMembers.id),
   permission: text('permission').notNull(),
   granted: integer('granted', { mode: 'boolean' }).notNull().default(true),
   createdAt: text('created_at').notNull(),
 })
 
-// Modified hasPermission to check custom overrides
-export async function hasPermission(userId: string, permission: Permission) {
+// Modified hasProjectPermission to check custom overrides
+export async function hasProjectPermission(
+  membership: { id: string; role: string },
+  permission: ProjectPermission
+) {
   // Check custom override first
-  const override = await userPermissionRepository.find(userId, permission)
+  const override = await memberPermissionRepository.find(membership.id, permission)
   if (override) return override.granted
 
   // Fall back to role-based permission
-  const user = await userRepository.findById(userId)
-  return ROLE_PERMISSIONS[user.role]?.includes(permission) ?? false
+  return PROJECT_ROLE_PERMISSIONS[membership.role]?.includes(permission) ?? false
+}
+```
+
+### Organisation-Level Permissions (Paid Accounts)
+
+For paid organisation accounts, org admins may have elevated permissions:
+
+```typescript
+// Organisation membership for paid accounts
+export const organisationMembers = sqliteTable('organisation_members', {
+  id: text('id').primaryKey(),
+  organisationId: text('organisation_id').references(() => organisations.id),
+  userId: text('user_id').references(() => users.id),
+  role: text('role', { enum: ['owner', 'admin', 'member'] }).notNull(),
+  createdAt: text('created_at').notNull(),
+})
+
+// Org admins can manage all projects within their org
+export function canManageOrgProjects(
+  user: { id: string },
+  orgMembership: { role: string } | null
+): boolean {
+  return orgMembership?.role === 'owner' || orgMembership?.role === 'admin'
 }
 ```
 
 ### Permission Groups
 
-For easier management of related permissions:
+For easier UI/API management of related permissions:
 
 ```typescript
-export const PERMISSION_GROUPS = {
+export const PROJECT_PERMISSION_GROUPS = {
   'time-tracking': [
-    'time-entries:view', 'time-entries:create', 'time-entries:edit',
+    'time-entries:view', 'time-entries:create',
+    'time-entries:edit-own', 'time-entries:delete-own',
     'time-sheets:view', 'time-sheets:create', 'time-sheets:edit',
   ],
   'approval': [
-    'time-entries:approve', 'time-sheets:approve',
+    'time-sheets:approve',
   ],
-  'administration': [
-    'users:view', 'users:create', 'users:edit', 'users:delete',
-    'accounts:view', 'accounts:create', 'accounts:edit', 'accounts:delete',
+  'project-management': [
+    'project:edit', 'project:delete',
+    'project:invite', 'project:manage-members',
   ],
 }
 ```

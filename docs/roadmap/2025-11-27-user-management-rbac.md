@@ -9,6 +9,8 @@
 
 - [Permission System](./2025-11-27-permission-system.md) - Detailed permissions, role mappings, utilities
 - [Unified Dashboard](./2025-11-27-unified-dashboard.md) - Route structure, navigation, UI components
+- [Account & Contact Features](./2025-11-27-account-contact-features.md) - Invitation flow, time sheet approval
+- [GDPR Data Model](../gdpr-data-model.md) - PII separation and data deletion compliance
 
 ## Overview
 
@@ -18,9 +20,19 @@ This roadmap defines a unified dashboard architecture with role-based access con
 
 1. **Merges all interfaces** into a single `/dashboard` route
 2. **Implements permission-based UI rendering** - menu items and actions are hidden (not disabled) based on user permissions
-3. **Integrates client portal users** - clients get real accounts via invitation flow
-4. **Uses granular permissions** - ~25 individual permissions mapped to 7 roles
+3. **Uses unified identity model** - single `users` table with project-scoped access via `projectMembers`
+4. **Uses granular permissions** - ~25 individual permissions mapped to project roles
 5. **Protects routes** via TanStack Start middleware (`beforeLoad`)
+6. **GDPR compliant** - PII separated into dedicated table for right-to-erasure support
+
+### Platform Model
+
+> **Key Insight:** This is a **freelancer platform** where:
+> - Projects are the central connecting entity
+> - The same person can be an expert on one project and a client on another
+> - Access is primarily **project-scoped**, not role-scoped
+> - People maintain a contact book of business connections
+> - Paid organisation accounts unlock org-level admin capabilities
 
 ---
 
@@ -28,7 +40,7 @@ This roadmap defines a unified dashboard architecture with role-based access con
 
 ### Existing Data Model
 
-**Users Table** (Internal users):
+**Users Table** (Current - no authentication):
 ```typescript
 users {
   id: string (primary key)
@@ -38,7 +50,7 @@ users {
 }
 ```
 
-**Accounts Table** (Client users):
+**Accounts Table** (Current - client contacts):
 ```typescript
 accounts {
   id: string (primary key)
@@ -51,6 +63,8 @@ accounts {
   createdAt: ISO string
 }
 ```
+
+> **Note:** The current `accounts` table will be replaced by a `contacts` table. The `role` field will move to `projectMembers` to enable project-scoped access.
 
 ### Current Authentication Gaps
 
@@ -65,58 +79,92 @@ accounts {
 
 ## Role Architecture
 
-### Unified Role Hierarchy
+### Unified Identity Model
 
-All roles (internal and client) share the same permission system:
+All people in the system are in the `users` table. Access is determined by:
+
+1. **System role** (optional) - For platform-level admin capabilities
+2. **Project membership** - Role within specific projects
 
 ```
-super_admin          # Full system access
-    │
-    ├── admin        # User management, all orgs
-    │   │
-    │   ├── expert   # Standard internal user
-    │   │
-    │   └── viewer   # Read-only internal user
-    │
-    └── [Client Roles - scoped to their organisation]
-        ├── project_manager  # Manage projects/time for their org
-        ├── finance          # Financial data, approve time sheets
-        └── contact          # Basic view access
+System Roles (users.role - optional)
+├── super_admin    # Full platform access, manage everything
+├── admin          # User management, all organisations
+└── (none)         # Regular user, access via project membership only
+
+Project Roles (projectMembers.role)
+├── owner          # Full project control, can invite others
+├── expert         # Log time, manage entries, view project
+├── reviewer       # Approve time sheets for project
+├── client         # View project data, receive reports
+└── viewer         # Read-only access
 ```
 
-### Role Definitions
+### How Roles Work Together
 
-#### Internal Roles (Users Table)
+A user can have:
+- **Zero or one** system role (for platform admins)
+- **Multiple** project memberships with different roles per project
 
-| Role | Description | Scope |
-|------|-------------|-------|
-| `super_admin` | Full system access, manage admins | Global |
-| `admin` | Manage users, organisations, all data | Global |
-| `expert` | Standard dashboard user, CRUD on time/projects, view-only on orgs/accounts | Global |
-| `viewer` | Read-only access to dashboard | Global |
+**Example scenarios:**
 
-#### Client Roles (Accounts Table)
+| Person | System Role | Project A Role | Project B Role |
+|--------|-------------|----------------|----------------|
+| Alice (Freelancer) | - | owner | expert |
+| Bob (Client) | - | client | - |
+| Carol (Platform Admin) | admin | - | - |
+| Dave (Multi-role) | - | expert | client |
 
-| Role | Description | Scope |
-|------|-------------|-------|
-| `project_manager` | Manage projects and time entries | Own organisation |
-| `finance` | View financial data, approve time sheets | Own organisation |
-| `contact` | Basic view-only access | Own organisation |
+### System Role Definitions
+
+| Role | Description | Use Case |
+|------|-------------|----------|
+| `super_admin` | Full platform access | Platform owner |
+| `admin` | Manage users, orgs, projects | Operations staff |
+| (none) | Access via projects only | Freelancers, clients |
+
+### Project Role Definitions
+
+| Role | Description | Typical User |
+|------|-------------|--------------|
+| `owner` | Full control, invite members, delete project | Project creator |
+| `expert` | Log time, edit own entries, view project | Freelancer working on project |
+| `reviewer` | Approve time sheets, view all entries | Client PM, Finance |
+| `client` | View project data, receive reports | Client stakeholder |
+| `viewer` | Read-only access | External viewer |
 
 ---
 
 ## Data Model Changes
 
-### Users Table (Internal Users)
+> See [GDPR Data Model](../gdpr-data-model.md) for complete rationale on PII separation.
+
+### PII Table (Personal Data - Deletable)
+
+```typescript
+export const pii = sqliteTable('pii', {
+  id: text('id').primaryKey(),
+  name: text('name'),
+  phone: text('phone'),
+  address: text('address'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+})
+```
+
+### Users Table (Unified Identity)
+
+All authenticated people are in the `users` table. System role is optional.
 
 ```typescript
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
+  piiId: text('pii_id').references(() => pii.id, { onDelete: 'set null' }),
   handle: text('handle').unique().notNull(),
-  email: text('email').unique().notNull(),
-  passwordHash: text('password_hash').notNull(),
-  role: text('role', { enum: ['super_admin', 'admin', 'expert', 'viewer'] })
-    .notNull().default('viewer'),
+  email: text('email').unique().notNull(),  // Retained: legitimate interest
+  passwordHash: text('password_hash'),
+  role: text('role', { enum: ['super_admin', 'admin'] }),  // Optional system role
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   lastLoginAt: text('last_login_at'),
   createdAt: text('created_at').notNull(),
@@ -124,25 +172,34 @@ export const users = sqliteTable('users', {
 })
 ```
 
-### Accounts Table (Client Users)
+### Contacts Table (Address Book)
+
+Personal contact book for each user. Links to users if contact has an account.
 
 ```typescript
-export const accounts = sqliteTable('accounts', {
+export const contacts = sqliteTable('contacts', {
   id: text('id').primaryKey(),
-  organisationId: text('organisation_id').references(() => organisations.id).notNull(),
-  name: text('name').notNull(),
-  email: text('email').unique().notNull(),
-  role: text('role', { enum: ['contact', 'project_manager', 'finance'] })
-    .notNull().default('contact'),
-  status: text('status', { enum: ['pending', 'active', 'disabled'] })
-    .notNull().default('pending'),
-  passwordHash: text('password_hash'),
-  invitationCode: text('invitation_code').unique(),
-  invitationExpiresAt: text('invitation_expires_at'),
-  lastLoginAt: text('last_login_at'),
+  ownerId: text('owner_id').references(() => users.id).notNull(),  // Who owns this contact
+  userId: text('user_id').references(() => users.id),  // If contact is also a user
+  piiId: text('pii_id').references(() => pii.id, { onDelete: 'set null' }),  // Only if NOT linked to user
+  email: text('email').notNull(),  // For invitations
+  organisationId: text('organisation_id').references(() => organisations.id),
   createdAt: text('created_at').notNull(),
-  updatedAt: text('updated_at').notNull(),
 })
+```
+
+### Project Members Table (Project-Scoped Access)
+
+```typescript
+export const projectMembers = sqliteTable('project_members', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  role: text('role', { enum: ['owner', 'expert', 'reviewer', 'client', 'viewer'] }).notNull(),
+  createdAt: text('created_at').notNull(),
+}, (table) => ({
+  uniqueMembership: unique().on(table.projectId, table.userId),
+}))
 ```
 
 ### Sessions Table
@@ -150,39 +207,78 @@ export const accounts = sqliteTable('accounts', {
 ```typescript
 export const sessions = sqliteTable('sessions', {
   id: text('id').primaryKey(),
-  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
-  accountId: text('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   token: text('token').unique().notNull(),
   expiresAt: text('expires_at').notNull(),
   createdAt: text('created_at').notNull(),
 })
-// Note: Either userId OR accountId will be set, not both
+```
+
+### Invitations Table
+
+```typescript
+export const invitations = sqliteTable('invitations', {
+  id: text('id').primaryKey(),
+  contactId: text('contact_id').references(() => contacts.id).notNull(),
+  invitedByUserId: text('invited_by_user_id').references(() => users.id).notNull(),
+  projectId: text('project_id').references(() => projects.id),  // Optional: invite to project
+  code: text('code').unique().notNull(),
+  expiresAt: text('expires_at').notNull(),
+  status: text('status', { enum: ['pending', 'accepted', 'expired'] }).notNull().default('pending'),
+  createdAt: text('created_at').notNull(),
+})
 ```
 
 ---
 
-## Client Onboarding Flow
+## Invitation Flow
 
-### Invitation Process
+### User-to-User Invitation
+
+The invitation flow connects people to projects. Either party can initiate:
 
 ```
-1. Admin creates account in dashboard
-   - Enters client's email, name, role, organisation
+1. User creates/selects a contact
+   - From contact book or new email address
+   - Contact may or may not have an account yet
+
+2. User invites contact to a project
+   - Selects project and role (expert, reviewer, client, viewer)
    - System generates unique invitation code
-   - Account created with status: 'pending'
+   - System sends invitation email
 
-2. System sends invitation email
-   - Contains link: /dashboard/invite/{code}
-   - Link expires after 7 days
+3. Contact receives invitation
+   - If no account: /dashboard/invite/{code} → create account + join project
+   - If has account: /dashboard/invite/{code} → login + join project
 
-3. Client clicks invitation link
-   - Sees account setup form
-   - Sets their password
-   - Account status changes to 'active'
+4. Contact is now a project member
+   - Sees project in their dashboard
+   - Has permissions based on assigned role
+```
 
-4. Client can now login
-   - Uses email + password at /dashboard/login
-   - Sees dashboard filtered to their organisation
+### Invitation Scenarios
+
+| Inviter | Invitee | Scenario |
+|---------|---------|----------|
+| Freelancer | Client | Invite client to view project progress |
+| Client | Freelancer | Invite expert to work on project |
+| Admin | Anyone | Platform-level invitation |
+
+### Account Creation via Invitation
+
+```
+/dashboard/invite/{code}
+
+1. Validate invitation code (not expired, pending status)
+2. If user already authenticated:
+   - Add to project with specified role
+   - Mark invitation as accepted
+   - Redirect to project
+3. If not authenticated:
+   - Show registration/login form
+   - On registration: create user + pii records
+   - Add to project with specified role
+   - Redirect to project
 ```
 
 ---
@@ -194,23 +290,23 @@ export const sessions = sqliteTable('sessions', {
 **Goal:** Basic login and session management
 
 1. **Database changes**
-   - Add auth fields to `users` table
-   - Add auth fields to `accounts` table
+   - Create `pii` table
+   - Add auth fields to `users` table (`piiId`, `passwordHash`, `role`)
    - Create `sessions` table
    - Generate and apply migration
 
 2. **Auth utilities**
-   - Create `src/lib/auth.ts` (password hashing)
+   - Create `src/lib/auth.ts` (password hashing with Argon2id)
    - Create `src/lib/permissions.ts` (permission utilities)
 
 3. **Repository layer**
    - Create `src/repositories/session.repository.ts`
-   - Update user/account repositories with auth methods
+   - Create `src/repositories/pii.repository.ts`
+   - Update user repository with auth methods
 
 4. **Login page**
    - Create `/dashboard/login` route
-   - Support both internal users and clients
-   - Cookie-based session
+   - Cookie-based session (httpOnly, secure)
 
 5. **Route protection**
    - Create `_authenticated.tsx` layout
@@ -222,11 +318,11 @@ export const sessions = sqliteTable('sessions', {
 
 1. **Auth context**
    - Create `AuthProvider` component
-   - Create `useAuth` hook
+   - Create `useAuth` hook with permission helpers
 
 2. **Navigation system**
    - Create navigation configuration
-   - Create `useNavigation` hook
+   - Create `useNavigation` hook (filters by permission)
    - Build `DashboardSidebar` component
 
 3. **Permission gates**
@@ -246,9 +342,10 @@ export const sessions = sqliteTable('sessions', {
    - Copy/adapt components from `/expert/*`
    - Apply permission gates to UI elements
 
-2. **Data scoping**
+2. **Project-scoped data**
+   - Create `projectMembers` table
    - Add scoped repository methods
-   - Update server functions to use scope
+   - Update server functions to filter by project membership
 
 3. **Remove old routes**
    - Delete `/expert/*` routes
@@ -259,30 +356,33 @@ export const sessions = sqliteTable('sessions', {
    - Remove hardcoded sidebar
    - Use dynamic navigation everywhere
 
-### Phase 4: Client Invitation Flow
+### Phase 4: Contacts & Invitations
 
-**Goal:** Enable client onboarding
+**Goal:** Enable user-to-user invitations
 
-1. **Invitation system**
-   - Add invitation fields to accounts
+1. **Contacts system**
+   - Create `contacts` table
+   - Create `invitations` table
+   - Build contact management UI
+
+2. **Invitation flow**
    - Create invitation generation logic
    - Create `/dashboard/invite.$code` route
+   - Handle new user registration + project join
 
-2. **Account setup**
-   - Build setup form (set password)
-   - Activate account on completion
-
-3. **Email integration** (optional)
+3. **Email integration**
+   - Choose provider (Resend recommended)
    - Send invitation emails
    - Send password reset emails
 
 ### Phase 5: Advanced Features (Future)
 
-1. **Organisation scoping for internal users**
+1. **Organisation-level permissions** (paid accounts)
 2. **Audit logging**
 3. **Two-factor authentication**
 4. **OAuth integration** (Google, GitHub)
-5. **Password policies**
+5. **GDPR data export** (Article 20 compliance)
+6. **PII deletion workflow**
 
 ---
 
@@ -301,6 +401,10 @@ export const sessions = sqliteTable('sessions', {
 | `src/hooks/useAuth.ts` | Auth context hook |
 | `src/hooks/useNavigation.ts` | Filtered navigation hook |
 | `src/repositories/session.repository.ts` | Session CRUD |
+| `src/repositories/pii.repository.ts` | PII CRUD, deletion |
+| `src/repositories/contact.repository.ts` | Contact book management |
+| `src/repositories/invitation.repository.ts` | Invitation CRUD |
+| `src/repositories/projectMember.repository.ts` | Project membership |
 | `src/routes/dashboard/login.tsx` | Login page |
 | `src/routes/dashboard/invite.$code.tsx` | Invitation acceptance |
 | `src/routes/dashboard/_authenticated.tsx` | Auth guard layout |
@@ -310,10 +414,9 @@ export const sessions = sqliteTable('sessions', {
 
 | File | Changes |
 |------|---------|
-| `src/db/schema.ts` | Add auth fields, sessions table |
-| `src/schemas.ts` | Add login, session schemas |
-| `src/repositories/user.repository.ts` | Add auth methods |
-| `src/repositories/account.repository.ts` | Add auth methods, invitation |
+| `src/db/schema.ts` | Add pii, sessions, contacts, invitations, projectMembers tables; update users |
+| `src/schemas.ts` | Add login, session, contact, invitation, projectMember schemas |
+| `src/repositories/user.repository.ts` | Add auth methods, pii joins |
 | `src/routes/dashboard.tsx` | Add AuthProvider, use DashboardSidebar |
 
 ### Files to Delete
@@ -325,6 +428,7 @@ export const sessions = sqliteTable('sessions', {
 | `src/routes/admin.tsx` | Merged into unified dashboard |
 | `src/routes/admin/*` | Merged into `/dashboard/_authenticated/*` |
 | `src/routes/portal.tsx` | Clients use unified dashboard |
+| `src/repositories/account.repository.ts` | Replaced by contact.repository.ts |
 
 ---
 
@@ -388,13 +492,16 @@ bun add @node-rs/argon2   # Password hashing
 - [TanStack Router Authentication](https://tanstack.com/router/v1/docs/framework/react/guide/authenticated-routes)
 - [TanStack Start Authentication Guide](https://tanstack.com/start/latest/docs/framework/react/guide/authentication)
 - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+- [GDPR Article 6 - Lawfulness of processing](https://gdpr-info.eu/art-6-gdpr/)
+- [GDPR Article 17 - Right to erasure](https://gdpr-info.eu/art-17-gdpr/)
 
 ---
 
 ## Next Steps
 
 1. Review and approve this roadmap
-2. Create database migration for Phase 1
+2. Create database migration for Phase 1 (pii, users auth fields, sessions)
 3. Implement authentication foundation
 4. Test login/logout flows
 5. Proceed to Phase 2: Permission-based UI
+6. Create projectMembers table and implement project-scoped access
