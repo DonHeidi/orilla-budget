@@ -1,8 +1,9 @@
 # User Management & Role-Based Access Control (RBAC)
 
 **Date:** 2025-11-27
-**Status:** Planned
+**Status:** Completed
 **Category:** Security & Authentication
+**Completed:** 2025-11-28
 **Context:** Implementing authentication, authorization, and a unified dashboard with permission-based UI rendering
 
 ## Related Documents
@@ -285,104 +286,112 @@ The invitation flow connects people to projects. Either party can initiate:
 
 ## Implementation Phases
 
-### Phase 1: Authentication Foundation
+### Phase 1: Authentication Foundation ✅
 
 **Goal:** Basic login and session management
+**Status:** Completed 2025-11-28
 
-1. **Database changes**
+1. **Database changes** ✅
    - Create `pii` table
    - Add auth fields to `users` table (`piiId`, `passwordHash`, `role`)
    - Create `sessions` table
    - Generate and apply migration
 
-2. **Auth utilities**
+2. **Auth utilities** ✅
    - Create `src/lib/auth.ts` (password hashing with Argon2id)
    - Create `src/lib/permissions.ts` (permission utilities)
 
-3. **Repository layer**
+3. **Repository layer** ✅
    - Create `src/repositories/session.repository.ts`
    - Create `src/repositories/pii.repository.ts`
    - Update user repository with auth methods
 
-4. **Login page**
+4. **Login page** ✅
    - Create `/dashboard/login` route
    - Cookie-based session (httpOnly, secure)
 
-5. **Route protection**
+5. **Route protection** ✅
    - Create `_authenticated.tsx` layout
    - Implement `beforeLoad` redirect
 
-### Phase 2: Permission-Based UI
+### Phase 2: Permission-Based UI ✅
 
 **Goal:** Dynamic navigation and permission gates
+**Status:** Completed 2025-11-28
 
-1. **Auth context**
+1. **Auth context** ✅
    - Create `AuthProvider` component
    - Create `useAuth` hook with permission helpers
 
-2. **Navigation system**
+2. **Navigation system** ✅
    - Create navigation configuration
    - Create `useNavigation` hook (filters by permission)
    - Build `DashboardSidebar` component
 
-3. **Permission gates**
+3. **Permission gates** ✅
    - Create `PermissionGate` component
    - Apply to buttons/actions throughout dashboard
 
-4. **Route-level permissions**
+4. **Route-level permissions** ✅
    - Add permission checks to sensitive routes
    - Return 403 or redirect for unauthorized access
 
-### Phase 3: Unified Dashboard Migration
+### Phase 3: Unified Dashboard Migration ✅
 
 **Goal:** Merge expert/admin/portal into single dashboard
+**Status:** Completed 2025-11-28
 
-1. **Route migration**
+1. **Route migration** ✅
    - Create new `/dashboard/_authenticated/*` routes
    - Copy/adapt components from `/expert/*`
    - Apply permission gates to UI elements
 
-2. **Project-scoped data**
+2. **Project-scoped data** ✅
    - Create `projectMembers` table
    - Add scoped repository methods
    - Update server functions to filter by project membership
 
-3. **Remove old routes**
+3. **Remove old routes** ✅
    - Delete `/expert/*` routes
    - Delete `/admin/*` routes
    - Delete `/portal` route
 
-4. **Update navigation**
+4. **Update navigation** ✅
    - Remove hardcoded sidebar
    - Use dynamic navigation everywhere
 
-### Phase 4: Contacts & Invitations
+### Phase 4: Contacts & Invitations ✅
 
 **Goal:** Enable user-to-user invitations
+**Status:** Completed 2025-11-28
 
-1. **Contacts system**
+1. **Contacts system** ✅
    - Create `contacts` table
    - Create `invitations` table
    - Build contact management UI
 
-2. **Invitation flow**
+2. **Invitation flow** ✅
    - Create invitation generation logic
    - Create `/dashboard/invite.$code` route
    - Handle new user registration + project join
+   - "Invite User" flow creates contact + invitation with shareable link
 
-3. **Email integration**
-   - Choose provider (Resend recommended)
-   - Send invitation emails
-   - Send password reset emails
+3. **Email integration** (Deferred)
+   - Email sending deferred to Phase 5
+   - Admin manually shares invitation links for now
+   - See [User Management Enhancements](./2025-11-28-user-management-enhancements.md) for email integration plans
 
 ### Phase 5: Advanced Features (Future)
 
-1. **Organisation-level permissions** (paid accounts)
-2. **Audit logging**
-3. **Two-factor authentication**
-4. **OAuth integration** (Google, GitHub)
-5. **GDPR data export** (Article 20 compliance)
-6. **PII deletion workflow**
+See [User Management Enhancements](./2025-11-28-user-management-enhancements.md) for detailed specifications.
+
+1. **Email Integration** - Invitation and password reset emails
+2. **Organisation-level permissions** (paid accounts)
+3. **Audit logging**
+4. **Two-factor authentication**
+5. **OAuth integration** (Google, GitHub)
+6. **GDPR data export** (Article 20 compliance)
+7. **PII deletion workflow**
 
 ---
 
