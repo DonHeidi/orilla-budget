@@ -26,6 +26,8 @@ export function createTestDb() {
  * Clean up all tables in the database
  */
 export async function cleanDatabase(db: ReturnType<typeof createTestDb>['db']) {
+  await db.delete(schema.invitations)
+  await db.delete(schema.contacts)
   await db.delete(schema.timeSheetEntries)
   await db.delete(schema.timeSheets)
   await db.delete(schema.timeEntries)
@@ -145,6 +147,41 @@ export const testFactories = {
       ...overrides,
     }
   },
+
+  contact: (
+    ownerId: string,
+    overrides?: Partial<typeof schema.contacts.$inferInsert>
+  ) => ({
+    id: Math.random().toString(36).substring(2, 15),
+    ownerId,
+    userId: null,
+    piiId: null,
+    email: 'contact@example.com',
+    organisationId: null,
+    createdAt: new Date().toISOString(),
+    ...overrides,
+  }),
+
+  invitation: (
+    contactId: string,
+    invitedByUserId: string,
+    overrides?: Partial<typeof schema.invitations.$inferInsert>
+  ) => {
+    const now = new Date()
+    const expiry = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    return {
+      id: Math.random().toString(36).substring(2, 15),
+      contactId,
+      invitedByUserId,
+      projectId: null,
+      role: null,
+      code: Math.random().toString(36).substring(2, 14), // 12-char code
+      expiresAt: expiry.toISOString(),
+      status: 'pending' as const,
+      createdAt: now.toISOString(),
+      ...overrides,
+    }
+  },
 }
 
 /**
@@ -240,5 +277,30 @@ export const seed = {
       .values(testFactories.pii(data))
       .returning()
     return record
+  },
+
+  async contact(
+    db: ReturnType<typeof createTestDb>['db'],
+    ownerId: string,
+    data?: Partial<typeof schema.contacts.$inferInsert>
+  ) {
+    const [contact] = await db
+      .insert(schema.contacts)
+      .values(testFactories.contact(ownerId, data))
+      .returning()
+    return contact
+  },
+
+  async invitation(
+    db: ReturnType<typeof createTestDb>['db'],
+    contactId: string,
+    invitedByUserId: string,
+    data?: Partial<typeof schema.invitations.$inferInsert>
+  ) {
+    const [invitation] = await db
+      .insert(schema.invitations)
+      .values(testFactories.invitation(contactId, invitedByUserId, data))
+      .returning()
+    return invitation
   },
 }
