@@ -14,15 +14,18 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
 import { Route as DashboardTimeSheetsRouteImport } from './routes/dashboard/time-sheets'
 import { Route as DashboardTimeEntriesRouteImport } from './routes/dashboard/time-entries'
 import { Route as DashboardProjectsRouteImport } from './routes/dashboard/projects'
+import { Route as DashboardContactsRouteImport } from './routes/dashboard/contacts'
 import { Route as DashboardOrgsRouteImport } from './routes/dashboard/_orgs'
 import { Route as DashboardUsersIdRouteImport } from './routes/dashboard/users.$id'
 import { Route as DashboardTimeSheetsIdRouteImport } from './routes/dashboard/time-sheets.$id'
 import { Route as DashboardTimeEntriesIdRouteImport } from './routes/dashboard/time-entries.$id'
 import { Route as DashboardProjectsIdRouteImport } from './routes/dashboard/projects.$id'
+import { Route as DashboardContactsIdRouteImport } from './routes/dashboard/contacts.$id'
 import { Route as DashboardOrgsOrganisationsRouteImport } from './routes/dashboard/_orgs.organisations'
 import { Route as DashboardOrgsAccountsRouteImport } from './routes/dashboard/_orgs.accounts'
 import { Route as DashboardOrgsOrganisationsIdRouteImport } from './routes/dashboard/_orgs.organisations.$id'
@@ -53,6 +56,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRoute,
 } as any)
+const InviteCodeRoute = InviteCodeRouteImport.update({
+  id: '/invite/$code',
+  path: '/invite/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardUsersRoute = DashboardUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -71,6 +79,11 @@ const DashboardTimeEntriesRoute = DashboardTimeEntriesRouteImport.update({
 const DashboardProjectsRoute = DashboardProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardContactsRoute = DashboardContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardOrgsRoute = DashboardOrgsRouteImport.update({
@@ -96,6 +109,11 @@ const DashboardProjectsIdRoute = DashboardProjectsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => DashboardProjectsRoute,
+} as any)
+const DashboardContactsIdRoute = DashboardContactsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => DashboardContactsRoute,
 } as any)
 const DashboardOrgsOrganisationsRoute =
   DashboardOrgsOrganisationsRouteImport.update({
@@ -125,13 +143,16 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardOrgsRouteWithChildren
   '/login': typeof LoginRoute
   '/portal': typeof PortalRoute
+  '/dashboard/contacts': typeof DashboardContactsRouteWithChildren
   '/dashboard/projects': typeof DashboardProjectsRouteWithChildren
   '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
   '/dashboard/time-sheets': typeof DashboardTimeSheetsRouteWithChildren
   '/dashboard/users': typeof DashboardUsersRouteWithChildren
+  '/invite/$code': typeof InviteCodeRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/accounts': typeof DashboardOrgsAccountsRouteWithChildren
   '/dashboard/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
+  '/dashboard/contacts/$id': typeof DashboardContactsIdRoute
   '/dashboard/projects/$id': typeof DashboardProjectsIdRoute
   '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
   '/dashboard/time-sheets/$id': typeof DashboardTimeSheetsIdRoute
@@ -144,12 +165,15 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/portal': typeof PortalRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/dashboard/contacts': typeof DashboardContactsRouteWithChildren
   '/dashboard/projects': typeof DashboardProjectsRouteWithChildren
   '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
   '/dashboard/time-sheets': typeof DashboardTimeSheetsRouteWithChildren
   '/dashboard/users': typeof DashboardUsersRouteWithChildren
+  '/invite/$code': typeof InviteCodeRoute
   '/dashboard/accounts': typeof DashboardOrgsAccountsRouteWithChildren
   '/dashboard/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
+  '/dashboard/contacts/$id': typeof DashboardContactsIdRoute
   '/dashboard/projects/$id': typeof DashboardProjectsIdRoute
   '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
   '/dashboard/time-sheets/$id': typeof DashboardTimeSheetsIdRoute
@@ -164,13 +188,16 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/portal': typeof PortalRoute
   '/dashboard/_orgs': typeof DashboardOrgsRouteWithChildren
+  '/dashboard/contacts': typeof DashboardContactsRouteWithChildren
   '/dashboard/projects': typeof DashboardProjectsRouteWithChildren
   '/dashboard/time-entries': typeof DashboardTimeEntriesRouteWithChildren
   '/dashboard/time-sheets': typeof DashboardTimeSheetsRouteWithChildren
   '/dashboard/users': typeof DashboardUsersRouteWithChildren
+  '/invite/$code': typeof InviteCodeRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/_orgs/accounts': typeof DashboardOrgsAccountsRouteWithChildren
   '/dashboard/_orgs/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
+  '/dashboard/contacts/$id': typeof DashboardContactsIdRoute
   '/dashboard/projects/$id': typeof DashboardProjectsIdRoute
   '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
   '/dashboard/time-sheets/$id': typeof DashboardTimeSheetsIdRoute
@@ -185,13 +212,16 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/portal'
+    | '/dashboard/contacts'
     | '/dashboard/projects'
     | '/dashboard/time-entries'
     | '/dashboard/time-sheets'
     | '/dashboard/users'
+    | '/invite/$code'
     | '/dashboard/'
     | '/dashboard/accounts'
     | '/dashboard/organisations'
+    | '/dashboard/contacts/$id'
     | '/dashboard/projects/$id'
     | '/dashboard/time-entries/$id'
     | '/dashboard/time-sheets/$id'
@@ -204,12 +234,15 @@ export interface FileRouteTypes {
     | '/login'
     | '/portal'
     | '/dashboard'
+    | '/dashboard/contacts'
     | '/dashboard/projects'
     | '/dashboard/time-entries'
     | '/dashboard/time-sheets'
     | '/dashboard/users'
+    | '/invite/$code'
     | '/dashboard/accounts'
     | '/dashboard/organisations'
+    | '/dashboard/contacts/$id'
     | '/dashboard/projects/$id'
     | '/dashboard/time-entries/$id'
     | '/dashboard/time-sheets/$id'
@@ -223,13 +256,16 @@ export interface FileRouteTypes {
     | '/login'
     | '/portal'
     | '/dashboard/_orgs'
+    | '/dashboard/contacts'
     | '/dashboard/projects'
     | '/dashboard/time-entries'
     | '/dashboard/time-sheets'
     | '/dashboard/users'
+    | '/invite/$code'
     | '/dashboard/'
     | '/dashboard/_orgs/accounts'
     | '/dashboard/_orgs/organisations'
+    | '/dashboard/contacts/$id'
     | '/dashboard/projects/$id'
     | '/dashboard/time-entries/$id'
     | '/dashboard/time-sheets/$id'
@@ -243,6 +279,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRouteWithChildren
   LoginRoute: typeof LoginRoute
   PortalRoute: typeof PortalRoute
+  InviteCodeRoute: typeof InviteCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -282,6 +319,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/invite/$code': {
+      id: '/invite/$code'
+      path: '/invite/$code'
+      fullPath: '/invite/$code'
+      preLoaderRoute: typeof InviteCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/users': {
       id: '/dashboard/users'
       path: '/users'
@@ -308,6 +352,13 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/dashboard/projects'
       preLoaderRoute: typeof DashboardProjectsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/contacts': {
+      id: '/dashboard/contacts'
+      path: '/contacts'
+      fullPath: '/dashboard/contacts'
+      preLoaderRoute: typeof DashboardContactsRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/_orgs': {
@@ -344,6 +395,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/projects/$id'
       preLoaderRoute: typeof DashboardProjectsIdRouteImport
       parentRoute: typeof DashboardProjectsRoute
+    }
+    '/dashboard/contacts/$id': {
+      id: '/dashboard/contacts/$id'
+      path: '/$id'
+      fullPath: '/dashboard/contacts/$id'
+      preLoaderRoute: typeof DashboardContactsIdRouteImport
+      parentRoute: typeof DashboardContactsRoute
     }
     '/dashboard/_orgs/organisations': {
       id: '/dashboard/_orgs/organisations'
@@ -417,6 +475,17 @@ const DashboardOrgsRouteWithChildren = DashboardOrgsRoute._addFileChildren(
   DashboardOrgsRouteChildren,
 )
 
+interface DashboardContactsRouteChildren {
+  DashboardContactsIdRoute: typeof DashboardContactsIdRoute
+}
+
+const DashboardContactsRouteChildren: DashboardContactsRouteChildren = {
+  DashboardContactsIdRoute: DashboardContactsIdRoute,
+}
+
+const DashboardContactsRouteWithChildren =
+  DashboardContactsRoute._addFileChildren(DashboardContactsRouteChildren)
+
 interface DashboardProjectsRouteChildren {
   DashboardProjectsIdRoute: typeof DashboardProjectsIdRoute
 }
@@ -464,6 +533,7 @@ const DashboardUsersRouteWithChildren = DashboardUsersRoute._addFileChildren(
 
 interface DashboardRouteChildren {
   DashboardOrgsRoute: typeof DashboardOrgsRouteWithChildren
+  DashboardContactsRoute: typeof DashboardContactsRouteWithChildren
   DashboardProjectsRoute: typeof DashboardProjectsRouteWithChildren
   DashboardTimeEntriesRoute: typeof DashboardTimeEntriesRouteWithChildren
   DashboardTimeSheetsRoute: typeof DashboardTimeSheetsRouteWithChildren
@@ -473,6 +543,7 @@ interface DashboardRouteChildren {
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardOrgsRoute: DashboardOrgsRouteWithChildren,
+  DashboardContactsRoute: DashboardContactsRouteWithChildren,
   DashboardProjectsRoute: DashboardProjectsRouteWithChildren,
   DashboardTimeEntriesRoute: DashboardTimeEntriesRouteWithChildren,
   DashboardTimeSheetsRoute: DashboardTimeSheetsRouteWithChildren,
@@ -489,6 +560,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRouteWithChildren,
   LoginRoute: LoginRoute,
   PortalRoute: PortalRoute,
+  InviteCodeRoute: InviteCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

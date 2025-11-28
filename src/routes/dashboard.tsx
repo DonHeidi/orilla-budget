@@ -16,6 +16,7 @@ import {
   ChevronUp,
   FileText,
   LogOut,
+  Contact,
 } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { cn } from '@/lib/utils'
@@ -322,6 +323,14 @@ function Dashboard() {
                         <Link to="/dashboard/projects">
                           <FolderKanban className="mr-2 h-4 w-4" />
                           <span>Projects</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <Link to="/dashboard/contacts">
+                          <Contact className="mr-2 h-4 w-4" />
+                          <span>Contacts</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
