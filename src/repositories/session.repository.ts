@@ -1,11 +1,17 @@
-import { db, sessions, users } from '@/db'
+import { db, sessions, users, pii } from '@/db'
 import { eq, and, gt } from 'drizzle-orm'
-import type { Session, User } from '@/schemas'
+import type { Session, User, Pii } from '@/schemas'
 import { generateId, generateSessionToken, getSessionExpiry, now } from '@/lib/auth'
 
 export interface SessionWithUser {
   session: Session
   user: User
+}
+
+export interface SessionWithUserAndPii {
+  session: Session
+  user: User
+  pii: Pii | null
 }
 
 export const sessionRepository = {
@@ -113,5 +119,33 @@ export const sessionRepository = {
       .update(sessions)
       .set({ expiresAt: getSessionExpiry(days) })
       .where(eq(sessions.token, token))
+  },
+
+  /**
+   * Find a valid session with user and PII data
+   * Used for auth context to get display name
+   */
+  async findValidWithUserAndPii(
+    token: string
+  ): Promise<SessionWithUserAndPii | undefined> {
+    const result = await db
+      .select({
+        session: sessions,
+        user: users,
+        pii: pii,
+      })
+      .from(sessions)
+      .innerJoin(users, eq(sessions.userId, users.id))
+      .leftJoin(pii, eq(users.piiId, pii.id))
+      .where(and(eq(sessions.token, token), gt(sessions.expiresAt, now())))
+      .limit(1)
+
+    if (!result[0]) return undefined
+
+    return {
+      session: result[0].session,
+      user: result[0].user,
+      pii: result[0].pii,
+    }
   },
 }

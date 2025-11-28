@@ -1,4 +1,4 @@
-import { db, projectMembers, projects, users } from '@/db'
+import { db, projectMembers, projects, users, organisations } from '@/db'
 import { eq, and } from 'drizzle-orm'
 import type { ProjectMember, CreateProjectMember, ProjectRole } from '@/schemas'
 import { generateId, now } from '@/lib/auth'
@@ -12,6 +12,14 @@ export interface ProjectMemberWithDetails {
   projectName: string
   userHandle: string
   userEmail: string
+}
+
+export interface ProjectMembershipForAuth {
+  projectId: string
+  projectName: string
+  organisationId: string
+  organisationName: string
+  role: ProjectRole
 }
 
 export const projectMemberRepository = {
@@ -162,5 +170,28 @@ export const projectMemberRepository = {
           eq(projectMembers.userId, userId)
         )
       )
+  },
+
+  /**
+   * Find all memberships for a user with project and organisation details
+   * Used for auth context to provide full membership info
+   */
+  async findMembershipsForAuth(
+    userId: string
+  ): Promise<ProjectMembershipForAuth[]> {
+    const result = await db
+      .select({
+        projectId: projectMembers.projectId,
+        projectName: projects.name,
+        organisationId: projects.organisationId,
+        organisationName: organisations.name,
+        role: projectMembers.role,
+      })
+      .from(projectMembers)
+      .innerJoin(projects, eq(projectMembers.projectId, projects.id))
+      .innerJoin(organisations, eq(projects.organisationId, organisations.id))
+      .where(eq(projectMembers.userId, userId))
+
+    return result as ProjectMembershipForAuth[]
   },
 }
