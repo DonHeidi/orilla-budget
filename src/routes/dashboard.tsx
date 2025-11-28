@@ -1,5 +1,5 @@
-import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
+import { createFileRoute, Link, Outlet, redirect, useRouter } from '@tanstack/react-router'
+import { createServerFn, useServerFn } from '@tanstack/react-start'
 import { useState, useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
@@ -14,11 +14,10 @@ import {
   CheckCircle,
   XCircle,
   ChevronUp,
-  Building2,
   FileText,
+  LogOut,
 } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
-import { zodValidator } from '@tanstack/zod-form-adapter'
 import { cn } from '@/lib/utils'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { accountRepository } from '@/repositories/account.repository'
@@ -26,7 +25,6 @@ import { projectRepository } from '@/repositories/project.repository'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
 import {
   quickTimeEntrySchema,
-  createTimeEntrySchema,
   type Organisation,
   type Account,
   type Project,
@@ -50,6 +48,7 @@ import {
   SidebarInset,
   SidebarTrigger,
   SidebarFooter,
+  SidebarHeader,
 } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -69,6 +68,10 @@ import {
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { AuthProvider } from '@/components/auth-provider'
+import { getCurrentSessionFn, logoutFn } from '@/lib/auth/session.server'
+import type { AuthSession } from '@/lib/auth/types'
+import { hasSystemPermission } from '@/lib/permissions'
 
 // Server Functions
 const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
@@ -86,13 +89,14 @@ const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
   }
 })
 
-const createOrganisationFn = createServerFn({ method: 'POST' }).handler(
-  async (data: {
+const createOrganisationFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: {
     name: string
     contactName: string
     contactEmail: string
     totalBudgetHours: number
-  }) => {
+  }) => data)
+  .handler(async ({ data }) => {
     const organisation: Organisation = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       name: data.name,
@@ -102,11 +106,11 @@ const createOrganisationFn = createServerFn({ method: 'POST' }).handler(
       createdAt: new Date().toISOString(),
     }
     return await organisationRepository.create(organisation)
-  }
-)
+  })
 
-const createAccountFn = createServerFn({ method: 'POST' }).handler(
-  async (data: { organisationId: string; name: string; email: string }) => {
+const createAccountFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: { organisationId: string; name: string; email: string }) => data)
+  .handler(async ({ data }) => {
     const accessCode = Math.random().toString(36).substring(2, 10).toUpperCase()
     const account: Account = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -117,17 +121,17 @@ const createAccountFn = createServerFn({ method: 'POST' }).handler(
       createdAt: new Date().toISOString(),
     }
     return await accountRepository.create(account)
-  }
-)
+  })
 
-const createProjectFn = createServerFn({ method: 'POST' }).handler(
-  async (data: {
+const createProjectFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: {
     organisationId: string
     name: string
     description: string
     category: 'budget' | 'fixed'
     budgetHours: number
-  }) => {
+  }) => data)
+  .handler(async ({ data }) => {
     const project: Project = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       organisationId: data.organisationId,
@@ -138,8 +142,7 @@ const createProjectFn = createServerFn({ method: 'POST' }).handler(
       createdAt: new Date().toISOString(),
     }
     return await projectRepository.create(project)
-  }
-)
+  })
 
 const createTimeEntryFn = createServerFn({ method: 'POST' })
   .inputValidator(quickTimeEntrySchema)
@@ -157,8 +160,9 @@ const createTimeEntryFn = createServerFn({ method: 'POST' })
     return await timeEntryRepository.create(timeEntry)
   })
 
-const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
-  async ({ data }: { data: TimeEntry }) => {
+const updateTimeEntryFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: TimeEntry) => data)
+  .handler(async ({ data }) => {
     console.log('Update data received:', data)
     const { id, createdAt, ...updateData } = data
     console.log('After destructuring - id:', id, 'updateData:', updateData)
@@ -174,11 +178,11 @@ const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
     }
 
     return await timeEntryRepository.update(id, cleanUpdateData)
-  }
-)
+  })
 
-const updateProjectFn = createServerFn({ method: 'POST' }).handler(
-  async ({ data }: { data: Project }) => {
+const updateProjectFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: Project) => data)
+  .handler(async ({ data }) => {
     const { id, createdAt, ...updateData } = data
 
     // Filter out undefined values
@@ -191,155 +195,223 @@ const updateProjectFn = createServerFn({ method: 'POST' }).handler(
     }
 
     return await projectRepository.update(id, cleanUpdateData)
-  }
-)
+  })
 
-const deleteProjectFn = createServerFn({ method: 'POST' }).handler(
-  async ({ id }: { id: string }) => {
-    return await projectRepository.delete(id)
-  }
-)
+const deleteProjectFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: { id: string }) => data)
+  .handler(async ({ data }) => {
+    return await projectRepository.delete(data.id)
+  })
 
 export const Route = createFileRoute('/dashboard')({
-  component: AgentDashboard,
+  component: Dashboard,
+  beforeLoad: async () => {
+    const session = await getCurrentSessionFn()
+    if (!session.user) {
+      throw redirect({ to: '/login' })
+    }
+    return { auth: session }
+  },
   loader: () => getAllDataFn(),
 })
 
-function AgentDashboard() {
+function Dashboard() {
   const data = Route.useLoaderData()
+  const routeContext = Route.useRouteContext() as { auth: AuthSession }
+  const auth = routeContext.auth
+  const router = useRouter()
   const [timeEntryDialogOpen, setTimeEntryDialogOpen] = useState(false)
   const [timeEntriesExpanded, setTimeEntriesExpanded] = useState(true)
   const { theme, setTheme } = useTheme()
+  const logout = useServerFn(logoutFn)
+
+  // Derive permissions from auth context (resolved server-side in beforeLoad)
+  const user = auth.user
+  const displayName = user?.pii?.name || user?.handle || user?.email || 'User'
+  const canViewUsers = user && hasSystemPermission(user, 'users:view')
+  const canViewOrganisations = user && hasSystemPermission(user, 'organisations:view')
+  const hasProjects = auth.projectMemberships.length > 0
+
+  const handleLogout = async () => {
+    await logout()
+    router.navigate({ to: '/login' })
+  }
+
+  const cycleTheme = () => {
+    if (theme === 'light') setTheme('dark')
+    else if (theme === 'dark') setTheme('system')
+    else setTheme('light')
+  }
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <Sidebar>
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel>Agent Dashboard</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <div className="flex items-center justify-between w-full">
-                      <SidebarMenuButton asChild className="flex-1">
-                        <Link to="/dashboard/time-entries">
-                          <Clock className="mr-2 h-4 w-4" />
-                          <span>Time Entries</span>
+    <AuthProvider
+      initialUser={auth.user}
+      initialMemberships={auth.projectMemberships}
+    >
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full">
+          <Sidebar>
+            <SidebarHeader className="border-b px-4 py-3">
+              <div>
+                <p className="font-medium">Orilla Budget</p>
+                <p className="text-sm text-muted-foreground">{displayName}</p>
+                {hasProjects && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {auth.projectMemberships.length} project
+                    {auth.projectMemberships.length !== 1 ? 's' : ''}
+                  </p>
+                )}
+              </div>
+            </SidebarHeader>
+
+            <SidebarContent>
+              <SidebarGroup>
+                <SidebarGroupLabel>Work</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <div className="flex items-center justify-between w-full">
+                        <SidebarMenuButton asChild className="flex-1">
+                          <Link to="/dashboard/time-entries">
+                            <Clock className="mr-2 h-4 w-4" />
+                            <span>Time Entries</span>
+                          </Link>
+                        </SidebarMenuButton>
+                        <button
+                          onClick={() => setTimeEntriesExpanded(!timeEntriesExpanded)}
+                          className="p-1 hover:bg-sidebar-accent rounded mr-2"
+                        >
+                          {timeEntriesExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                      {timeEntriesExpanded && (
+                        <SidebarMenuSub>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              onClick={() => setTimeEntryDialogOpen(true)}
+                            >
+                              <Plus className="mr-2 h-4 w-4" />
+                              <span>Quick Entry</span>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        </SidebarMenuSub>
+                      )}
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <Link to="/dashboard/time-sheets">
+                          <FileText className="mr-2 h-4 w-4" />
+                          <span>Time Sheets</span>
                         </Link>
                       </SidebarMenuButton>
-                      <button
-                        onClick={() =>
-                          setTimeEntriesExpanded(!timeEntriesExpanded)
-                        }
-                        className="p-1 hover:bg-sidebar-accent rounded mr-2"
-                      >
-                        {timeEntriesExpanded ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                    {timeEntriesExpanded && (
-                      <SidebarMenuSub>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton
-                            onClick={() => setTimeEntryDialogOpen(true)}
-                          >
-                            <Plus className="mr-2 h-4 w-4" />
-                            <span>Quick Entry</span>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      </SidebarMenuSub>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <Link to="/dashboard/organisations">
+                          <Users className="mr-2 h-4 w-4" />
+                          <span>Organisations & Accounts</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <Link to="/dashboard/projects">
+                          <FolderKanban className="mr-2 h-4 w-4" />
+                          <span>Projects</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+
+              {/* Admin section - only visible to users with admin permissions */}
+              {(canViewUsers || canViewOrganisations) && (
+                <SidebarGroup>
+                  <SidebarGroupLabel>Administration</SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {canViewUsers && (
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild>
+                            <Link to="/dashboard/users">
+                              <Users className="mr-2 h-4 w-4" />
+                              <span>Users</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      )}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              )}
+            </SidebarContent>
+
+            <SidebarFooter>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={cycleTheme}
+                    tooltip={
+                      theme === 'light'
+                        ? 'Switch to dark mode'
+                        : theme === 'dark'
+                          ? 'Switch to system mode'
+                          : 'Switch to light mode'
+                    }
+                  >
+                    {theme === 'light' ? (
+                      <>
+                        <Sun className="mr-2 h-4 w-4" />
+                        <span>Light</span>
+                      </>
+                    ) : theme === 'dark' ? (
+                      <>
+                        <Moon className="mr-2 h-4 w-4" />
+                        <span>Dark</span>
+                      </>
+                    ) : (
+                      <>
+                        <Monitor className="mr-2 h-4 w-4" />
+                        <span>System</span>
+                      </>
                     )}
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link to="/dashboard/time-sheets">
-                        <FileText className="mr-2 h-4 w-4" />
-                        <span>Time Sheets</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link to="/dashboard/organisations">
-                        <Users className="mr-2 h-4 w-4" />
-                        <span>Organisations & Accounts</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link to="/dashboard/projects">
-                        <FolderKanban className="mr-2 h-4 w-4" />
-                        <span>Projects</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
-          <SidebarFooter>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => {
-                    if (theme === 'light') setTheme('dark')
-                    else if (theme === 'dark') setTheme('system')
-                    else setTheme('light')
-                  }}
-                  tooltip={
-                    theme === 'light'
-                      ? 'Switch to dark mode'
-                      : theme === 'dark'
-                        ? 'Switch to system mode'
-                        : 'Switch to light mode'
-                  }
-                >
-                  {theme === 'light' ? (
-                    <>
-                      <Sun className="mr-2 h-4 w-4" />
-                      <span>Light</span>
-                    </>
-                  ) : theme === 'dark' ? (
-                    <>
-                      <Moon className="mr-2 h-4 w-4" />
-                      <span>Dark</span>
-                    </>
-                  ) : (
-                    <>
-                      <Monitor className="mr-2 h-4 w-4" />
-                      <span>System</span>
-                    </>
-                  )}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarFooter>
-        </Sidebar>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton onClick={handleLogout} tooltip="Sign out">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sign out</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarFooter>
+          </Sidebar>
 
-        <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <h1 className="text-lg font-semibold">Agent Dashboard</h1>
-          </header>
+          <SidebarInset>
+            <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+              <SidebarTrigger className="-ml-1" />
+              <Separator orientation="vertical" className="mr-2 h-4" />
+              <h1 className="text-lg font-semibold">Dashboard</h1>
+            </header>
 
-          <div className="flex flex-1 flex-col">
-            <Outlet />
-          </div>
-        </SidebarInset>
-      </div>
-      <QuickTimeEntryDialog
-        organisations={data.organisations}
-        projects={data.projects}
-        open={timeEntryDialogOpen}
-        onOpenChange={setTimeEntryDialogOpen}
-      />
-    </SidebarProvider>
+            <div className="flex flex-1 flex-col">
+              <Outlet />
+            </div>
+          </SidebarInset>
+        </div>
+        <QuickTimeEntryDialog
+          organisations={data.organisations}
+          projects={data.projects}
+          open={timeEntryDialogOpen}
+          onOpenChange={setTimeEntryDialogOpen}
+        />
+      </SidebarProvider>
+    </AuthProvider>
   )
 }
 
@@ -503,6 +575,7 @@ function QuickTimeEntryDialog({
   onOpenChange?: (open: boolean) => void
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const createTimeEntry = useServerFn(createTimeEntryFn)
 
   const form = useForm({
     defaultValues: {
@@ -515,7 +588,7 @@ function QuickTimeEntryDialog({
     },
     onSubmit: async ({ value }) => {
       const hours = timeToHours(value.time)
-      await createTimeEntryFn({
+      await createTimeEntry({
         data: {
           title: value.title,
           hours: hours,
@@ -793,6 +866,7 @@ function QuickTimeEntrySheet({
 }) {
   const [open, setOpen] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const createTimeEntry = useServerFn(createTimeEntryFn)
 
   const form = useForm({
     defaultValues: {
@@ -805,7 +879,7 @@ function QuickTimeEntrySheet({
     },
     onSubmit: async ({ value }) => {
       const hours = timeToHours(value.time)
-      await createTimeEntryFn({
+      await createTimeEntry({
         data: {
           title: value.title,
           hours: hours,
@@ -1057,6 +1131,7 @@ function TimeEntryDetailSheet({
 }) {
   const [editingField, setEditingField] = useState<string | null>(null)
   const [editedValues, setEditedValues] = useState<Partial<TimeEntry>>({})
+  const updateTimeEntry = useServerFn(updateTimeEntryFn)
 
   if (!entry) return null
 
@@ -1079,7 +1154,7 @@ function TimeEntryDetailSheet({
         createdAt: entry.createdAt,
         ...editedValues,
       }
-      await updateTimeEntryFn({ data: updatePayload as TimeEntry })
+      await updateTimeEntry({ data: updatePayload as TimeEntry })
       // Reset edited values
       setEditedValues({})
       // Reload the page to show updated data
@@ -1451,15 +1526,18 @@ function OrganisationForm() {
     contactEmail: '',
     totalBudgetHours: '',
   })
+  const createOrganisation = useServerFn(createOrganisationFn)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    await createOrganisationFn({
-      name: formData.name,
-      contactName: formData.contactName,
-      contactEmail: formData.contactEmail,
-      totalBudgetHours: parseFloat(formData.totalBudgetHours),
+    await createOrganisation({
+      data: {
+        name: formData.name,
+        contactName: formData.contactName,
+        contactEmail: formData.contactEmail,
+        totalBudgetHours: parseFloat(formData.totalBudgetHours),
+      },
     })
 
     window.location.reload()
@@ -1550,14 +1628,17 @@ function AccountForm({ organisations }: { organisations: any[] }) {
     name: '',
     email: '',
   })
+  const createAccount = useServerFn(createAccountFn)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    await createAccountFn({
-      organisationId: formData.organisationId,
-      name: formData.name,
-      email: formData.email,
+    await createAccount({
+      data: {
+        organisationId: formData.organisationId,
+        name: formData.name,
+        email: formData.email,
+      },
     })
 
     window.location.reload()
@@ -1770,6 +1851,8 @@ function ProjectsTab({ data }: { data: any }) {
 }
 
 function ProjectForm({ organisations }: { organisations: any[] }) {
+  const createProject = useServerFn(createProjectFn)
+
   const form = useForm({
     defaultValues: {
       organisationId: '',
@@ -1779,12 +1862,14 @@ function ProjectForm({ organisations }: { organisations: any[] }) {
       budgetHours: 0,
     },
     onSubmit: async ({ value }) => {
-      await createProjectFn({
-        organisationId: value.organisationId,
-        name: value.name,
-        description: value.description,
-        category: value.category,
-        budgetHours: value.budgetHours,
+      await createProject({
+        data: {
+          organisationId: value.organisationId,
+          name: value.name,
+          description: value.description,
+          category: value.category,
+          budgetHours: value.budgetHours,
+        },
       })
       window.location.reload()
     },
@@ -1995,6 +2080,8 @@ function ProjectDetailSheet({
   const [editingField, setEditingField] = useState<string | null>(null)
   const [editedValues, setEditedValues] = useState<Partial<Project>>({})
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const updateProject = useServerFn(updateProjectFn)
+  const deleteProject = useServerFn(deleteProjectFn)
 
   if (!project) return null
 
@@ -2014,7 +2101,7 @@ function ProjectDetailSheet({
         createdAt: project.createdAt,
         ...editedValues,
       }
-      await updateProjectFn({ data: updatePayload as Project })
+      await updateProject({ data: updatePayload as Project })
       setEditedValues({})
       window.location.reload()
     }
@@ -2026,7 +2113,7 @@ function ProjectDetailSheet({
   }
 
   const handleDelete = async () => {
-    await deleteProjectFn({ id: project.id })
+    await deleteProject({ data: { id: project.id } })
     setShowDeleteConfirm(false)
     onOpenChange(false)
     window.location.reload()
