@@ -57,6 +57,13 @@
       "when": 1764080369478,
       "tag": "0007_clever_taskmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1764254332617,
+      "tag": "0008_remarkable_silvermane",
+      "breakpoints": true
     }
   ]
 }

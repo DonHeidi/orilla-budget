@@ -1,9 +1,38 @@
-import { sqliteTable, text, real, integer } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, real, integer, unique } from 'drizzle-orm/sqlite-core'
 
+// PII table - GDPR compliant personal data storage (deletable for right-to-erasure)
+export const pii = sqliteTable('pii', {
+  id: text('id').primaryKey(),
+  name: text('name'),
+  phone: text('phone'),
+  address: text('address'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+})
+
+// Users table - unified identity model
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
+  piiId: text('pii_id').references(() => pii.id, { onDelete: 'set null' }),
   handle: text('handle').notNull().unique(),
   email: text('email').notNull().unique(),
+  passwordHash: text('password_hash'),
+  role: text('role', { enum: ['super_admin', 'admin'] }),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  lastLoginAt: text('last_login_at'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+})
+
+// Sessions table - cookie-based authentication
+export const sessions = sqliteTable('sessions', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  expiresAt: text('expires_at').notNull(),
   createdAt: text('created_at').notNull(),
 })
 
@@ -44,6 +73,25 @@ export const projects = sqliteTable('projects', {
   budgetHours: real('budget_hours'),
   createdAt: text('created_at').notNull(),
 })
+
+// Project members table - project-scoped access control
+export const projectMembers = sqliteTable(
+  'project_members',
+  {
+    id: text('id').primaryKey(),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: text('role', {
+      enum: ['owner', 'expert', 'reviewer', 'client', 'viewer'],
+    }).notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [unique().on(table.projectId, table.userId)]
+)
 
 export const timeEntries = sqliteTable('time_entries', {
   id: text('id').primaryKey(),
