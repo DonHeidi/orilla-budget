@@ -583,7 +583,8 @@ File-based routing with TanStack Start:
 
 - `__root.tsx`: Root layout with theme provider and HTML structure
 - `index.tsx`: Landing/home page
-- `dashboard.tsx`: Main layout with sidebar navigation
+- `login.tsx`: Login page with authentication
+- `dashboard.tsx`: Main dashboard layout with sidebar navigation and auth protection
   - `dashboard/index.tsx`: Dashboard welcome page
   - `dashboard/_orgs.tsx`: Layout for organisations and accounts with shared data loader
   - `dashboard/_orgs.organisations.tsx`: Organisations list with add functionality
@@ -594,6 +595,9 @@ File-based routing with TanStack Start:
   - `dashboard/projects.$id.tsx`: Project detail sheet with click-to-edit
   - `dashboard/time-entries.tsx`: Time entries list with add functionality
   - `dashboard/time-entries.$id.tsx`: Time entry detail sheet with click-to-edit
+  - `dashboard/time-sheets.tsx`: Time sheets management
+  - `dashboard/users.tsx`: User management (requires admin permissions)
+  - `dashboard/users.$id.tsx`: User detail sheet
 - `portal.tsx`: Client portal with access code authentication
 
 #### Types and Schemas
@@ -607,24 +611,35 @@ File-based routing with TanStack Start:
 
 Routes use `createServerFn()` from TanStack Start to define server-side logic that can be called from client components. These functions handle database operations via repositories.
 
-**IMPORTANT**: Server functions should use static imports at the top of the file, not dynamic imports inside the handler. TanStack Start's build process automatically handles code-splitting to ensure repository code only runs on the server.
+**Understanding Static Imports in TanStack Start**:
+
+Static imports of server-only code (like repositories) at the top of route files are **completely safe** and the recommended pattern. TanStack Start's build process ensures that:
+
+1. Code imported and used **only inside `createServerFn()` handlers** is automatically excluded from client bundles
+2. The import itself does not cause server code to leak to the client
+3. No dynamic imports or special handling is needed
+
+**The only time you'll get an error** is if you use a server-only import (like a repository) **outside** of a server function—for example, directly in a React component's render body or in a client-side event handler that doesn't go through a server function.
 
 ```typescript
-// ✅ Correct: Static import at top of file
+// ✅ Correct: Static import used inside server function
 import { userRepository } from '@/repositories/user.repository'
 
 const getUsersFn = createServerFn({ method: 'GET' }).handler(async () => {
   const users = await userRepository.findAll()
-  return { users } // No need for JSON.parse(JSON.stringify())
+  return { users }
 })
 
-// ❌ Incorrect: Dynamic import inside handler
-const getUsersFn = createServerFn({ method: 'GET' }).handler(async () => {
-  const { userRepository } = await import('@/repositories/user.repository')
-  const users = await userRepository.findAll()
-  return { users: JSON.parse(JSON.stringify(users)) } // Unnecessary
-})
+function UsersPage() {
+  // ✅ This is fine - calling the server function, not the repository directly
+  const users = useServerFn(getUsersFn)
+
+  // ❌ This would fail - using repository directly in component
+  // const users = userRepository.findAll() // DON'T DO THIS
+}
 ```
+
+**Common Misconception**: Coding agents often suspect static imports as the cause of client/server errors. The import itself is never the problem—it's only problematic if the imported code is **used outside a server function** in client-side code.
 
 **Parameters & Validation**: Server functions accept a single `data` parameter. Use `.inputValidator()` for type safety and runtime validation:
 
@@ -727,10 +742,86 @@ const getSessionFn = createServerFn({ method: 'GET' }).handler(async () => {
 
 All database access goes through repository modules that encapsulate Drizzle ORM queries. Repositories provide standard CRUD operations and domain-specific queries. Repositories are meant to be used on the server only and should be imported using static imports in server functions.
 
-#### Dual Interface Architecture
+#### Interface Architecture
 
-- **Dashboard (`/expert`)**: Full CRUD interface with sidebar navigation organized by organisations, projects, and accounts
+- **Dashboard (`/dashboard`)**: Unified interface with sidebar navigation. Includes time tracking, projects, organisations, and admin features (admin sections only visible to users with appropriate permissions)
 - **Portal (`/portal`)**: Read-only client view authenticated via access codes
+
+#### Authentication & Authorization
+
+The application uses **Project-Scoped RBAC** (Role-Based Access Control) with cookie-based sessions.
+
+**See [docs/authentication.md](docs/authentication.md) for comprehensive documentation** including:
+- System roles (`super_admin`, `admin`) and project roles (`owner`, `expert`, `reviewer`, `client`, `viewer`)
+- Permission matrices and checking functions
+- Route protection patterns
+- Security analysis
+- Developer guide for adding permissions/roles
+
+#### Navigation & Permission-Based UI
+
+**Key Principle**: Navigation and permission-based UI rendering should be handled inline within route layouts, not through a separate navigation domain or config system.
+
+**Why This Approach**:
+
+1. **Server-Side Resolution**: In TanStack Start, `beforeLoad` and `loader` run on the server. Authentication and permissions are resolved server-side and passed to components via route context.
+
+2. **Colocated Logic**: Navigation structure lives in the same file as the route layout, making it easy to understand what a route does.
+
+3. **No Unnecessary Abstraction**: A separate navigation config adds indirection without significant benefit for this codebase size.
+
+4. **Type-Safe**: TanStack Router's type inference works naturally with route context.
+
+**Implementation Pattern**:
+
+```typescript
+// In expert.tsx (or any layout route)
+export const Route = createFileRoute('/expert')({
+  component: ExpertDashboard,
+  beforeLoad: async () => {
+    // Auth resolved server-side
+    const session = await getCurrentSessionFn()
+    if (!session.user) {
+      throw redirect({ to: '/login' })
+    }
+    return { auth: session }
+  },
+  loader: () => getAllDataFn(),
+})
+
+function ExpertDashboard() {
+  const routeContext = Route.useRouteContext() as { auth: AuthSession }
+  const auth = routeContext.auth
+
+  // Derive permissions from auth context (already resolved server-side)
+  const canViewUsers = auth.user && hasSystemPermission(auth.user, 'users:view')
+  const hasProjects = auth.projectMemberships.length > 0
+
+  return (
+    <Sidebar>
+      {/* Standard navigation items */}
+      <SidebarMenuItem>
+        <Link to="/expert/time-entries">Time Entries</Link>
+      </SidebarMenuItem>
+
+      {/* Permission-gated sections */}
+      {canViewUsers && (
+        <SidebarMenuItem>
+          <Link to="/admin/users">Users</Link>
+        </SidebarMenuItem>
+      )}
+    </Sidebar>
+  )
+}
+```
+
+**When NOT to use this approach**:
+
+- Very large apps with many different layouts sharing complex navigation
+- Plugin systems where navigation is contributed from different modules
+- When navigation needs to be modified at runtime from multiple places
+
+See `docs/navigation.md` for detailed explanation.
 
 #### Theme System
 
