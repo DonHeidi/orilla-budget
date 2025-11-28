@@ -1,3 +1,4 @@
+import { hashPassword } from '../src/lib/auth'
 import { db } from '../src/db'
 import {
   users,
@@ -97,12 +98,17 @@ async function seedDatabase() {
     // ========================================
     console.log('👤 Creating users...')
 
+    // Default password for all test users
+    const defaultPassword = 'password123'
+    const passwordHash = await hashPassword(defaultPassword)
+
     const testUsers: User[] = [
       // Super admin - full platform access
       {
         id: 'user-admin',
         handle: 'admin',
         email: 'admin@orilla.dev',
+        passwordHash,
         role: 'super_admin',
         isActive: true,
         createdAt: now(),
@@ -113,6 +119,7 @@ async function seedDatabase() {
         id: 'user-staff',
         handle: 'staff',
         email: 'staff@orilla.dev',
+        passwordHash,
         role: 'admin',
         isActive: true,
         createdAt: now(),
@@ -123,6 +130,7 @@ async function seedDatabase() {
         id: 'user-1',
         handle: 'alice',
         email: 'alice@orilla.dev',
+        passwordHash,
         isActive: true,
         createdAt: now(),
         updatedAt: now(),
@@ -131,6 +139,7 @@ async function seedDatabase() {
         id: 'user-2',
         handle: 'bob_pm',
         email: 'bob@orilla.dev',
+        passwordHash,
         isActive: true,
         createdAt: now(),
         updatedAt: now(),
@@ -139,6 +148,7 @@ async function seedDatabase() {
         id: 'user-3',
         handle: 'charlie_dev',
         email: 'charlie@orilla.dev',
+        passwordHash,
         isActive: true,
         createdAt: now(),
         updatedAt: now(),
@@ -148,6 +158,7 @@ async function seedDatabase() {
         id: 'user-client',
         handle: 'jennifer_client',
         email: 'jennifer@acmesaas.com',
+        passwordHash,
         isActive: true,
         createdAt: now(),
         updatedAt: now(),
@@ -157,7 +168,7 @@ async function seedDatabase() {
     for (const user of testUsers) {
       await userRepository.create(user)
     }
-    console.log(`✓ Created ${testUsers.length} users`)
+    console.log(`✓ Created ${testUsers.length} users (password: ${defaultPassword})`)
 
     // ========================================
     // ORGANISATIONS
