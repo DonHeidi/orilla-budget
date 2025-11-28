@@ -98,6 +98,27 @@ async function seedDatabase() {
     console.log('👤 Creating users...')
 
     const testUsers: User[] = [
+      // Super admin - full platform access
+      {
+        id: 'user-admin',
+        handle: 'admin',
+        email: 'admin@orilla.dev',
+        role: 'super_admin',
+        isActive: true,
+        createdAt: now(),
+        updatedAt: now(),
+      },
+      // Admin - user management but not platform settings
+      {
+        id: 'user-staff',
+        handle: 'staff',
+        email: 'staff@orilla.dev',
+        role: 'admin',
+        isActive: true,
+        createdAt: now(),
+        updatedAt: now(),
+      },
+      // Regular users - access via project membership only
       {
         id: 'user-1',
         handle: 'alice',
@@ -118,6 +139,15 @@ async function seedDatabase() {
         id: 'user-3',
         handle: 'charlie_dev',
         email: 'charlie@orilla.dev',
+        isActive: true,
+        createdAt: now(),
+        updatedAt: now(),
+      },
+      // Client user - will be added to projects as client/viewer
+      {
+        id: 'user-client',
+        handle: 'jennifer_client',
+        email: 'jennifer@acmesaas.com',
         isActive: true,
         createdAt: now(),
         updatedAt: now(),
@@ -309,6 +339,44 @@ async function seedDatabase() {
       await projectRepository.create(project)
     }
     console.log(`✓ Created ${testProjects.length} projects`)
+
+    // ========================================
+    // PROJECT MEMBERS
+    // ========================================
+    console.log('\n👥 Creating project members...')
+
+    const testProjectMembers = [
+      // Website Redesign (proj-1) - Acme SaaS
+      { id: 'pm-1', projectId: 'proj-1', userId: 'user-1', role: 'owner' as const, createdAt: now() },
+      { id: 'pm-2', projectId: 'proj-1', userId: 'user-2', role: 'expert' as const, createdAt: now() },
+      { id: 'pm-3', projectId: 'proj-1', userId: 'user-client', role: 'client' as const, createdAt: now() },
+
+      // Mobile App Development (proj-2) - Acme SaaS
+      { id: 'pm-4', projectId: 'proj-2', userId: 'user-1', role: 'owner' as const, createdAt: now() },
+      { id: 'pm-5', projectId: 'proj-2', userId: 'user-3', role: 'expert' as const, createdAt: now() },
+      { id: 'pm-6', projectId: 'proj-2', userId: 'user-client', role: 'reviewer' as const, createdAt: now() },
+
+      // API Integration (proj-3) - Acme SaaS
+      { id: 'pm-7', projectId: 'proj-3', userId: 'user-2', role: 'owner' as const, createdAt: now() },
+      { id: 'pm-8', projectId: 'proj-3', userId: 'user-3', role: 'expert' as const, createdAt: now() },
+
+      // Brand Identity Package (proj-4) - Creative Agency
+      { id: 'pm-9', projectId: 'proj-4', userId: 'user-3', role: 'owner' as const, createdAt: now() },
+      { id: 'pm-10', projectId: 'proj-4', userId: 'user-1', role: 'viewer' as const, createdAt: now() },
+
+      // Social Media Campaign (proj-5) - Creative Agency
+      { id: 'pm-11', projectId: 'proj-5', userId: 'user-3', role: 'owner' as const, createdAt: now() },
+      { id: 'pm-12', projectId: 'proj-5', userId: 'user-2', role: 'expert' as const, createdAt: now() },
+
+      // Video Production (proj-6) - Creative Agency
+      { id: 'pm-13', projectId: 'proj-6', userId: 'user-1', role: 'owner' as const, createdAt: now() },
+      { id: 'pm-14', projectId: 'proj-6', userId: 'user-client', role: 'viewer' as const, createdAt: now() },
+    ]
+
+    for (const member of testProjectMembers) {
+      await db.insert(projectMembers).values(member)
+    }
+    console.log(`✓ Created ${testProjectMembers.length} project members`)
 
     // ========================================
     // TIME ENTRIES
@@ -588,9 +656,13 @@ async function seedDatabase() {
 
     console.log('📊 Summary:')
     console.log(`   Users: ${testUsers.length}`)
+    console.log(`     - super_admin: 1 (admin@orilla.dev)`)
+    console.log(`     - admin: 1 (staff@orilla.dev)`)
+    console.log(`     - regular: ${testUsers.length - 2}`)
     console.log(`   Organisations: ${testOrganisations.length}`)
     console.log(`   Accounts: ${testAccounts.length}`)
     console.log(`   Projects: ${testProjects.length}`)
+    console.log(`   Project Members: ${testProjectMembers.length}`)
     console.log(`   Time Entries: ${testTimeEntries.length}`)
     console.log(`   Time Sheets: ${testTimeSheets.length}`)
     console.log(`   Time Sheet Entries: ${allSheetEntries.length}`)
