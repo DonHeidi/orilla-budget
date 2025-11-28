@@ -909,6 +909,64 @@ This warning can usually be ignored if tests pass. It's caused by React Testing 
 
 ---
 
+## Test Users (Seed Data)
+
+The seed script (`scripts/seed-test-data.ts`) creates test users for manual testing and development. Run with:
+
+```bash
+bun run scripts/seed-test-data.ts --clear
+```
+
+### Default Credentials
+
+All test users have the password: **`password123`**
+
+### Users by System Role
+
+| Email | Handle | System Role | Description |
+|-------|--------|-------------|-------------|
+| admin@orilla.dev | admin | `super_admin` | Full platform access |
+| staff@orilla.dev | staff | `admin` | User management, no platform settings |
+| alice@orilla.dev | alice | (none) | Regular user |
+| bob@orilla.dev | bob_pm | (none) | Regular user |
+| charlie@orilla.dev | charlie_dev | (none) | Regular user |
+| jennifer@acmesaas.com | jennifer_client | (none) | Client user |
+
+### Project Memberships
+
+Users have different roles across projects to test permission scenarios:
+
+| User | Project | Project Role |
+|------|---------|--------------|
+| alice | Website Redesign | owner |
+| alice | Mobile App Development | owner |
+| alice | Brand Identity Package | viewer |
+| alice | Video Production | owner |
+| bob_pm | Website Redesign | expert |
+| bob_pm | API Integration | owner |
+| bob_pm | Social Media Campaign | expert |
+| charlie_dev | Mobile App Development | expert |
+| charlie_dev | API Integration | expert |
+| charlie_dev | Brand Identity Package | owner |
+| charlie_dev | Social Media Campaign | owner |
+| jennifer_client | Website Redesign | client |
+| jennifer_client | Mobile App Development | reviewer |
+| jennifer_client | Video Production | viewer |
+
+### Testing Different Permission Levels
+
+Use these accounts to test the permission system:
+
+1. **Super Admin** (`admin@orilla.dev`) - Can access everything, manage users, platform settings
+2. **Admin** (`staff@orilla.dev`) - Can manage users and organisations, but not platform settings
+3. **Project Owner** (`alice@orilla.dev` on Website Redesign) - Full project control, can invite members
+4. **Expert** (`bob_pm@orilla.dev` on Website Redesign) - Can log time, edit own entries
+5. **Reviewer** (`jennifer@acmesaas.com` on Mobile App) - Can approve time sheets
+6. **Client** (`jennifer@acmesaas.com` on Website Redesign) - View-only with invitation capability
+7. **Viewer** (`alice@orilla.dev` on Brand Identity) - Read-only access
+
+---
+
 ## Additional Resources
 
 - [Bun Test Documentation](https://bun.sh/docs/cli/test)
