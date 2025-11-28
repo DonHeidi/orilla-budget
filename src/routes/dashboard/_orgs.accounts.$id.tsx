@@ -5,10 +5,10 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { useState } from 'react'
-import { Users, Mail, Building2 } from 'lucide-react'
-import { organisationRepository } from '@/repositories/organisation.repository'
-import type { Organisation } from '@/schemas'
+import { useState, useRef, useEffect } from 'react'
+import { Users, Mail, Building2, Key, UserCog } from 'lucide-react'
+import { accountRepository } from '@/repositories/account.repository'
+import type { Account } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -34,9 +34,9 @@ function formatDateTime(isoString: string): string {
 }
 
 // Server function for updates only
-const updateOrganisationFn = createServerFn({ method: 'POST' }).handler(
-  async ({ data }: { data: Organisation }) => {
-    const { id, createdAt, ...updateData } = data
+const updateAccountFn = createServerFn({ method: 'POST' }).handler(
+  async ({ data }: { data: Account }) => {
+    const { id, createdAt, accessCode, organisationId, ...updateData } = data
 
     // Filter out undefined values
     const cleanUpdateData = Object.fromEntries(
@@ -47,55 +47,65 @@ const updateOrganisationFn = createServerFn({ method: 'POST' }).handler(
       throw new Error('No fields to update')
     }
 
-    return await organisationRepository.update(id, cleanUpdateData)
+    return await accountRepository.update(id, cleanUpdateData)
   }
 )
 
-const parentRouteApi = getRouteApi('/expert/_orgs')
+const parentRouteApi = getRouteApi('/dashboard/_orgs')
 
 // Route definition
-export const Route = createFileRoute('/expert/_orgs/organisations/$id')({
-  component: OrganisationDetailPage,
+export const Route = createFileRoute('/dashboard/_orgs/accounts/$id')({
+  component: AccountDetailPage,
 })
 
-function OrganisationDetailPage() {
+function AccountDetailPage() {
   const { id } = Route.useParams()
   const parentData = parentRouteApi.useLoaderData()
+
   const navigate = useNavigate()
   const router = useRouter()
   const [editingField, setEditingField] = useState<string | null>(null)
-  const [editedValues, setEditedValues] = useState<Partial<Organisation>>({})
+  const [editedValues, setEditedValues] = useState<Partial<Account>>({})
+  const roleSelectRef = useRef<HTMLSelectElement>(null)
 
   // Get data from parent route
-  const organisations = parentData?.organisations || []
   const accounts = parentData?.accounts || []
+  const organisations = parentData?.organisations || []
 
-  const organisation = organisations.find((o: any) => o.id === id)
+  const account = accounts.find((a: any) => a.id === id)
 
-  if (!organisation) {
+  // Auto-open select when role field becomes editable
+  // Note: This hook must be called before any conditional returns to follow React's Rules of Hooks
+  useEffect(() => {
+    if (account && editingField === 'role' && roleSelectRef.current) {
+      roleSelectRef.current.showPicker?.()
+    }
+  }, [account, editingField])
+
+  if (!account) {
     return (
       <Sheet
         open={true}
         onOpenChange={(open) => {
           if (!open) {
-            navigate({ to: '/expert/organisations' })
+            navigate({ to: '/dashboard/accounts' })
           }
         }}
       >
         <SheetContent className="w-full sm:max-w-[600px]">
           <SheetHeader>
             <SheetTitle>Error</SheetTitle>
-            <SheetDescription>Organisation not found</SheetDescription>
+            <SheetDescription>Account not found</SheetDescription>
           </SheetHeader>
           <div className="py-6">
             <p className="text-gray-500">
-              The requested organisation could not be found.
+              The requested account could not be found.
             </p>
           </div>
           <div className="flex gap-3 justify-end pt-6 border-t">
             <Button
               variant="outline"
-              onClick={() => navigate({ to: '/expert/organisations' })}
+              onClick={() => navigate({ to: '/dashboard/accounts' })}
             >
               Back to List
             </Button>
@@ -105,11 +115,11 @@ function OrganisationDetailPage() {
     )
   }
 
-  const organisationAccounts = accounts.filter(
-    (a: any) => a.organisationId === organisation.id
+  const organisation = organisations.find(
+    (o: any) => o.id === account.organisationId
   )
 
-  const currentValues = { ...organisation, ...editedValues }
+  const currentValues = { ...account, ...editedValues }
 
   const handleFieldClick = (fieldName: string) => {
     setEditingField(fieldName)
@@ -124,16 +134,18 @@ function OrganisationDetailPage() {
     if (Object.keys(editedValues).length > 0) {
       // Check if any values actually changed
       const hasChanges = Object.entries(editedValues).some(
-        ([key, value]) => organisation[key as keyof Organisation] !== value
+        ([key, value]) => account[key as keyof Account] !== value
       )
 
       if (hasChanges) {
         const updatePayload = {
-          id: organisation.id,
-          createdAt: organisation.createdAt,
+          id: account.id,
+          createdAt: account.createdAt,
+          accessCode: account.accessCode,
+          organisationId: account.organisationId,
           ...editedValues,
         }
-        await updateOrganisationFn({ data: updatePayload as Organisation })
+        await updateAccountFn({ data: updatePayload as Account })
         // Invalidate router cache to refetch data without full page reload
         router.invalidate()
       }
@@ -151,15 +163,15 @@ function OrganisationDetailPage() {
       open={true}
       onOpenChange={(open) => {
         if (!open) {
-          navigate({ to: '/expert/organisations' })
+          navigate({ to: '/dashboard/accounts' })
         }
       }}
     >
       <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
         <SheetHeader className="space-y-3 pb-6 border-b">
-          <SheetTitle>Organisation Details</SheetTitle>
+          <SheetTitle>Account Details</SheetTitle>
           <SheetDescription>
-            View and edit detailed information about this organisation
+            View and edit detailed information about this account
           </SheetDescription>
         </SheetHeader>
 
@@ -167,8 +179,8 @@ function OrganisationDetailPage() {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-500">
-                <Building2 className="inline-block h-4 w-4 mr-1" />
-                Organisation Name
+                <Users className="inline-block h-4 w-4 mr-1" />
+                Account Name
               </label>
               {editingField === 'name' ? (
                 <Input
@@ -190,87 +202,86 @@ function OrganisationDetailPage() {
 
             <div>
               <label className="text-sm font-medium text-gray-500">
-                <Users className="inline-block h-4 w-4 mr-1" />
-                Contact Name
+                <Mail className="inline-block h-4 w-4 mr-1" />
+                Email
               </label>
-              {editingField === 'contactName' ? (
+              {editingField === 'email' ? (
                 <Input
                   autoFocus
-                  value={currentValues.contactName}
-                  onChange={(e) =>
-                    handleFieldChange('contactName', e.target.value)
-                  }
+                  type="email"
+                  value={currentValues.email}
+                  onChange={(e) => handleFieldChange('email', e.target.value)}
                   onBlur={handleFieldBlur}
                   className="mt-1"
                 />
               ) : (
                 <p
                   className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
-                  onClick={() => handleFieldClick('contactName')}
+                  onClick={() => handleFieldClick('email')}
                 >
-                  {currentValues.contactName}
+                  {currentValues.email}
                 </p>
               )}
             </div>
 
             <div>
               <label className="text-sm font-medium text-gray-500">
-                <Mail className="inline-block h-4 w-4 mr-1" />
-                Contact Email
+                <UserCog className="inline-block h-4 w-4 mr-1" />
+                Role
               </label>
-              {editingField === 'contactEmail' ? (
-                <Input
+              {editingField === 'role' ? (
+                <select
+                  ref={roleSelectRef}
                   autoFocus
-                  type="email"
-                  value={currentValues.contactEmail}
-                  onChange={(e) =>
-                    handleFieldChange('contactEmail', e.target.value)
-                  }
+                  value={currentValues.role || 'contact'}
+                  onChange={(e) => handleFieldChange('role', e.target.value)}
                   onBlur={handleFieldBlur}
-                  className="mt-1"
-                />
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
+                >
+                  <option value="contact">Contact</option>
+                  <option value="project_manager">Project Manager</option>
+                  <option value="finance">Finance/Controller</option>
+                </select>
               ) : (
                 <p
                   className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
-                  onClick={() => handleFieldClick('contactEmail')}
+                  onClick={() => handleFieldClick('role')}
                 >
-                  {currentValues.contactEmail}
+                  {currentValues.role === 'contact' && 'Contact'}
+                  {currentValues.role === 'project_manager' &&
+                    'Project Manager'}
+                  {currentValues.role === 'finance' && 'Finance/Controller'}
                 </p>
               )}
             </div>
 
             <div className="pt-4 border-t">
               <label className="text-sm font-medium text-gray-500 mb-3 block">
-                <Users className="inline-block h-4 w-4 mr-1" />
-                Accounts ({organisationAccounts.length})
+                <Building2 className="inline-block h-4 w-4 mr-1" />
+                Organisation
               </label>
-              {organisationAccounts.length === 0 ? (
-                <p className="text-sm text-gray-500 italic">No accounts yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {organisationAccounts.map((account: any) => (
-                    <div
-                      key={account.id}
-                      className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <p className="font-medium">{account.name}</p>
-                          <p className="text-sm text-gray-500">
-                            {account.email}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-gray-500">Access Code:</span>
-                        <code className="px-2 py-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded font-mono">
-                          {account.accessCode}
-                        </code>
-                      </div>
-                    </div>
-                  ))}
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+                <p className="font-medium">{organisation?.name || 'Unknown'}</p>
+                <div className="text-sm text-gray-500 mt-1 space-y-1">
+                  <p>Contact: {organisation?.contactName}</p>
+                  <p>{organisation?.contactEmail}</p>
                 </div>
-              )}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t">
+              <label className="text-sm font-medium text-gray-500 mb-3 block">
+                <Key className="inline-block h-4 w-4 mr-1" />
+                Access Code
+              </label>
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+                  This code is used to access the client portal:
+                </p>
+                <code className="text-2xl font-mono font-bold block bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 rounded p-3 text-center">
+                  {account.accessCode}
+                </code>
+              </div>
             </div>
 
             <div className="pt-4 border-t">
@@ -278,7 +289,7 @@ function OrganisationDetailPage() {
                 Created
               </label>
               <p className="text-base mt-1">
-                {formatDateTime(organisation.createdAt)}
+                {formatDateTime(account.createdAt)}
               </p>
             </div>
           </div>
@@ -287,7 +298,7 @@ function OrganisationDetailPage() {
         <div className="flex gap-3 justify-end pt-6 border-t">
           <Button
             variant="outline"
-            onClick={() => navigate({ to: '/expert/organisations' })}
+            onClick={() => navigate({ to: '/dashboard/accounts' })}
           >
             Close
           </Button>
