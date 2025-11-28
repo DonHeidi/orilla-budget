@@ -1,12 +1,18 @@
-import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Outlet, useNavigate, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { useMemo, useState } from 'react'
+import { getCookie } from '@tanstack/react-start/server'
+import { useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Plus, Users } from 'lucide-react'
+import { Plus, Users, Copy, Check } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
+import { z } from 'zod'
 import { userRepository } from '@/repositories/user.repository'
-import { createUserSchema, type User } from '@/schemas'
+import { contactRepository } from '@/repositories/contact.repository'
+import { invitationRepository } from '@/repositories/invitation.repository'
+import { sessionRepository } from '@/repositories/session.repository'
+import { SESSION_COOKIE_NAME } from '@/lib/auth.shared'
+import type { User, Contact, Invitation } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,16 +33,44 @@ const getUsersDataFn = createServerFn({ method: 'GET' }).handler(async () => {
   }
 })
 
-const createUserFn = createServerFn({ method: 'POST' })
-  .inputValidator(createUserSchema)
+// Validation schema for invitation form
+const inviteUserSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  name: z.string().optional(),
+})
+
+const createAndInviteUserFn = createServerFn({ method: 'POST' })
+  .inputValidator(inviteUserSchema)
   .handler(async ({ data }) => {
-    const user: User = {
-      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      handle: data.handle,
-      email: data.email,
-      createdAt: new Date().toISOString(),
+    const token = getCookie(SESSION_COOKIE_NAME)
+    if (!token) throw new Error('Not authenticated')
+
+    const session = await sessionRepository.findValidWithUserAndPii(token)
+    if (!session) throw new Error('Invalid session')
+
+    // Check if contact already exists for this owner
+    const existingContact = await contactRepository.findByOwnerAndEmail(
+      session.user.id,
+      data.email
+    )
+    if (existingContact) {
+      throw new Error('A contact with this email already exists')
     }
-    return await userRepository.create(user)
+
+    // Create contact with optional PII
+    const contact = await contactRepository.createWithPii({
+      email: data.email,
+      name: data.name,
+      ownerId: session.user.id,
+    })
+
+    // Create invitation (no project - general invitation)
+    const invitation = await invitationRepository.create(
+      { contactId: contact.id },
+      session.user.id
+    )
+
+    return { contact, invitation }
   })
 
 export const Route = createFileRoute('/dashboard/users')({
@@ -91,157 +125,206 @@ function UsersPage() {
   )
 }
 
+interface InvitationResult {
+  contact: Contact
+  invitation: Invitation
+}
+
 function AddUserSheet() {
   const [open, setOpen] = useState(false)
-  const navigate = useNavigate()
+  const [invitationResult, setInvitationResult] = useState<InvitationResult | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   const form = useForm({
     defaultValues: {
-      handle: '',
       email: '',
+      name: '',
     },
     validatorAdapter: zodValidator(),
     validators: {
-      onSubmitAsync: createUserSchema,
+      onSubmitAsync: inviteUserSchema,
     },
     onSubmit: async ({ value }) => {
-      await createUserFn({
-        data: {
-          handle: value.handle,
-          email: value.email,
-        },
-      })
-      setOpen(false)
-      form.reset()
-      navigate({ to: '/dashboard/users' })
+      setError(null)
+      try {
+        const result = await createAndInviteUserFn({
+          data: {
+            email: value.email,
+            name: value.name || undefined,
+          },
+        })
+        setInvitationResult(result)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to create invitation')
+      }
     },
   })
 
   const handleClose = () => {
     setOpen(false)
+    setInvitationResult(null)
+    setCopied(false)
+    setError(null)
     form.reset()
+  }
+
+  const handleDone = () => {
+    handleClose()
+    router.invalidate()
+  }
+
+  const handleCopyLink = () => {
+    if (!invitationResult) return
+    const link = `${window.location.origin}/invite/${invitationResult.invitation.code}`
+    navigator.clipboard.writeText(link)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
     <Sheet
       open={open}
-      onOpenChange={(open) => {
-        if (!open) handleClose()
-        else setOpen(open)
+      onOpenChange={(isOpen) => {
+        if (!isOpen) handleClose()
+        else setOpen(isOpen)
       }}
     >
       <SheetTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Add User
+          Invite User
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
         <SheetHeader className="space-y-3 pb-6 border-b">
-          <SheetTitle>Add User</SheetTitle>
-          <SheetDescription>Create a new user account</SheetDescription>
+          <SheetTitle>Invite User</SheetTitle>
+          <SheetDescription>
+            Send an invitation to a new user to join the platform
+          </SheetDescription>
         </SheetHeader>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            form.handleSubmit()
-          }}
-          className="space-y-6 py-6 px-1"
-        >
-          <form.Field
-            name="handle"
-            validators={{
-              onChange: createUserSchema.shape.handle,
+        {invitationResult ? (
+          <div className="space-y-6 py-6">
+            <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg border border-green-200 dark:border-green-800">
+              <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
+                Invitation Created!
+              </h3>
+              <p className="text-sm text-green-700 dark:text-green-300 mb-4">
+                Share this link with <strong>{invitationResult.contact.email}</strong> to
+                let them create their account:
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 p-2 bg-white dark:bg-gray-800 rounded border text-sm break-all">
+                  {window.location.origin}/invite/{invitationResult.invitation.code}
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyLink}
+                  className="shrink-0"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                This invitation expires in 7 days.
+              </p>
+            </div>
+
+            <div className="flex justify-end pt-6 border-t">
+              <Button onClick={handleDone}>Done</Button>
+            </div>
+          </div>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              form.handleSubmit()
             }}
+            className="space-y-6 py-6 px-1"
           >
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Handle *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                    @
-                  </span>
+            {error && (
+              <div className="bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 p-3 rounded-lg border border-red-200 dark:border-red-800 text-sm">
+                {error}
+              </div>
+            )}
+
+            <form.Field
+              name="email"
+              validators={{
+                onChange: inviteUserSchema.shape.email,
+              }}
+            >
+              {(field) => (
+                <div className="space-y-2">
+                  <label htmlFor={field.name} className="text-sm font-medium">
+                    Email *
+                  </label>
+                  <Input
+                    id={field.name}
+                    type="email"
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="e.g., john@example.com"
+                  />
+                  {field.state.meta.isTouched &&
+                    field.state.meta.errors &&
+                    field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">
+                        {field.state.meta.errors
+                          .map((err) =>
+                            typeof err === 'string'
+                              ? err
+                              : err.message || JSON.stringify(err)
+                          )
+                          .join(', ')}
+                      </p>
+                    )}
+                </div>
+              )}
+            </form.Field>
+
+            <form.Field name="name">
+              {(field) => (
+                <div className="space-y-2">
+                  <label htmlFor={field.name} className="text-sm font-medium">
+                    Name <span className="text-gray-400">(optional)</span>
+                  </label>
                   <Input
                     id={field.name}
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="e.g., johndoe"
-                    className="pl-7"
+                    placeholder="e.g., John Doe"
                   />
                 </div>
-                {field.state.meta.isTouched &&
-                  field.state.meta.errors &&
-                  field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors
-                        .map((err) =>
-                          typeof err === 'string'
-                            ? err
-                            : err.message || JSON.stringify(err)
-                        )
-                        .join(', ')}
-                    </p>
-                  )}
-              </div>
-            )}
-          </form.Field>
-
-          <form.Field
-            name="email"
-            validators={{
-              onChange: createUserSchema.shape.email,
-            }}
-          >
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Email *
-                </label>
-                <Input
-                  id={field.name}
-                  type="email"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="e.g., john@example.com"
-                />
-                {field.state.meta.isTouched &&
-                  field.state.meta.errors &&
-                  field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors
-                        .map((err) =>
-                          typeof err === 'string'
-                            ? err
-                            : err.message || JSON.stringify(err)
-                        )
-                        .join(', ')}
-                    </p>
-                  )}
-              </div>
-            )}
-          </form.Field>
-
-          <div className="flex gap-3 justify-end pt-6 border-t">
-            <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
-            <form.Subscribe
-              selector={(state) => [state.canSubmit, state.isSubmitting]}
-            >
-              {([canSubmit, isSubmitting]) => (
-                <Button type="submit" disabled={!canSubmit || isSubmitting}>
-                  {isSubmitting ? 'Creating...' : 'Create User'}
-                </Button>
               )}
-            </form.Subscribe>
-          </div>
-        </form>
+            </form.Field>
+
+            <div className="flex gap-3 justify-end pt-6 border-t">
+              <Button type="button" variant="outline" onClick={handleClose}>
+                Cancel
+              </Button>
+              <form.Subscribe
+                selector={(state) => [state.canSubmit, state.isSubmitting]}
+              >
+                {([canSubmit, isSubmitting]) => (
+                  <Button type="submit" disabled={!canSubmit || isSubmitting}>
+                    {isSubmitting ? 'Creating...' : 'Send Invitation'}
+                  </Button>
+                )}
+              </form.Subscribe>
+            </div>
+          </form>
+        )}
       </SheetContent>
     </Sheet>
   )
