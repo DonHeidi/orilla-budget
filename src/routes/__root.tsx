@@ -7,21 +7,13 @@ import {
   Scripts,
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { getCookie } from '@tanstack/react-start/server'
 import appCss from '@/styles/app.css?url'
 import { ThemeProvider } from '@/components/theme-provider'
 
 const getThemeFromCookieFn = createServerFn({ method: 'GET' }).handler(
-  async (ctx) => {
-    const cookieHeader = ctx.request.headers.get('cookie') || ''
-    const cookies = cookieHeader.split('; ').reduce(
-      (acc, cookie) => {
-        const [key, value] = cookie.split('=')
-        if (key && value) acc[key] = value
-        return acc
-      },
-      {} as Record<string, string>
-    )
-    return cookies['orilla-ui-theme'] || 'system'
+  async () => {
+    return getCookie('orilla-ui-theme') || 'system'
   }
 )
 
