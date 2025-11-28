@@ -64,3 +64,30 @@ export function now(): string {
   return new Date().toISOString()
 }
 
+/**
+ * Generate a cryptographically secure token of specified length
+ * Used for invitation codes, password reset tokens, etc.
+ */
+export function generateToken(length: number = 32): string {
+  // Calculate bytes needed for the desired character length in base64url
+  const bytesNeeded = Math.ceil((length * 3) / 4)
+  return randomBytes(bytesNeeded).toString('base64url').slice(0, length)
+}
+
+// Import session repository dynamically to avoid circular dependencies
+// This function creates a session and returns the session data
+export async function createSession(userId: string) {
+  const { sessionRepository } = await import('@/repositories/session.repository')
+
+  const token = generateSessionToken()
+  const expiresAt = getSessionExpiry()
+
+  const session = await sessionRepository.create({
+    userId,
+    token,
+    expiresAt,
+  })
+
+  return session
+}
+
