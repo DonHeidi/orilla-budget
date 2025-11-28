@@ -335,6 +335,53 @@ export const addEntriesToSheetSchema = z.object({
   entryIds: z.array(z.string()).min(1, 'At least one entry is required'),
 })
 
+// Contact Schema - personal address book
+export const contactSchema = z.object({
+  id: z.string(),
+  ownerId: z.string(),
+  userId: z.string().nullable().optional(), // If contact has an account
+  piiId: z.string().nullable().optional(), // Only if NOT linked to user
+  email: z.string().email('Invalid email address'),
+  organisationId: z.string().nullable().optional(),
+  createdAt: z.string().datetime(),
+})
+
+export const createContactSchema = contactSchema.omit({
+  id: true,
+  createdAt: true,
+  userId: true, // Set automatically when contact creates account
+  piiId: true, // Set automatically when PII is created
+})
+
+export type Contact = z.infer<typeof contactSchema>
+export type CreateContact = z.infer<typeof createContactSchema>
+
+// Invitation status schema
+export const invitationStatusSchema = z.enum(['pending', 'accepted', 'expired'])
+export type InvitationStatus = z.infer<typeof invitationStatusSchema>
+
+// Invitation Schema - project invitations
+export const invitationSchema = z.object({
+  id: z.string(),
+  contactId: z.string(),
+  invitedByUserId: z.string(),
+  projectId: z.string().nullable().optional(), // Optional: invite to specific project
+  role: projectRoleSchema.nullable().optional(), // Role to assign when accepted
+  code: z.string(),
+  expiresAt: z.string().datetime(),
+  status: invitationStatusSchema.default('pending'),
+  createdAt: z.string().datetime(),
+})
+
+export const createInvitationSchema = z.object({
+  contactId: z.string(),
+  projectId: z.string().optional(), // Optional: invite to specific project
+  role: projectRoleSchema.optional(), // Role to assign when accepted
+})
+
+export type Invitation = z.infer<typeof invitationSchema>
+export type CreateInvitation = z.infer<typeof createInvitationSchema>
+
 // Auth session types - for authenticated user context
 export interface AuthenticatedUser {
   id: string
