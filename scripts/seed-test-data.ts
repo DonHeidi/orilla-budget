@@ -7,6 +7,11 @@ import {
   timeEntries,
   timeSheets,
   timeSheetEntries,
+  pii,
+  sessions,
+  contacts,
+  invitations,
+  projectMembers,
 } from '../src/db/schema'
 import { userRepository } from '../src/repositories/user.repository'
 import { organisationRepository } from '../src/repositories/organisation.repository'
@@ -34,13 +39,19 @@ const shouldClear = args.includes('--clear')
 async function clearDatabase() {
   console.log('🗑️  Clearing existing data...')
 
+  // Delete in reverse dependency order
   await db.delete(timeSheetEntries)
   await db.delete(timeSheets)
   await db.delete(timeEntries)
+  await db.delete(invitations)
+  await db.delete(contacts)
+  await db.delete(projectMembers)
   await db.delete(projects)
   await db.delete(accounts)
   await db.delete(organisations)
+  await db.delete(sessions)
   await db.delete(users)
+  await db.delete(pii)
 
   console.log('✓ Database cleared')
 }
@@ -91,19 +102,25 @@ async function seedDatabase() {
         id: 'user-1',
         handle: 'alice',
         email: 'alice@orilla.dev',
+        isActive: true,
         createdAt: now(),
+        updatedAt: now(),
       },
       {
         id: 'user-2',
         handle: 'bob_pm',
         email: 'bob@orilla.dev',
+        isActive: true,
         createdAt: now(),
+        updatedAt: now(),
       },
       {
         id: 'user-3',
         handle: 'charlie_dev',
         email: 'charlie@orilla.dev',
+        isActive: true,
         createdAt: now(),
+        updatedAt: now(),
       },
     ]
 
