@@ -8,4 +8,16 @@ export default defineConfig({
     port: 3000,
   },
   plugins: [tsConfigPaths(), tanstackStart(), viteReact()],
+  // Externalize server-only modules for browser builds
+  ssr: {
+    noExternal: ['@tanstack/react-start'],
+  },
+  optimizeDeps: {
+    exclude: ['bun:sqlite'],
+  },
+  build: {
+    rollupOptions: {
+      external: ['bun:sqlite'],
+    },
+  },
 })

@@ -10,7 +10,7 @@
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "bun scripts/migrate.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "seed": "bun scripts/seed-test-data.ts",
