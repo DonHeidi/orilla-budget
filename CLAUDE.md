@@ -626,46 +626,100 @@ const getUsersFn = createServerFn({ method: 'GET' }).handler(async () => {
 })
 ```
 
-**Calling Server Functions**: Server functions should be called in one of these ways:
-
-1. **In Route Loaders**: Use the loader option in `createFileRoute()` to fetch data during navigation
-2. **From Client Components**: Use `useQuery` for data fetching or `useMutation` for mutations
+**Parameters & Validation**: Server functions accept a single `data` parameter. Use `.inputValidator()` for type safety and runtime validation:
 
 ```typescript
-// ✅ Method 1: Route loader (preferred for data fetching)
+import { createServerFn } from '@tanstack/react-start'
+import { z } from 'zod'
+
+// Basic parameters with inline validation
+export const greetUserFn = createServerFn({ method: 'GET' })
+  .inputValidator((data: { name: string }) => data)
+  .handler(async ({ data }) => {
+    return `Hello, ${data.name}!`
+  })
+
+// Validation with Zod (recommended)
+const CreateUserSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+})
+
+export const createUserFn = createServerFn({ method: 'POST' })
+  .inputValidator(CreateUserSchema)
+  .handler(async ({ data }) => {
+    // data is fully typed and validated
+    return userRepository.create(data)
+  })
+
+// Calling with parameters - ALWAYS use { data: ... } wrapper
+await greetUserFn({ data: { name: 'John' } })
+await createUserFn({ data: { name: 'Jane', email: 'jane@example.com' } })
+```
+
+**Where to Call Server Functions**:
+
+1. **Route Loaders** - Perfect for data fetching
+2. **Components** - Use with `useServerFn()` hook
+3. **Other server functions** - Compose server logic
+4. **Event handlers** - Handle form submissions, clicks, etc.
+
+```typescript
+// ✅ Method 1: Route loader (preferred for initial data)
 export const Route = createFileRoute('/users')({
   component: UsersPage,
   loader: () => getUsersFn(),
 })
 
-// ✅ Method 2: Client-side queries with useQuery
+// ✅ Method 2: useServerFn hook in components (RECOMMENDED)
+import { useServerFn } from '@tanstack/react-start'
+
 function UsersPage() {
+  const getUsers = useServerFn(getUsersFn)
+  const createUser = useServerFn(createUserFn)
+
   const { data } = useQuery({
     queryKey: ['users'],
-    queryFn: () => getUsersFn(),
+    queryFn: () => getUsers(),
   })
 
-  // ✅ Method 3: Mutations with useMutation (recommended)
-  const updateMutation = useMutation({
-    mutationFn: (data: User) => updateUserFn({ data }),
+  const createMutation = useMutation({
+    mutationFn: (userData: CreateUser) => createUser({ data: userData }),
     onSuccess: () => {
-      router.invalidate() // Refresh cached data
+      router.invalidate()
     },
   })
 
-  const handleUpdate = () => {
-    updateMutation.mutate(updatedUser)
+  const handleCreate = () => {
+    createMutation.mutate({ name: 'New User', email: 'new@example.com' })
   }
+}
 
-  // ⚠️ Direct calls work but lack loading states and error handling
-  const handleUpdateDirect = async () => {
-    await updateUserFn({ data: updatedUser })
-    router.invalidate() // Manual cache invalidation required
-  }
+// ⚠️ Direct calls work but useServerFn is preferred in components
+const handleCreateDirect = async () => {
+  await createUserFn({ data: { name: 'User', email: 'user@example.com' } })
+  router.invalidate()
 }
 ```
 
-**Note**: While server functions can be called directly (like `await updateUserFn(...)`), using `useMutation` is preferred as it provides loading states, error handling, and better integration with TanStack Query's caching system.
+**Accessing Request Context**: To access cookies, headers, etc., use the helper functions from `@tanstack/react-start/server`:
+
+```typescript
+import { createServerFn } from '@tanstack/react-start'
+import { getCookie, getRequest, getRequestHeader } from '@tanstack/react-start/server'
+
+const getSessionFn = createServerFn({ method: 'GET' }).handler(async () => {
+  // Use getCookie for simple cookie access
+  const token = getCookie('session-token')
+
+  // Or use getRequest() for full request access
+  const request = getRequest()
+  const authHeader = request.headers.get('authorization')
+
+  // Validate session...
+  return { user }
+})
+```
 
 **Note on Serialization**: Since all date fields in our schemas use `z.string().datetime()` (ISO strings, not Date objects), data from repositories is already serializable. There's no need to use `JSON.parse(JSON.stringify())` for serialization.
 
