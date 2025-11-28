@@ -15,6 +15,11 @@ import {
   createTimeSheetSchema,
   updateTimeSheetSchema,
   timeSheetEntrySchema,
+  contactSchema,
+  createContactSchema,
+  invitationSchema,
+  createInvitationSchema,
+  invitationStatusSchema,
 } from './schemas'
 
 describe('userSchema', () => {
@@ -1181,6 +1186,413 @@ describe('timeSheetEntrySchema', () => {
     const result = timeSheetEntrySchema.safeParse({
       id: 'tse-1',
       timeSheetId: 'sheet-1',
+    })
+
+    expect(result.success).toBe(false)
+  })
+})
+
+// ============================================
+// Contact & Invitation Schema Tests
+// ============================================
+
+describe('contactSchema', () => {
+  describe('valid data', () => {
+    it('should accept valid contact data', () => {
+      const validContact = {
+        id: 'contact-1',
+        ownerId: 'user-1',
+        email: 'contact@example.com',
+        createdAt: new Date().toISOString(),
+      }
+
+      const result = contactSchema.safeParse(validContact)
+      expect(result.success).toBe(true)
+    })
+
+    it('should accept contact with userId (linked to account)', () => {
+      const result = contactSchema.safeParse({
+        id: 'contact-1',
+        ownerId: 'user-1',
+        userId: 'user-2',
+        email: 'contact@example.com',
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.userId).toBe('user-2')
+      }
+    })
+
+    it('should accept contact with piiId (personal info)', () => {
+      const result = contactSchema.safeParse({
+        id: 'contact-1',
+        ownerId: 'user-1',
+        piiId: 'pii-1',
+        email: 'contact@example.com',
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.piiId).toBe('pii-1')
+      }
+    })
+
+    it('should accept contact with organisationId', () => {
+      const result = contactSchema.safeParse({
+        id: 'contact-1',
+        ownerId: 'user-1',
+        email: 'contact@example.com',
+        organisationId: 'org-1',
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.organisationId).toBe('org-1')
+      }
+    })
+
+    it('should accept null values for optional fields', () => {
+      const result = contactSchema.safeParse({
+        id: 'contact-1',
+        ownerId: 'user-1',
+        userId: null,
+        piiId: null,
+        email: 'contact@example.com',
+        organisationId: null,
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(true)
+    })
+  })
+
+  describe('validation errors', () => {
+    it('should reject invalid email format', () => {
+      const result = contactSchema.safeParse({
+        id: 'contact-1',
+        ownerId: 'user-1',
+        email: 'not-an-email',
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe('Invalid email address')
+      }
+    })
+
+    it('should reject missing ownerId', () => {
+      const result = contactSchema.safeParse({
+        id: 'contact-1',
+        email: 'contact@example.com',
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject missing email', () => {
+      const result = contactSchema.safeParse({
+        id: 'contact-1',
+        ownerId: 'user-1',
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject invalid datetime format for createdAt', () => {
+      const result = contactSchema.safeParse({
+        id: 'contact-1',
+        ownerId: 'user-1',
+        email: 'contact@example.com',
+        createdAt: '2024-01-01', // Not ISO datetime
+      })
+
+      expect(result.success).toBe(false)
+    })
+  })
+})
+
+describe('createContactSchema', () => {
+  it('should omit id, createdAt, userId, and piiId fields', () => {
+    const validCreateContact = {
+      ownerId: 'user-1',
+      email: 'contact@example.com',
+    }
+
+    const result = createContactSchema.safeParse(validCreateContact)
+    expect(result.success).toBe(true)
+  })
+
+  it('should accept organisationId', () => {
+    const result = createContactSchema.safeParse({
+      ownerId: 'user-1',
+      email: 'contact@example.com',
+      organisationId: 'org-1',
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.organisationId).toBe('org-1')
+    }
+  })
+})
+
+describe('invitationStatusSchema', () => {
+  it('should accept valid status values', () => {
+    const validStatuses = ['pending', 'accepted', 'expired']
+
+    validStatuses.forEach((status) => {
+      const result = invitationStatusSchema.safeParse(status)
+      expect(result.success).toBe(true)
+    })
+  })
+
+  it('should reject invalid status', () => {
+    const result = invitationStatusSchema.safeParse('invalid')
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('invitationSchema', () => {
+  describe('valid data', () => {
+    it('should accept valid invitation data', () => {
+      const validInvitation = {
+        id: 'inv-1',
+        contactId: 'contact-1',
+        invitedByUserId: 'user-1',
+        code: 'abc123def456',
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'pending' as const,
+        createdAt: new Date().toISOString(),
+      }
+
+      const result = invitationSchema.safeParse(validInvitation)
+      expect(result.success).toBe(true)
+    })
+
+    it('should accept invitation with projectId', () => {
+      const result = invitationSchema.safeParse({
+        id: 'inv-1',
+        contactId: 'contact-1',
+        invitedByUserId: 'user-1',
+        projectId: 'proj-1',
+        code: 'abc123def456',
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.projectId).toBe('proj-1')
+      }
+    })
+
+    it('should accept invitation with role', () => {
+      const result = invitationSchema.safeParse({
+        id: 'inv-1',
+        contactId: 'contact-1',
+        invitedByUserId: 'user-1',
+        role: 'viewer',
+        code: 'abc123def456',
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.role).toBe('viewer')
+      }
+    })
+
+    it('should accept all valid project roles', () => {
+      const validRoles = ['owner', 'expert', 'reviewer', 'client', 'viewer'] as const
+
+      validRoles.forEach((role) => {
+        const result = invitationSchema.safeParse({
+          id: 'inv-1',
+          contactId: 'contact-1',
+          invitedByUserId: 'user-1',
+          role,
+          code: 'abc123def456',
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+        })
+
+        expect(result.success).toBe(true)
+      })
+    })
+
+    it('should accept all valid status values', () => {
+      const validStatuses = ['pending', 'accepted', 'expired'] as const
+
+      validStatuses.forEach((status) => {
+        const result = invitationSchema.safeParse({
+          id: 'inv-1',
+          contactId: 'contact-1',
+          invitedByUserId: 'user-1',
+          code: 'abc123def456',
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          status,
+          createdAt: new Date().toISOString(),
+        })
+
+        expect(result.success).toBe(true)
+      })
+    })
+
+    it('should default status to pending', () => {
+      const result = invitationSchema.safeParse({
+        id: 'inv-1',
+        contactId: 'contact-1',
+        invitedByUserId: 'user-1',
+        code: 'abc123def456',
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.status).toBe('pending')
+      }
+    })
+
+    it('should accept null values for optional fields', () => {
+      const result = invitationSchema.safeParse({
+        id: 'inv-1',
+        contactId: 'contact-1',
+        invitedByUserId: 'user-1',
+        projectId: null,
+        role: null,
+        code: 'abc123def456',
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(true)
+    })
+  })
+
+  describe('validation errors', () => {
+    it('should reject missing contactId', () => {
+      const result = invitationSchema.safeParse({
+        id: 'inv-1',
+        invitedByUserId: 'user-1',
+        code: 'abc123def456',
+        expiresAt: new Date().toISOString(),
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject missing invitedByUserId', () => {
+      const result = invitationSchema.safeParse({
+        id: 'inv-1',
+        contactId: 'contact-1',
+        code: 'abc123def456',
+        expiresAt: new Date().toISOString(),
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject missing code', () => {
+      const result = invitationSchema.safeParse({
+        id: 'inv-1',
+        contactId: 'contact-1',
+        invitedByUserId: 'user-1',
+        expiresAt: new Date().toISOString(),
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject invalid status', () => {
+      const result = invitationSchema.safeParse({
+        id: 'inv-1',
+        contactId: 'contact-1',
+        invitedByUserId: 'user-1',
+        code: 'abc123def456',
+        expiresAt: new Date().toISOString(),
+        status: 'invalid_status',
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject invalid role', () => {
+      const result = invitationSchema.safeParse({
+        id: 'inv-1',
+        contactId: 'contact-1',
+        invitedByUserId: 'user-1',
+        role: 'invalid_role',
+        code: 'abc123def456',
+        expiresAt: new Date().toISOString(),
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject invalid datetime format for expiresAt', () => {
+      const result = invitationSchema.safeParse({
+        id: 'inv-1',
+        contactId: 'contact-1',
+        invitedByUserId: 'user-1',
+        code: 'abc123def456',
+        expiresAt: '2024-01-01', // Not ISO datetime
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      })
+
+      expect(result.success).toBe(false)
+    })
+  })
+})
+
+describe('createInvitationSchema', () => {
+  it('should accept minimal valid data', () => {
+    const result = createInvitationSchema.safeParse({
+      contactId: 'contact-1',
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it('should accept projectId and role', () => {
+    const result = createInvitationSchema.safeParse({
+      contactId: 'contact-1',
+      projectId: 'proj-1',
+      role: 'viewer',
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.projectId).toBe('proj-1')
+      expect(result.data.role).toBe('viewer')
+    }
+  })
+
+  it('should reject missing contactId', () => {
+    const result = createInvitationSchema.safeParse({
+      projectId: 'proj-1',
     })
 
     expect(result.success).toBe(false)
