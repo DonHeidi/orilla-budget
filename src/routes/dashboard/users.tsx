@@ -39,7 +39,7 @@ const createUserFn = createServerFn({ method: 'POST' })
     return await userRepository.create(user)
   })
 
-export const Route = createFileRoute('/admin/users')({
+export const Route = createFileRoute('/dashboard/users')({
   component: UsersPage,
   loader: () => getUsersDataFn(),
 })
@@ -82,7 +82,7 @@ function UsersPage() {
         data={users}
         getRowId={(row) => row.id}
         onRowClick={(row) => {
-          navigate({ to: '/admin/users/$id', params: { id: row.original.id } })
+          navigate({ to: '/dashboard/users/$id', params: { id: row.original.id } })
         }}
       />
 
@@ -113,7 +113,7 @@ function AddUserSheet() {
       })
       setOpen(false)
       form.reset()
-      navigate({ to: '/admin/users' })
+      navigate({ to: '/dashboard/users' })
     },
   })
 

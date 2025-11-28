@@ -61,7 +61,7 @@ const getUserDetailDataFn = createServerFn({ method: 'GET' }).handler(
 )
 
 // Route definition
-export const Route = createFileRoute('/admin/users/$id')({
+export const Route = createFileRoute('/dashboard/users/$id')({
   component: UserDetailPage,
   loader: async () => {
     return await getUserDetailDataFn()
@@ -87,7 +87,7 @@ function UserDetailPage() {
         open={true}
         onOpenChange={(open) => {
           if (!open) {
-            navigate({ to: '/admin/users' })
+            navigate({ to: '/dashboard/users' })
           }
         }}
       >
@@ -104,7 +104,7 @@ function UserDetailPage() {
           <div className="flex gap-3 justify-end pt-6 border-t">
             <Button
               variant="outline"
-              onClick={() => navigate({ to: '/admin/users' })}
+              onClick={() => navigate({ to: '/dashboard/users' })}
             >
               Back to List
             </Button>
@@ -156,7 +156,7 @@ function UserDetailPage() {
       await deleteUserFn({ data: { id: user.id } })
       await router.invalidate()
       setShowDeleteConfirm(false)
-      navigate({ to: '/admin/users' })
+      navigate({ to: '/dashboard/users' })
     } catch (error) {
       console.error('Failed to delete user:', error)
     }
@@ -167,7 +167,7 @@ function UserDetailPage() {
       open={true}
       onOpenChange={(open) => {
         if (!open) {
-          navigate({ to: '/admin/users' })
+          navigate({ to: '/dashboard/users' })
         }
       }}
     >
@@ -251,7 +251,7 @@ function UserDetailPage() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => navigate({ to: '/admin/users' })}
+            onClick={() => navigate({ to: '/dashboard/users' })}
           >
             Close
           </Button>
