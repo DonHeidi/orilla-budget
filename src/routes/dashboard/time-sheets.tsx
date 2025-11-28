@@ -48,8 +48,8 @@ import { CheckCircle, XCircle, LayoutGrid, Table as TableIcon } from 'lucide-rea
 import { TabNavigation } from '@/components/TabNavigation'
 
 const timeTabs = [
-  { label: 'Time Entries', href: '/expert/time-entries' },
-  { label: 'Time Sheets', href: '/expert/time-sheets' },
+  { label: 'Time Entries', href: '/dashboard/time-entries' },
+  { label: 'Time Sheets', href: '/dashboard/time-sheets' },
 ]
 
 // Server Functions
@@ -114,7 +114,7 @@ const addEntriesToSheetFn = createServerFn({ method: 'POST' })
     return await timeSheetRepository.addEntries(data.sheetId, data.entryIds)
   })
 
-export const Route = createFileRoute('/expert/time-sheets')({
+export const Route = createFileRoute('/dashboard/time-sheets')({
   component: TimeSheetsPage,
   loader: () => getAllDataFn(),
 })
@@ -184,7 +184,7 @@ function TimeSheetsPage() {
       cell: ({ getValue, row }) => (
         <div className="flex items-center gap-2">
           <Link
-            to="/expert/time-sheets/$id"
+            to="/dashboard/time-sheets/$id"
             params={{ id: row.original.id }}
             className="font-medium hover:underline"
           >

@@ -36,8 +36,8 @@ import {
 import { TabNavigation } from '@/components/TabNavigation'
 
 const timeTabs = [
-  { label: 'Time Entries', href: '/expert/time-entries' },
-  { label: 'Time Sheets', href: '/expert/time-sheets' },
+  { label: 'Time Entries', href: '/dashboard/time-entries' },
+  { label: 'Time Sheets', href: '/dashboard/time-sheets' },
 ]
 
 // Server functions
@@ -88,7 +88,7 @@ const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
 )
 
 // Route definition
-export const Route = createFileRoute('/expert/time-entries')({
+export const Route = createFileRoute('/dashboard/time-entries')({
   component: TimeEntriesPage,
   loader: () => getAllDataFn(),
 })
@@ -521,7 +521,7 @@ function TimeEntriesPage() {
           const target = event.target as HTMLElement
           if (target.closest('[data-editable]')) return
           navigate({
-            to: '/expert/time-entries/$id',
+            to: '/dashboard/time-entries/$id',
             params: { id: row.original.id },
           })
         }}

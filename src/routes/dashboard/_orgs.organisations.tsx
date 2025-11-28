@@ -31,7 +31,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 
-const parentRouteApi = getRouteApi('/expert/_orgs')
+const parentRouteApi = getRouteApi('/dashboard/_orgs')
 
 const createOrganisationFn = createServerFn({ method: 'POST' })
   .inputValidator(createOrganisationSchema)
@@ -62,7 +62,7 @@ const createOrganisationFn = createServerFn({ method: 'POST' })
   })
 
 // Route definition
-export const Route = createFileRoute('/expert/_orgs/organisations')({
+export const Route = createFileRoute('/dashboard/_orgs/organisations')({
   component: OrganisationsPage,
 })
 
@@ -85,10 +85,10 @@ function OrganisationsPage() {
   const navigate = useNavigate({ from: Route.fullPath })
   const matchRoute = useMatchRoute()
   const isOrganisations = matchRoute({
-    to: '/expert/organisations',
+    to: '/dashboard/organisations',
     fuzzy: true,
   })
-  const isAccounts = matchRoute({ to: '/expert/accounts', fuzzy: true })
+  const isAccounts = matchRoute({ to: '/dashboard/accounts', fuzzy: true })
 
   const organisationsWithDetails = useMemo(() => {
     return parentData.organisations.map((org: any) => {
@@ -240,7 +240,7 @@ function OrganisationsPage() {
 
       <div className="flex gap-2 mb-6 border-b">
         <Link
-          to="/expert/organisations"
+          to="/dashboard/organisations"
           className={`px-4 py-2 font-medium transition-colors ${
             isOrganisations
               ? 'border-b-2 border-blue-600 text-blue-600'
@@ -251,7 +251,7 @@ function OrganisationsPage() {
           Organisations ({parentData.organisations.length})
         </Link>
         <Link
-          to="/expert/accounts"
+          to="/dashboard/accounts"
           className={`px-4 py-2 font-medium transition-colors ${
             isAccounts
               ? 'border-b-2 border-blue-600 text-blue-600'
@@ -273,7 +273,7 @@ function OrganisationsPage() {
         getRowId={(row) => row.id}
         onRowClick={(row) => {
           navigate({
-            to: '/expert/organisations/$id',
+            to: '/dashboard/organisations/$id',
             params: { id: row.original.id },
           })
         }}
@@ -308,7 +308,7 @@ function AddOrganisationSheet() {
       })
       setOpen(false)
       form.reset()
-      navigate({ to: '/expert/organisations' })
+      navigate({ to: '/dashboard/organisations' })
     },
   })
 

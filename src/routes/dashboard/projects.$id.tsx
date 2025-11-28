@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/sheet'
 
 // Use parent route for data (follows pattern from time-entries.$id.tsx)
-const parentRouteApi = getRouteApi('/expert/projects')
+const parentRouteApi = getRouteApi('/dashboard/projects')
 
 // Helper functions
 function formatDateTime(isoString: string): string {
@@ -66,7 +66,7 @@ const deleteProjectFn = createServerFn({ method: 'POST' }).handler(
 )
 
 // Route definition - no loader, uses parent route data
-export const Route = createFileRoute('/expert/projects/$id')({
+export const Route = createFileRoute('/dashboard/projects/$id')({
   component: ProjectDetailPage,
 })
 
@@ -92,7 +92,7 @@ function ProjectDetailPage() {
         open={true}
         onOpenChange={(open) => {
           if (!open) {
-            navigate({ to: '/expert/projects' })
+            navigate({ to: '/dashboard/projects' })
           }
         }}
       >
@@ -109,7 +109,7 @@ function ProjectDetailPage() {
           <div className="flex gap-3 justify-end pt-6 border-t">
             <Button
               variant="outline"
-              onClick={() => navigate({ to: '/expert/projects' })}
+              onClick={() => navigate({ to: '/dashboard/projects' })}
             >
               Back to List
             </Button>
@@ -175,7 +175,7 @@ function ProjectDetailPage() {
       console.log('Delete completed, invalidating router')
       await router.invalidate()
       setShowDeleteConfirm(false)
-      navigate({ to: '/expert/projects' })
+      navigate({ to: '/dashboard/projects' })
     } catch (error) {
       console.error('Failed to delete project:', error)
     }
@@ -186,7 +186,7 @@ function ProjectDetailPage() {
       open={true}
       onOpenChange={(open) => {
         if (!open) {
-          navigate({ to: '/expert/projects' })
+          navigate({ to: '/dashboard/projects' })
         }
       }}
     >
@@ -416,7 +416,7 @@ function ProjectDetailPage() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => navigate({ to: '/expert/projects' })}
+            onClick={() => navigate({ to: '/dashboard/projects' })}
           >
             Close
           </Button>
