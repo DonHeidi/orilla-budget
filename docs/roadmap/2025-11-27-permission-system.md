@@ -1,8 +1,9 @@
 # Permission System
 
 **Date:** 2025-11-27
-**Status:** Planned
+**Status:** Completed
 **Category:** Security & Authorization
+**Completed:** 2025-11-28
 **Parent:** [User Management & RBAC](./2025-11-27-user-management-rbac.md)
 
 ## Overview

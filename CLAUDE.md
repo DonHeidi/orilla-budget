@@ -1057,9 +1057,10 @@ Immediate action items.
 
 | Document | Status | Description |
 |----------|--------|-------------|
-| [User Management & RBAC](docs/roadmap/2025-11-27-user-management-rbac.md) | Planned | Authentication, authorization, unified identity model |
-| [Permission System](docs/roadmap/2025-11-27-permission-system.md) | Planned | Granular permissions, role mappings |
-| [Unified Dashboard](docs/roadmap/2025-11-27-unified-dashboard.md) | Planned | Merge expert/admin/portal into single dashboard |
-| [Account & Contact Features](docs/roadmap/2025-11-27-account-contact-features.md) | Planned | Invitation flow, contact management |
+| [User Management & RBAC](docs/roadmap/2025-11-27-user-management-rbac.md) | Completed | Authentication, authorization, unified identity model |
+| [Permission System](docs/roadmap/2025-11-27-permission-system.md) | Completed | Granular permissions, role mappings |
+| [Unified Dashboard](docs/roadmap/2025-11-27-unified-dashboard.md) | Completed | Merge expert/admin/portal into single dashboard |
+| [Account & Contact Features](docs/roadmap/2025-11-27-account-contact-features.md) | Completed | Invitation flow, contact management |
+| [User Management Enhancements](docs/roadmap/2025-11-28-user-management-enhancements.md) | Planned | Email integration, 2FA, OAuth, audit logging, GDPR |
 | [Dashboard Improvements](docs/roadmap/2025-11-22-dashboard-improvements.md) | In Progress | Bug fixes, UI/UX improvements |
 | [Focus Timer & Mindfulness](docs/roadmap/2025-11-25-focus-timer-mindfulness.md) | Planned | Focus timer feature |
