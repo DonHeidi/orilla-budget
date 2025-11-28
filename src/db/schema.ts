@@ -148,3 +148,41 @@ export const timeSheetEntries = sqliteTable('time_sheet_entries', {
     .references(() => timeEntries.id, { onDelete: 'cascade' }),
   createdAt: text('created_at').notNull(),
 })
+
+// Contacts table - personal address book for each user
+export const contacts = sqliteTable('contacts', {
+  id: text('id').primaryKey(),
+  ownerId: text('owner_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  userId: text('user_id').references(() => users.id, { onDelete: 'set null' }), // If contact has an account
+  piiId: text('pii_id').references(() => pii.id, { onDelete: 'set null' }), // Only if NOT linked to user
+  email: text('email').notNull(), // For invitations
+  organisationId: text('organisation_id').references(() => organisations.id, {
+    onDelete: 'set null',
+  }),
+  createdAt: text('created_at').notNull(),
+})
+
+// Invitations table - project invitations sent to contacts
+export const invitations = sqliteTable('invitations', {
+  id: text('id').primaryKey(),
+  contactId: text('contact_id')
+    .notNull()
+    .references(() => contacts.id, { onDelete: 'cascade' }),
+  invitedByUserId: text('invited_by_user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  projectId: text('project_id').references(() => projects.id, {
+    onDelete: 'cascade',
+  }), // Optional: invite to specific project
+  role: text('role', {
+    enum: ['owner', 'expert', 'reviewer', 'client', 'viewer'],
+  }), // Role to assign when accepted
+  code: text('code').notNull().unique(),
+  expiresAt: text('expires_at').notNull(),
+  status: text('status', { enum: ['pending', 'accepted', 'expired'] })
+    .notNull()
+    .default('pending'),
+  createdAt: text('created_at').notNull(),
+})
