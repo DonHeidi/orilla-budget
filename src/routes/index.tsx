@@ -19,7 +19,7 @@ function Home() {
 
         <div className="grid md:grid-cols-2 gap-4">
           <Link
-            to="/expert"
+            to="/dashboard"
             className="block p-8 bg-card text-card-foreground rounded-lg shadow-md hover:shadow-lg transition-shadow border-2 border-border hover:border-primary"
           >
             <h2 className="text-2xl font-semibold mb-2">Expert Dashboard</h2>
