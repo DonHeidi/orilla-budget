@@ -1,8 +1,43 @@
 import { z } from 'zod'
 
-// User Schema
+// System role schema - for platform administrators
+export const systemRoleSchema = z.enum(['super_admin', 'admin'])
+export type SystemRole = z.infer<typeof systemRoleSchema>
+
+// Project role schema - for project-scoped access
+export const projectRoleSchema = z.enum([
+  'owner',
+  'expert',
+  'reviewer',
+  'client',
+  'viewer',
+])
+export type ProjectRole = z.infer<typeof projectRoleSchema>
+
+// PII Schema - GDPR compliant personal data
+export const piiSchema = z.object({
+  id: z.string(),
+  name: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+})
+
+export const createPiiSchema = piiSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+})
+
+export type Pii = z.infer<typeof piiSchema>
+export type CreatePii = z.infer<typeof createPiiSchema>
+
+// User Schema - unified identity model
 export const userSchema = z.object({
   id: z.string(),
+  piiId: z.string().nullable().optional(),
   handle: z
     .string()
     .min(1, 'Handle is required')
@@ -11,10 +46,90 @@ export const userSchema = z.object({
       'Handle can only contain letters, numbers, underscores, and hyphens'
     ),
   email: z.string().email('Invalid email address'),
+  passwordHash: z.string().nullable().optional(),
+  role: systemRoleSchema.nullable().optional(),
+  isActive: z.boolean().default(true),
+  lastLoginAt: z.string().datetime().nullable().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+})
+
+export const createUserSchema = userSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastLoginAt: true,
+})
+
+// Session Schema
+export const sessionSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  token: z.string(),
+  expiresAt: z.string().datetime(),
   createdAt: z.string().datetime(),
 })
 
-export const createUserSchema = userSchema.omit({ id: true, createdAt: true })
+export const createSessionSchema = sessionSchema.omit({
+  id: true,
+  createdAt: true,
+})
+
+export type Session = z.infer<typeof sessionSchema>
+export type CreateSession = z.infer<typeof createSessionSchema>
+
+// Project Member Schema - project-scoped access control
+export const projectMemberSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  userId: z.string(),
+  role: projectRoleSchema,
+  createdAt: z.string().datetime(),
+})
+
+export const createProjectMemberSchema = projectMemberSchema.omit({
+  id: true,
+  createdAt: true,
+})
+
+export type ProjectMember = z.infer<typeof projectMemberSchema>
+export type CreateProjectMember = z.infer<typeof createProjectMemberSchema>
+
+// Login Schema - for authentication form
+export const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+})
+
+export type LoginCredentials = z.infer<typeof loginSchema>
+
+// Registration Schema - for new user signup
+export const registrationSchema = z
+  .object({
+    handle: z
+      .string()
+      .min(3, 'Handle must be at least 3 characters')
+      .max(30, 'Handle must be at most 30 characters')
+      .regex(
+        /^[a-zA-Z0-9_-]+$/,
+        'Handle can only contain letters, numbers, underscores, and hyphens'
+      ),
+    email: z.string().email('Invalid email address'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+      .regex(/[0-9]/, 'Password must contain at least one number'),
+    confirmPassword: z.string(),
+    name: z.string().optional(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  })
+
+export type RegistrationData = z.infer<typeof registrationSchema>
 
 // Organisation Schema
 export const organisationSchema = z.object({
@@ -198,6 +313,8 @@ export const timeSheetEntrySchema = z.object({
 // Type exports
 export type User = z.infer<typeof userSchema>
 export type CreateUser = z.infer<typeof createUserSchema>
+// Note: Pii, CreatePii, Session, CreateSession, ProjectMember, CreateProjectMember,
+// LoginCredentials, and RegistrationData types are exported with their schemas above
 export type Organisation = z.infer<typeof organisationSchema>
 export type CreateOrganisation = z.infer<typeof createOrganisationSchema>
 export type Account = z.infer<typeof accountSchema>
@@ -217,3 +334,23 @@ export const addEntriesToSheetSchema = z.object({
   sheetId: z.string().min(1, 'Sheet ID is required'),
   entryIds: z.array(z.string()).min(1, 'At least one entry is required'),
 })
+
+// Auth session types - for authenticated user context
+export interface AuthenticatedUser {
+  id: string
+  handle: string
+  email: string
+  role: SystemRole | null
+  isActive: boolean
+}
+
+export interface ProjectMembership {
+  projectId: string
+  projectName: string
+  role: ProjectRole
+}
+
+export interface AuthSession {
+  user: AuthenticatedUser
+  projectMemberships: ProjectMembership[]
+}

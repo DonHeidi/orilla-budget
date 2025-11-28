@@ -20,11 +20,14 @@ import {
 describe('userSchema', () => {
   describe('valid data', () => {
     it('should accept valid user data', () => {
+      const timestamp = new Date().toISOString()
       const validUser = {
         id: 'user-1',
         handle: 'john_doe',
         email: 'john@example.com',
-        createdAt: new Date().toISOString(),
+        isActive: true,
+        createdAt: timestamp,
+        updatedAt: timestamp,
       }
 
       const result = userSchema.safeParse(validUser)
@@ -33,13 +36,16 @@ describe('userSchema', () => {
 
     it('should accept handle with letters, numbers, underscores, and hyphens', () => {
       const validHandles = ['user123', 'user_123', 'user-123', 'User-Name_01']
+      const timestamp = new Date().toISOString()
 
       validHandles.forEach((handle) => {
         const result = userSchema.safeParse({
           id: 'user-1',
           handle,
           email: 'user@example.com',
-          createdAt: new Date().toISOString(),
+          isActive: true,
+          createdAt: timestamp,
+          updatedAt: timestamp,
         })
         expect(result.success).toBe(true)
       })
