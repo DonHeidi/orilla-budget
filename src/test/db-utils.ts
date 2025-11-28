@@ -29,23 +29,31 @@ export async function cleanDatabase(db: ReturnType<typeof createTestDb>['db']) {
   await db.delete(schema.timeSheetEntries)
   await db.delete(schema.timeSheets)
   await db.delete(schema.timeEntries)
+  await db.delete(schema.projectMembers)
   await db.delete(schema.projects)
   await db.delete(schema.accounts)
   await db.delete(schema.organisations)
+  await db.delete(schema.sessions)
   await db.delete(schema.users)
+  await db.delete(schema.pii)
 }
 
 /**
  * Factory functions for creating test data
  */
 export const testFactories = {
-  user: (overrides?: Partial<typeof schema.users.$inferInsert>) => ({
-    id: Math.random().toString(36).substring(2, 15),
-    handle: 'testuser',
-    email: 'test@example.com',
-    createdAt: new Date().toISOString(),
-    ...overrides,
-  }),
+  user: (overrides?: Partial<typeof schema.users.$inferInsert>) => {
+    const timestamp = new Date().toISOString()
+    return {
+      id: Math.random().toString(36).substring(2, 15),
+      handle: 'testuser',
+      email: 'test@example.com',
+      isActive: true,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      ...overrides,
+    }
+  },
 
   organisation: (
     overrides?: Partial<typeof schema.organisations.$inferInsert>
@@ -107,6 +115,36 @@ export const testFactories = {
     updatedAt: new Date().toISOString(),
     ...overrides,
   }),
+
+  session: (
+    userId: string,
+    overrides?: Partial<typeof schema.sessions.$inferInsert>
+  ) => {
+    const now = new Date()
+    const expiry = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    return {
+      id: Math.random().toString(36).substring(2, 15),
+      userId,
+      token: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      expiresAt: expiry.toISOString(),
+      createdAt: now.toISOString(),
+      ...overrides,
+    }
+  },
+
+  pii: (overrides?: Partial<typeof schema.pii.$inferInsert>) => {
+    const timestamp = new Date().toISOString()
+    return {
+      id: Math.random().toString(36).substring(2, 15),
+      name: 'Test User',
+      phone: null,
+      address: null,
+      notes: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      ...overrides,
+    }
+  },
 }
 
 /**
@@ -179,5 +217,28 @@ export const seed = {
       .values(testFactories.timeSheet(data))
       .returning()
     return sheet
+  },
+
+  async session(
+    db: ReturnType<typeof createTestDb>['db'],
+    userId: string,
+    data?: Partial<typeof schema.sessions.$inferInsert>
+  ) {
+    const [session] = await db
+      .insert(schema.sessions)
+      .values(testFactories.session(userId, data))
+      .returning()
+    return session
+  },
+
+  async piiRecord(
+    db: ReturnType<typeof createTestDb>['db'],
+    data?: Partial<typeof schema.pii.$inferInsert>
+  ) {
+    const [record] = await db
+      .insert(schema.pii)
+      .values(testFactories.pii(data))
+      .returning()
+    return record
   },
 }
