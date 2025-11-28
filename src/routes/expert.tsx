@@ -1,5 +1,6 @@
-import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
+import { createFileRoute, Link, Outlet, redirect, useRouter } from '@tanstack/react-router'
+import { createServerFn, useServerFn } from '@tanstack/react-start'
+import { getCookie } from '@tanstack/react-start/server'
 import { useState, useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
@@ -16,6 +17,7 @@ import {
   ChevronUp,
   Building2,
   FileText,
+  LogOut,
 } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
@@ -24,6 +26,9 @@ import { organisationRepository } from '@/repositories/organisation.repository'
 import { accountRepository } from '@/repositories/account.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
+import { sessionRepository } from '@/repositories/session.repository'
+import { projectMemberRepository } from '@/repositories/projectMember.repository'
+import { SESSION_COOKIE_NAME } from '@/lib/auth.shared'
 import {
   quickTimeEntrySchema,
   createTimeEntrySchema,
@@ -31,6 +36,7 @@ import {
   type Account,
   type Project,
   type TimeEntry,
+  type AuthSession,
 } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import { useTheme } from '@/components/theme-provider'
@@ -70,6 +76,59 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
+// Helper to parse cookies
+function parseCookies(cookieHeader: string): Record<string, string> {
+  return cookieHeader.split('; ').reduce(
+    (acc, cookie) => {
+      const [key, value] = cookie.split('=')
+      if (key && value) acc[key] = value
+      return acc
+    },
+    {} as Record<string, string>
+  )
+}
+
+// Authentication Server Functions
+const getAuthSessionFn = createServerFn({ method: 'GET' }).handler(
+  async (): Promise<AuthSession | null> => {
+    const token = getCookie(SESSION_COOKIE_NAME)
+    if (!token) return null
+
+    const sessionData = await sessionRepository.findValidWithUser(token)
+    if (!sessionData) return null
+
+    const { user } = sessionData
+    if (!user.isActive) return null
+
+    const memberships = await projectMemberRepository.findByUserIdWithProjects(user.id)
+
+    return {
+      user: {
+        id: user.id,
+        handle: user.handle,
+        email: user.email,
+        role: user.role as 'super_admin' | 'admin' | null,
+        isActive: user.isActive,
+      },
+      projectMemberships: memberships.map((m) => ({
+        projectId: m.projectId,
+        projectName: m.projectName,
+        role: m.role,
+      })),
+    }
+  }
+)
+
+const logoutFn = createServerFn({ method: 'POST' }).handler(
+  async () => {
+    const token = getCookie(SESSION_COOKIE_NAME)
+    if (token) {
+      await sessionRepository.deleteByToken(token)
+    }
+    return { success: true }
+  }
+)
+
 // Server Functions
 const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
   const organisations = await organisationRepository.findAll()
@@ -86,13 +145,14 @@ const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
   }
 })
 
-const createOrganisationFn = createServerFn({ method: 'POST' }).handler(
-  async (data: {
+const createOrganisationFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: {
     name: string
     contactName: string
     contactEmail: string
     totalBudgetHours: number
-  }) => {
+  }) => data)
+  .handler(async ({ data }) => {
     const organisation: Organisation = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       name: data.name,
@@ -102,11 +162,11 @@ const createOrganisationFn = createServerFn({ method: 'POST' }).handler(
       createdAt: new Date().toISOString(),
     }
     return await organisationRepository.create(organisation)
-  }
-)
+  })
 
-const createAccountFn = createServerFn({ method: 'POST' }).handler(
-  async (data: { organisationId: string; name: string; email: string }) => {
+const createAccountFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: { organisationId: string; name: string; email: string }) => data)
+  .handler(async ({ data }) => {
     const accessCode = Math.random().toString(36).substring(2, 10).toUpperCase()
     const account: Account = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -117,17 +177,17 @@ const createAccountFn = createServerFn({ method: 'POST' }).handler(
       createdAt: new Date().toISOString(),
     }
     return await accountRepository.create(account)
-  }
-)
+  })
 
-const createProjectFn = createServerFn({ method: 'POST' }).handler(
-  async (data: {
+const createProjectFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: {
     organisationId: string
     name: string
     description: string
     category: 'budget' | 'fixed'
     budgetHours: number
-  }) => {
+  }) => data)
+  .handler(async ({ data }) => {
     const project: Project = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       organisationId: data.organisationId,
@@ -138,8 +198,7 @@ const createProjectFn = createServerFn({ method: 'POST' }).handler(
       createdAt: new Date().toISOString(),
     }
     return await projectRepository.create(project)
-  }
-)
+  })
 
 const createTimeEntryFn = createServerFn({ method: 'POST' })
   .inputValidator(quickTimeEntrySchema)
@@ -157,8 +216,9 @@ const createTimeEntryFn = createServerFn({ method: 'POST' })
     return await timeEntryRepository.create(timeEntry)
   })
 
-const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
-  async ({ data }: { data: TimeEntry }) => {
+const updateTimeEntryFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: TimeEntry) => data)
+  .handler(async ({ data }) => {
     console.log('Update data received:', data)
     const { id, createdAt, ...updateData } = data
     console.log('After destructuring - id:', id, 'updateData:', updateData)
@@ -174,11 +234,11 @@ const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
     }
 
     return await timeEntryRepository.update(id, cleanUpdateData)
-  }
-)
+  })
 
-const updateProjectFn = createServerFn({ method: 'POST' }).handler(
-  async ({ data }: { data: Project }) => {
+const updateProjectFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: Project) => data)
+  .handler(async ({ data }) => {
     const { id, createdAt, ...updateData } = data
 
     // Filter out undefined values
@@ -191,25 +251,43 @@ const updateProjectFn = createServerFn({ method: 'POST' }).handler(
     }
 
     return await projectRepository.update(id, cleanUpdateData)
-  }
-)
+  })
 
-const deleteProjectFn = createServerFn({ method: 'POST' }).handler(
-  async ({ id }: { id: string }) => {
-    return await projectRepository.delete(id)
-  }
-)
+const deleteProjectFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: { id: string }) => data)
+  .handler(async ({ data }) => {
+    return await projectRepository.delete(data.id)
+  })
 
 export const Route = createFileRoute('/expert')({
   component: ExpertDashboard,
+  // TODO: Re-enable auth check once login is working
+  // beforeLoad: async () => {
+  //   const session = await getAuthSessionFn()
+  //   if (!session) {
+  //     throw redirect({ to: '/login' })
+  //   }
+  //   return { auth: session }
+  // },
   loader: () => getAllDataFn(),
 })
 
 function ExpertDashboard() {
   const data = Route.useLoaderData()
+  const routeContext = Route.useRouteContext() as { auth?: AuthSession }
+  const auth = routeContext.auth
+  const router = useRouter()
   const [timeEntryDialogOpen, setTimeEntryDialogOpen] = useState(false)
   const [timeEntriesExpanded, setTimeEntriesExpanded] = useState(true)
   const { theme, setTheme } = useTheme()
+  const logout = useServerFn(logoutFn)
+
+  const handleLogout = async () => {
+    await logout()
+    // Clear the session cookie on client
+    document.cookie = `${SESSION_COOKIE_NAME}=; path=/; max-age=0`
+    router.navigate({ to: '/login' })
+  }
 
   return (
     <SidebarProvider>
@@ -317,7 +395,18 @@ function ExpertDashboard() {
                   )}
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={handleLogout} tooltip="Sign out">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign out</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
+            {auth && (
+              <div className="px-2 py-2 text-xs text-muted-foreground">
+                Signed in as {auth.user.handle}
+              </div>
+            )}
           </SidebarFooter>
         </Sidebar>
 
@@ -503,6 +592,7 @@ function QuickTimeEntryDialog({
   onOpenChange?: (open: boolean) => void
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const createTimeEntry = useServerFn(createTimeEntryFn)
 
   const form = useForm({
     defaultValues: {
@@ -515,7 +605,7 @@ function QuickTimeEntryDialog({
     },
     onSubmit: async ({ value }) => {
       const hours = timeToHours(value.time)
-      await createTimeEntryFn({
+      await createTimeEntry({
         data: {
           title: value.title,
           hours: hours,
@@ -793,6 +883,7 @@ function QuickTimeEntrySheet({
 }) {
   const [open, setOpen] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const createTimeEntry = useServerFn(createTimeEntryFn)
 
   const form = useForm({
     defaultValues: {
@@ -805,7 +896,7 @@ function QuickTimeEntrySheet({
     },
     onSubmit: async ({ value }) => {
       const hours = timeToHours(value.time)
-      await createTimeEntryFn({
+      await createTimeEntry({
         data: {
           title: value.title,
           hours: hours,
@@ -1057,6 +1148,7 @@ function TimeEntryDetailSheet({
 }) {
   const [editingField, setEditingField] = useState<string | null>(null)
   const [editedValues, setEditedValues] = useState<Partial<TimeEntry>>({})
+  const updateTimeEntry = useServerFn(updateTimeEntryFn)
 
   if (!entry) return null
 
@@ -1079,7 +1171,7 @@ function TimeEntryDetailSheet({
         createdAt: entry.createdAt,
         ...editedValues,
       }
-      await updateTimeEntryFn({ data: updatePayload as TimeEntry })
+      await updateTimeEntry({ data: updatePayload as TimeEntry })
       // Reset edited values
       setEditedValues({})
       // Reload the page to show updated data
@@ -1451,15 +1543,18 @@ function OrganisationForm() {
     contactEmail: '',
     totalBudgetHours: '',
   })
+  const createOrganisation = useServerFn(createOrganisationFn)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    await createOrganisationFn({
-      name: formData.name,
-      contactName: formData.contactName,
-      contactEmail: formData.contactEmail,
-      totalBudgetHours: parseFloat(formData.totalBudgetHours),
+    await createOrganisation({
+      data: {
+        name: formData.name,
+        contactName: formData.contactName,
+        contactEmail: formData.contactEmail,
+        totalBudgetHours: parseFloat(formData.totalBudgetHours),
+      },
     })
 
     window.location.reload()
@@ -1550,14 +1645,17 @@ function AccountForm({ organisations }: { organisations: any[] }) {
     name: '',
     email: '',
   })
+  const createAccount = useServerFn(createAccountFn)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    await createAccountFn({
-      organisationId: formData.organisationId,
-      name: formData.name,
-      email: formData.email,
+    await createAccount({
+      data: {
+        organisationId: formData.organisationId,
+        name: formData.name,
+        email: formData.email,
+      },
     })
 
     window.location.reload()
@@ -1770,6 +1868,8 @@ function ProjectsTab({ data }: { data: any }) {
 }
 
 function ProjectForm({ organisations }: { organisations: any[] }) {
+  const createProject = useServerFn(createProjectFn)
+
   const form = useForm({
     defaultValues: {
       organisationId: '',
@@ -1779,12 +1879,14 @@ function ProjectForm({ organisations }: { organisations: any[] }) {
       budgetHours: 0,
     },
     onSubmit: async ({ value }) => {
-      await createProjectFn({
-        organisationId: value.organisationId,
-        name: value.name,
-        description: value.description,
-        category: value.category,
-        budgetHours: value.budgetHours,
+      await createProject({
+        data: {
+          organisationId: value.organisationId,
+          name: value.name,
+          description: value.description,
+          category: value.category,
+          budgetHours: value.budgetHours,
+        },
       })
       window.location.reload()
     },
@@ -1995,6 +2097,8 @@ function ProjectDetailSheet({
   const [editingField, setEditingField] = useState<string | null>(null)
   const [editedValues, setEditedValues] = useState<Partial<Project>>({})
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const updateProject = useServerFn(updateProjectFn)
+  const deleteProject = useServerFn(deleteProjectFn)
 
   if (!project) return null
 
@@ -2014,7 +2118,7 @@ function ProjectDetailSheet({
         createdAt: project.createdAt,
         ...editedValues,
       }
-      await updateProjectFn({ data: updatePayload as Project })
+      await updateProject({ data: updatePayload as Project })
       setEditedValues({})
       window.location.reload()
     }
@@ -2026,7 +2130,7 @@ function ProjectDetailSheet({
   }
 
   const handleDelete = async () => {
-    await deleteProjectFn({ id: project.id })
+    await deleteProject({ data: { id: project.id } })
     setShowDeleteConfirm(false)
     onOpenChange(false)
     window.location.reload()
