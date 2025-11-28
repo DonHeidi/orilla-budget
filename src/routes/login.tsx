@@ -57,7 +57,7 @@ function LoginPage() {
         if (result.success && result.token) {
           // Set the session cookie on the client
           document.cookie = `${SESSION_COOKIE_NAME}=${result.token}; path=${SESSION_COOKIE_OPTIONS.path}; max-age=${SESSION_COOKIE_OPTIONS.maxAge}; SameSite=${SESSION_COOKIE_OPTIONS.sameSite}`
-          router.navigate({ to: '/expert' })
+          router.navigate({ to: '/dashboard' })
         } else {
           setError(result.error || 'Login failed')
         }
