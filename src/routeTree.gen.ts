@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PortalRouteImport } from './routes/portal'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ExpertRouteImport } from './routes/expert'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -33,6 +34,11 @@ import { Route as ExpertOrgsAccountsIdRouteImport } from './routes/expert/_orgs.
 const PortalRoute = PortalRouteImport.update({
   id: '/portal',
   path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExpertRoute = ExpertRouteImport.update({
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/expert': typeof ExpertOrgsRouteWithChildren
+  '/login': typeof LoginRoute
   '/portal': typeof PortalRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
   '/expert/projects': typeof ExpertProjectsRouteWithChildren
@@ -155,6 +162,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/login': typeof LoginRoute
   '/portal': typeof PortalRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
   '/expert': typeof ExpertIndexRoute
@@ -177,6 +185,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/expert': typeof ExpertRouteWithChildren
+  '/login': typeof LoginRoute
   '/portal': typeof PortalRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
   '/expert/_orgs': typeof ExpertOrgsRouteWithChildren
@@ -201,6 +210,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/expert'
+    | '/login'
     | '/portal'
     | '/admin/users'
     | '/expert/projects'
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dashboard'
+    | '/login'
     | '/portal'
     | '/admin/users'
     | '/expert'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/expert'
+    | '/login'
     | '/portal'
     | '/admin/users'
     | '/expert/_orgs'
@@ -264,6 +276,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   ExpertRoute: typeof ExpertRouteWithChildren
+  LoginRoute: typeof LoginRoute
   PortalRoute: typeof PortalRoute
 }
 
@@ -274,6 +287,13 @@ declare module '@tanstack/react-router' {
       path: '/portal'
       fullPath: '/portal'
       preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/expert': {
@@ -533,6 +553,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   DashboardRoute: DashboardRoute,
   ExpertRoute: ExpertRouteWithChildren,
+  LoginRoute: LoginRoute,
   PortalRoute: PortalRoute,
 }
 export const routeTree = rootRouteImport
