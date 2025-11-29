@@ -5,10 +5,15 @@ import {
   getRouteApi,
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { useState } from 'react'
-import { CheckCircle, XCircle } from 'lucide-react'
+import { getCookie } from '@tanstack/react-start/server'
+import { useState, useEffect } from 'react'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
-import type { TimeEntry } from '@/schemas'
+import { entryMessageRepository } from '@/repositories/entryMessage.repository'
+import { sessionRepository } from '@/repositories/session.repository'
+import { hasProjectPermission } from '@/lib/permissions'
+import { projectMemberRepository } from '@/repositories/projectMember.repository'
+import { SESSION_COOKIE_NAME } from '@/lib/auth.shared'
+import type { TimeEntry, EntryStatus, EntryMessage } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -18,6 +23,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { EntryStatusBadge } from '@/components/EntryStatusBadge'
+import { EntryApprovalActions } from '@/components/EntryApprovalActions'
+import { EntryMessageThread } from '@/components/EntryMessageThread'
+import { EntryMessageInput } from '@/components/EntryMessageInput'
+import { Separator } from '@/components/ui/separator'
 
 const parentRouteApi = getRouteApi('/dashboard/time-entries')
 
@@ -41,7 +51,18 @@ function formatDateTime(isoString: string): string {
   return date.toLocaleString('en-US', options)
 }
 
-// Server function for updates only
+// Helper to get current user from session cookie
+async function getCurrentUser() {
+  const token = getCookie(SESSION_COOKIE_NAME)
+  if (!token) return null
+
+  const sessionData = await sessionRepository.findValidWithUserAndPii(token)
+  if (!sessionData || !sessionData.user.isActive) return null
+
+  return sessionData.user
+}
+
+// Server function for updates
 const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
   async ({ data }: { data: TimeEntry }) => {
     const { id, createdAt, ...updateData } = data
@@ -59,6 +80,131 @@ const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
   }
 )
 
+// Server function to get entry messages
+const getEntryMessagesFn = createServerFn({ method: 'GET' }).handler(
+  async ({ data }: { data: { entryId: string } }) => {
+    const messages = await entryMessageRepository.findByEntryId(data.entryId)
+    return { messages }
+  }
+)
+
+// Server function to create a message and optionally change status
+const createEntryMessageFn = createServerFn({ method: 'POST' }).handler(
+  async ({
+    data,
+  }: {
+    data: {
+      entryId: string
+      content: string
+      statusChange?: EntryStatus
+    }
+  }) => {
+    const user = await getCurrentUser()
+    if (!user) {
+      throw new Error('Not authenticated')
+    }
+
+    const timestamp = new Date().toISOString()
+    const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+
+    // Create the message
+    const message = await entryMessageRepository.create({
+      id: messageId,
+      timeEntryId: data.entryId,
+      authorId: user.id,
+      content: data.content,
+      statusChange: data.statusChange || null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+
+    // Update entry status if specified
+    if (data.statusChange) {
+      await timeEntryRepository.updateStatus(
+        data.entryId,
+        data.statusChange,
+        user.id
+      )
+    }
+
+    return { message }
+  }
+)
+
+// Server function to update entry status (without message)
+const updateEntryStatusFn = createServerFn({ method: 'POST' }).handler(
+  async ({
+    data,
+  }: {
+    data: {
+      entryId: string
+      status: EntryStatus
+    }
+  }) => {
+    const user = await getCurrentUser()
+    if (!user) {
+      throw new Error('Not authenticated')
+    }
+
+    await timeEntryRepository.updateStatus(
+      data.entryId,
+      data.status,
+      user.id
+    )
+
+    return { success: true }
+  }
+)
+
+// Server function to get current user permissions for entry
+const getEntryPermissionsFn = createServerFn({ method: 'GET' }).handler(
+  async ({ data }: { data: { entryId: string; projectId?: string } }) => {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { canApprove: false, canQuestion: false, canComment: false, isOwner: false }
+    }
+
+    // If no project, only system admins can approve
+    if (!data.projectId) {
+      const isAdmin = user.role === 'super_admin' || user.role === 'admin'
+      return {
+        canApprove: isAdmin,
+        canQuestion: isAdmin,
+        canComment: true,
+        isOwner: false,
+      }
+    }
+
+    // Get user's role in project
+    const membership = await projectMemberRepository.findByProjectAndUser(
+      data.projectId,
+      user.id
+    )
+
+    if (!membership) {
+      // Check system admin
+      const isAdmin = user.role === 'super_admin' || user.role === 'admin'
+      return {
+        canApprove: isAdmin,
+        canQuestion: isAdmin,
+        canComment: isAdmin,
+        isOwner: false,
+      }
+    }
+
+    // Check permissions based on project role
+    const canApprove = hasProjectPermission(membership.role, 'entries:approve')
+    const canQuestion = hasProjectPermission(membership.role, 'entries:question')
+    const canComment = hasProjectPermission(membership.role, 'messages:create')
+
+    // Check if user is the entry owner (created it)
+    const entry = await timeEntryRepository.findById(data.entryId)
+    const isOwner = entry?.createdBy === user.id
+
+    return { canApprove, canQuestion, canComment, isOwner }
+  }
+)
+
 // Route definition - no loader needed, uses parent data
 export const Route = createFileRoute('/dashboard/time-entries/$id')({
   component: TimeEntryDetailPage,
@@ -71,13 +217,48 @@ function TimeEntryDetailPage() {
   const router = useRouter()
   const [editingField, setEditingField] = useState<string | null>(null)
   const [editedValues, setEditedValues] = useState<Partial<TimeEntry>>({})
+  const [messages, setMessages] = useState<EntryMessage[]>([])
+  const [isLoadingMessages, setIsLoadingMessages] = useState(true)
+  const [permissions, setPermissions] = useState({
+    canApprove: false,
+    canQuestion: false,
+    canComment: false,
+    isOwner: false,
+  })
 
   // Get data from parent route
   const timeEntries = parentData?.timeEntries || []
   const organisations = parentData?.organisations || []
   const projects = parentData?.projects || []
 
-  const timeEntry = timeEntries.find((e: any) => e.id === id)
+  const timeEntry = timeEntries.find((e: TimeEntry) => e.id === id)
+
+  // Load messages and permissions when entry is available
+  useEffect(() => {
+    if (timeEntry) {
+      // Load messages
+      getEntryMessagesFn({ data: { entryId: id } })
+        .then((result) => {
+          setMessages(result.messages)
+          setIsLoadingMessages(false)
+        })
+        .catch((err) => {
+          console.error('Failed to load messages:', err)
+          setIsLoadingMessages(false)
+        })
+
+      // Load permissions
+      getEntryPermissionsFn({
+        data: { entryId: id, projectId: timeEntry.projectId },
+      })
+        .then((result) => {
+          setPermissions(result)
+        })
+        .catch((err) => {
+          console.error('Failed to load permissions:', err)
+        })
+    }
+  }, [id, timeEntry?.projectId])
 
   if (!timeEntry) {
     return (
@@ -142,6 +323,30 @@ function TimeEntryDetailPage() {
     setEditedValues((prev) => ({ ...prev, [fieldName]: value }))
   }
 
+  const handleStatusChange = async (newStatus: EntryStatus) => {
+    await updateEntryStatusFn({ data: { entryId: id, status: newStatus } })
+    router.invalidate()
+  }
+
+  const handleSendMessage = async (content: string, statusChange?: EntryStatus) => {
+    await createEntryMessageFn({
+      data: {
+        entryId: id,
+        content,
+        statusChange,
+      },
+    })
+    // Refresh messages
+    const result = await getEntryMessagesFn({ data: { entryId: id } })
+    setMessages(result.messages)
+    // Refresh entry data if status changed
+    if (statusChange) {
+      router.invalidate()
+    }
+  }
+
+  const entryStatus = (timeEntry.status as EntryStatus) || 'pending'
+
   return (
     <Sheet
       open={true}
@@ -153,13 +358,33 @@ function TimeEntryDetailPage() {
     >
       <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
         <SheetHeader className="space-y-3 pb-6 border-b">
-          <SheetTitle>Time Entry Details</SheetTitle>
+          <div className="flex items-center justify-between">
+            <SheetTitle>Time Entry Details</SheetTitle>
+            <EntryStatusBadge status={entryStatus} />
+          </div>
           <SheetDescription>
             View and edit detailed information about this time entry
           </SheetDescription>
         </SheetHeader>
 
         <div className="space-y-6 py-6">
+          {/* Approval Actions */}
+          {(permissions.canApprove || permissions.canQuestion) && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-500">
+                Approval Actions
+              </label>
+              <EntryApprovalActions
+                currentStatus={entryStatus}
+                onApprove={() => handleStatusChange('approved')}
+                onQuestion={() => handleStatusChange('questioned')}
+                onReset={() => handleStatusChange('pending')}
+                canApprove={permissions.canApprove}
+                canQuestion={permissions.canQuestion}
+              />
+            </div>
+          )}
+
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-500">Title</label>
@@ -355,25 +580,6 @@ function TimeEntryDetailPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-500">
-                  Approved
-                </label>
-                <div className="flex items-center mt-1">
-                  {timeEntry.approvedDate ? (
-                    <>
-                      <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                      <span className="text-base">Yes</span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="h-5 w-5 text-gray-400 mr-2" />
-                      <span className="text-base">No</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-500">
                   Billed
                 </label>
                 <div className="flex items-center mt-1">
@@ -391,27 +597,50 @@ function TimeEntryDetailPage() {
                   </span>
                 </div>
               </div>
-            </div>
 
-            {timeEntry.approvedDate && (
               <div>
                 <label className="text-sm font-medium text-gray-500">
-                  Approved Date
+                  Created
                 </label>
                 <p className="text-base mt-1">
-                  {formatDateTime(timeEntry.approvedDate)}
+                  {formatDateTime(timeEntry.createdAt)}
+                </p>
+              </div>
+            </div>
+
+            {timeEntry.statusChangedAt && (
+              <div>
+                <label className="text-sm font-medium text-gray-500">
+                  Status Changed
+                </label>
+                <p className="text-base mt-1">
+                  {formatDateTime(timeEntry.statusChangedAt)}
                 </p>
               </div>
             )}
+          </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                Created
-              </label>
-              <p className="text-base mt-1">
-                {formatDateTime(timeEntry.createdAt)}
-              </p>
-            </div>
+          {/* Messages Section */}
+          <Separator />
+
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium">Comments & Questions</h3>
+
+            {isLoadingMessages ? (
+              <p className="text-sm text-muted-foreground">Loading messages...</p>
+            ) : (
+              <EntryMessageThread messages={messages} />
+            )}
+
+            {permissions.canComment && (
+              <EntryMessageInput
+                onSendMessage={handleSendMessage}
+                currentStatus={entryStatus}
+                canApprove={permissions.canApprove}
+                canQuestion={permissions.canQuestion}
+                placeholder="Add a comment or question..."
+              />
+            )}
           </div>
         </div>
 
