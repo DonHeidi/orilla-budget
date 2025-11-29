@@ -1,5 +1,5 @@
 import { db, organisations, projects } from '@/db'
-import { eq, sum, sql } from 'drizzle-orm'
+import { eq, sum, sql, inArray } from 'drizzle-orm'
 import type { Organisation } from '@/schemas'
 
 export const organisationRepository = {
@@ -39,5 +39,14 @@ export const organisationRepository = {
       )
 
     return result[0]?.total ? Number(result[0].total) : 0
+  },
+
+  /**
+   * Find organisations by their IDs
+   * Used for loading orgs related to user's projects
+   */
+  async findByIds(ids: string[]): Promise<Organisation[]> {
+    if (ids.length === 0) return []
+    return db.select().from(organisations).where(inArray(organisations.id, ids))
   },
 }

@@ -62,9 +62,9 @@ export const accounts = sqliteTable('accounts', {
 
 export const projects = sqliteTable('projects', {
   id: text('id').primaryKey(),
-  organisationId: text('organisation_id')
-    .notNull()
-    .references(() => organisations.id, { onDelete: 'cascade' }),
+  organisationId: text('organisation_id').references(() => organisations.id, {
+    onDelete: 'set null',
+  }),
   name: text('name').notNull(),
   description: text('description').notNull(),
   category: text('category', { enum: ['budget', 'fixed'] })
@@ -95,6 +95,9 @@ export const projectMembers = sqliteTable(
 
 export const timeEntries = sqliteTable('time_entries', {
   id: text('id').primaryKey(),
+  createdByUserId: text('created_by_user_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
   projectId: text('project_id').references(() => projects.id, {
     onDelete: 'cascade',
   }),

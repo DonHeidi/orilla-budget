@@ -13,6 +13,7 @@ import { zodValidator } from '@tanstack/zod-form-adapter'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
+import { getCurrentUser, isAdmin } from '@/lib/auth/helpers.server'
 import { quickTimeEntrySchema, type TimeEntry } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
@@ -42,22 +43,39 @@ const timeTabs = [
 
 // Server functions
 const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
-  const organisations = await organisationRepository.findAll()
-  const projects = await projectRepository.findAll()
-  const timeEntries = await timeEntryRepository.findAll()
+  const user = await getCurrentUser()
+  if (!user) throw new Error('Unauthorized')
 
-  return {
-    organisations: organisations,
-    projects: projects,
-    timeEntries: timeEntries,
+  // Admins see everything
+  if (isAdmin(user)) {
+    const organisations = await organisationRepository.findAll()
+    const projects = await projectRepository.findAll()
+    const timeEntries = await timeEntryRepository.findAll()
+    return { organisations, projects, timeEntries }
   }
+
+  // Experts see only their own time entries
+  const timeEntries = await timeEntryRepository.findByCreatedByUserId(user.id)
+
+  // Projects for dropdown (user's accessible projects)
+  const projects = await projectRepository.findByUserId(user.id)
+  const orgIds = [
+    ...new Set(projects.map((p) => p.organisationId).filter(Boolean)),
+  ] as string[]
+  const organisations = await organisationRepository.findByIds(orgIds)
+
+  return { organisations, projects, timeEntries }
 })
 
 const createTimeEntryFn = createServerFn({ method: 'POST' })
   .inputValidator(quickTimeEntrySchema)
   .handler(async ({ data }) => {
+    const user = await getCurrentUser()
+    if (!user) throw new Error('Unauthorized')
+
     const timeEntry: TimeEntry = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      createdByUserId: user.id,
       projectId: data.projectId,
       organisationId: data.organisationId,
       title: data.title,

@@ -17,8 +17,8 @@ export interface ProjectMemberWithDetails {
 export interface ProjectMembershipForAuth {
   projectId: string
   projectName: string
-  organisationId: string
-  organisationName: string
+  organisationId: string | null
+  organisationName: string | null
   role: ProjectRole
 }
 
@@ -175,6 +175,7 @@ export const projectMemberRepository = {
   /**
    * Find all memberships for a user with project and organisation details
    * Used for auth context to provide full membership info
+   * Uses LEFT JOIN on organisations to include projects without an organisation
    */
   async findMembershipsForAuth(
     userId: string
@@ -189,7 +190,7 @@ export const projectMemberRepository = {
       })
       .from(projectMembers)
       .innerJoin(projects, eq(projectMembers.projectId, projects.id))
-      .innerJoin(organisations, eq(projects.organisationId, organisations.id))
+      .leftJoin(organisations, eq(projects.organisationId, organisations.id))
       .where(eq(projectMembers.userId, userId))
 
     return result as ProjectMembershipForAuth[]

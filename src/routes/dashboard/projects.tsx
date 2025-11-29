@@ -8,7 +8,9 @@ import { zodValidator } from '@tanstack/zod-form-adapter'
 import { cn } from '@/lib/utils'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
+import { projectMemberRepository } from '@/repositories/projectMember.repository'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
+import { getCurrentUser, isAdmin } from '@/lib/auth/helpers.server'
 import { createProjectSchema, type Project } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
@@ -24,24 +26,41 @@ import {
 
 const getProjectsDataFn = createServerFn({ method: 'GET' }).handler(
   async () => {
-    const organisations = await organisationRepository.findAll()
-    const projects = await projectRepository.findAll()
-    const timeEntries = await timeEntryRepository.findAll()
+    const user = await getCurrentUser()
+    if (!user) throw new Error('Unauthorized')
 
-    return {
-      organisations: organisations,
-      projects: projects,
-      timeEntries: timeEntries,
+    // Admins see everything
+    if (isAdmin(user)) {
+      const organisations = await organisationRepository.findAll()
+      const projects = await projectRepository.findAll()
+      const timeEntries = await timeEntryRepository.findAll()
+      return { organisations, projects, timeEntries }
     }
+
+    // Experts see only their projects (where they have membership)
+    const projects = await projectRepository.findByUserId(user.id)
+    const orgIds = [
+      ...new Set(projects.map((p) => p.organisationId).filter(Boolean)),
+    ] as string[]
+    const organisations = await organisationRepository.findByIds(orgIds)
+
+    // Time entries for display (from user's projects)
+    const projectIds = projects.map((p) => p.id)
+    const timeEntries = await timeEntryRepository.findByProjectIds(projectIds)
+
+    return { organisations, projects, timeEntries }
   }
 )
 
 const createProjectFn = createServerFn({ method: 'POST' })
   .inputValidator(createProjectSchema)
   .handler(async ({ data }) => {
+    const user = await getCurrentUser()
+    if (!user) throw new Error('Unauthorized')
+
     const project: Project = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      organisationId: data.organisationId!,
+      organisationId: data.organisationId || undefined,
       name: data.name,
       description: data.description || '',
       category: data.category,
@@ -49,7 +68,17 @@ const createProjectFn = createServerFn({ method: 'POST' })
         data.category === 'fixed' ? null : (data.budgetHours ?? null),
       createdAt: new Date().toISOString(),
     }
-    return await projectRepository.create(project)
+
+    const created = await projectRepository.create(project)
+
+    // Add creator as owner
+    await projectMemberRepository.create({
+      projectId: created.id,
+      userId: user.id,
+      role: 'owner',
+    })
+
+    return created
   })
 
 export const Route = createFileRoute('/dashboard/projects')({
@@ -89,7 +118,7 @@ function ProjectsPage() {
         id: project.id,
         name: project.name,
         description: project.description,
-        organisationName: organisation?.name || 'Unknown',
+        organisationName: organisation?.name || 'Personal',
         category: project.category,
         budgetHours: project.budgetHours,
         usedHours: totalHours,
@@ -318,16 +347,11 @@ function AddProjectSheet({ organisations }: { organisations: any[] }) {
           }}
           className="space-y-6 py-6 px-1"
         >
-          <form.Field
-            name="organisationId"
-            validators={{
-              onChange: createProjectSchema.shape.organisationId,
-            }}
-          >
+          <form.Field name="organisationId">
             {(field) => (
               <div className="space-y-2">
                 <label htmlFor={field.name} className="text-sm font-medium">
-                  Organisation *
+                  Organisation
                 </label>
                 <select
                   id={field.name}
@@ -336,26 +360,13 @@ function AddProjectSheet({ organisations }: { organisations: any[] }) {
                   onChange={(e) => field.handleChange(e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                 >
-                  <option value="">Select an organisation</option>
+                  <option value="">Personal (no organisation)</option>
                   {organisations.map((org: any) => (
                     <option key={org.id} value={org.id}>
                       {org.name}
                     </option>
                   ))}
                 </select>
-                {field.state.meta.isTouched &&
-                  field.state.meta.errors &&
-                  field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors
-                        .map((err) =>
-                          typeof err === 'string'
-                            ? err
-                            : err.message || JSON.stringify(err)
-                        )
-                        .join(', ')}
-                    </p>
-                  )}
               </div>
             )}
           </form.Field>
