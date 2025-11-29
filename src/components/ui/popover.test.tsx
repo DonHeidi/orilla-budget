@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, mock } from 'bun:test'
 import { render, screen, waitFor } from '@/test-utils'
 import {
   Popover,
@@ -411,7 +411,7 @@ describe('Popover', () => {
     })
 
     it('works as quick form popover', async () => {
-      const handleSubmit = vi.fn()
+      const handleSubmit = mock(() => {})
       const { user } = render(
         <Popover>
           <PopoverTrigger>Quick Add</PopoverTrigger>

@@ -13,6 +13,9 @@ import {
   contacts,
   invitations,
   projectMembers,
+  entryMessages,
+  projectApprovalSettings,
+  timeSheetApprovals,
 } from '../src/db/schema'
 import { userRepository } from '../src/repositories/user.repository'
 import { organisationRepository } from '../src/repositories/organisation.repository'
@@ -41,9 +44,12 @@ async function clearDatabase() {
   console.log('🗑️  Clearing existing data...')
 
   // Delete in reverse dependency order
+  await db.delete(entryMessages)
+  await db.delete(timeSheetApprovals)
   await db.delete(timeSheetEntries)
   await db.delete(timeSheets)
   await db.delete(timeEntries)
+  await db.delete(projectApprovalSettings)
   await db.delete(invitations)
   await db.delete(contacts)
   await db.delete(projectMembers)
@@ -406,6 +412,10 @@ async function seedDatabase() {
         date: dateString(21),
         approvedDate: now(),
         billed: false,
+        status: 'approved',
+        statusChangedAt: now(),
+        statusChangedBy: 'user-client',
+        createdBy: 'user-1',
         createdAt: now(),
       },
       {
@@ -418,6 +428,10 @@ async function seedDatabase() {
         date: dateString(18),
         approvedDate: now(),
         billed: false,
+        status: 'approved',
+        statusChangedAt: now(),
+        statusChangedBy: 'user-client',
+        createdBy: 'user-2',
         createdAt: now(),
       },
       {
@@ -430,6 +444,10 @@ async function seedDatabase() {
         date: dateString(15),
         approvedDate: undefined,
         billed: false,
+        status: 'questioned',
+        statusChangedAt: now(),
+        statusChangedBy: 'user-client',
+        createdBy: 'user-1',
         createdAt: now(),
       },
       {
@@ -442,6 +460,8 @@ async function seedDatabase() {
         date: dateString(12),
         approvedDate: undefined,
         billed: false,
+        status: 'pending',
+        createdBy: 'user-2',
         createdAt: now(),
       },
       // API Integration (proj-3) entries
@@ -455,6 +475,8 @@ async function seedDatabase() {
         date: dateString(10),
         approvedDate: undefined,
         billed: false,
+        status: 'pending',
+        createdBy: 'user-3',
         createdAt: now(),
       },
       {
@@ -467,6 +489,8 @@ async function seedDatabase() {
         date: dateString(8),
         approvedDate: undefined,
         billed: false,
+        status: 'pending',
+        createdBy: 'user-3',
         createdAt: now(),
       },
       // Social Media Campaign (proj-5) entries
@@ -480,6 +504,10 @@ async function seedDatabase() {
         date: dateString(14),
         approvedDate: now(),
         billed: false,
+        status: 'approved',
+        statusChangedAt: now(),
+        statusChangedBy: 'user-3',
+        createdBy: 'user-2',
         createdAt: now(),
       },
       {
@@ -492,6 +520,10 @@ async function seedDatabase() {
         date: dateString(11),
         approvedDate: now(),
         billed: false,
+        status: 'approved',
+        statusChangedAt: now(),
+        statusChangedBy: 'user-3',
+        createdBy: 'user-2',
         createdAt: now(),
       },
       {
@@ -504,6 +536,8 @@ async function seedDatabase() {
         date: dateString(7),
         approvedDate: undefined,
         billed: false,
+        status: 'pending',
+        createdBy: 'user-2',
         createdAt: now(),
       },
       // Video Production (proj-6) entries
@@ -517,6 +551,8 @@ async function seedDatabase() {
         date: dateString(9),
         approvedDate: undefined,
         billed: false,
+        status: 'pending',
+        createdBy: 'user-1',
         createdAt: now(),
       },
       {
@@ -529,6 +565,8 @@ async function seedDatabase() {
         date: dateString(5),
         approvedDate: undefined,
         billed: false,
+        status: 'pending',
+        createdBy: 'user-1',
         createdAt: now(),
       },
       // Unassigned entries (org-level only)
@@ -542,6 +580,8 @@ async function seedDatabase() {
         date: dateString(6),
         approvedDate: undefined,
         billed: false,
+        status: 'pending',
+        createdBy: 'user-1',
         createdAt: now(),
       },
       {
@@ -554,6 +594,8 @@ async function seedDatabase() {
         date: dateString(4),
         approvedDate: undefined,
         billed: false,
+        status: 'pending',
+        createdBy: 'user-3',
         createdAt: now(),
       },
     ]
@@ -659,6 +701,109 @@ async function seedDatabase() {
     console.log(`✓ Created ${allSheetEntries.length} time sheet entries`)
 
     // ========================================
+    // PROJECT APPROVAL SETTINGS
+    // ========================================
+    console.log('\n⚙️  Creating project approval settings...')
+
+    const testApprovalSettings = [
+      // Website Redesign - requires client approval
+      {
+        id: 'pas-1',
+        projectId: 'proj-1',
+        approvalMode: 'required' as const,
+        autoApproveAfterDays: 0,
+        requireAllEntriesApproved: true,
+        allowSelfApproveNoClient: false,
+        approvalStages: null,
+        createdAt: now(),
+        updatedAt: now(),
+      },
+      // Mobile App Development - multi-stage approval
+      {
+        id: 'pas-2',
+        projectId: 'proj-2',
+        approvalMode: 'multi_stage' as const,
+        autoApproveAfterDays: 0,
+        requireAllEntriesApproved: true,
+        allowSelfApproveNoClient: false,
+        approvalStages: JSON.stringify(['expert', 'reviewer', 'client']),
+        createdAt: now(),
+        updatedAt: now(),
+      },
+      // API Integration - self-approve (no client)
+      {
+        id: 'pas-3',
+        projectId: 'proj-3',
+        approvalMode: 'self_approve' as const,
+        autoApproveAfterDays: 7,
+        requireAllEntriesApproved: false,
+        allowSelfApproveNoClient: true,
+        approvalStages: null,
+        createdAt: now(),
+        updatedAt: now(),
+      },
+      // Social Media Campaign - optional approval
+      {
+        id: 'pas-4',
+        projectId: 'proj-5',
+        approvalMode: 'optional' as const,
+        autoApproveAfterDays: 14,
+        requireAllEntriesApproved: false,
+        allowSelfApproveNoClient: true,
+        approvalStages: null,
+        createdAt: now(),
+        updatedAt: now(),
+      },
+    ]
+
+    for (const settings of testApprovalSettings) {
+      await db.insert(projectApprovalSettings).values(settings)
+    }
+    console.log(`✓ Created ${testApprovalSettings.length} project approval settings`)
+
+    // ========================================
+    // ENTRY MESSAGES
+    // ========================================
+    console.log('\n💬 Creating entry messages...')
+
+    const testEntryMessages = [
+      // Messages on the questioned entry (time-3)
+      {
+        id: 'msg-1',
+        timeEntryId: 'time-3',
+        authorId: 'user-client',
+        content: 'Can you clarify what is meant by "high-fidelity mockups"? How many pages were designed?',
+        statusChange: 'questioned' as const,
+        createdAt: now(),
+        updatedAt: now(),
+      },
+      {
+        id: 'msg-2',
+        timeEntryId: 'time-3',
+        authorId: 'user-1',
+        content: 'The mockups included the homepage, about page, contact page, and the product listings. All designs are pixel-perfect and ready for development.',
+        statusChange: null,
+        createdAt: now(),
+        updatedAt: now(),
+      },
+      // Message on an approved entry (time-1)
+      {
+        id: 'msg-3',
+        timeEntryId: 'time-1',
+        authorId: 'user-client',
+        content: 'Looks good, thanks for the thorough discovery work!',
+        statusChange: 'approved' as const,
+        createdAt: now(),
+        updatedAt: now(),
+      },
+    ]
+
+    for (const message of testEntryMessages) {
+      await db.insert(entryMessages).values(message)
+    }
+    console.log(`✓ Created ${testEntryMessages.length} entry messages`)
+
+    // ========================================
     // SUMMARY
     // ========================================
     const duration = Date.now() - startTime
@@ -677,6 +822,8 @@ async function seedDatabase() {
     console.log(`   Time Entries: ${testTimeEntries.length}`)
     console.log(`   Time Sheets: ${testTimeSheets.length}`)
     console.log(`   Time Sheet Entries: ${allSheetEntries.length}`)
+    console.log(`   Project Approval Settings: ${testApprovalSettings.length}`)
+    console.log(`   Entry Messages: ${testEntryMessages.length}`)
     console.log('\n💡 Tip: Run `bun run db:studio` to view the data in Drizzle Studio')
 
   } catch (error) {
