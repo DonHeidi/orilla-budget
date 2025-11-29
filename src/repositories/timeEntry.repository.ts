@@ -1,5 +1,5 @@
 import { db, timeEntries } from '@/db'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import type { TimeEntry } from '@/schemas'
 
 export const timeEntryRepository = {
@@ -41,5 +41,28 @@ export const timeEntryRepository = {
 
   async delete(id: string): Promise<void> {
     await db.delete(timeEntries).where(eq(timeEntries.id, id))
+  },
+
+  /**
+   * Find time entries created by a specific user
+   * Used for expert filtering - admins should use findAll()
+   */
+  async findByCreatedByUserId(userId: string): Promise<TimeEntry[]> {
+    return db
+      .select()
+      .from(timeEntries)
+      .where(eq(timeEntries.createdByUserId, userId))
+  },
+
+  /**
+   * Find time entries for specific projects
+   * Used for loading time entries related to user's projects
+   */
+  async findByProjectIds(projectIds: string[]): Promise<TimeEntry[]> {
+    if (projectIds.length === 0) return []
+    return db
+      .select()
+      .from(timeEntries)
+      .where(inArray(timeEntries.projectId, projectIds))
   },
 }

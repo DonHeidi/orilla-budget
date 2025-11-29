@@ -168,22 +168,20 @@ describe('organisationRepository patterns', () => {
       expect(deleted).toEqual([])
     })
 
-    it('should cascade delete related projects', async () => {
+    it('should set organisationId to null on related projects when deleted', async () => {
       // Arrange
       const org = await seed.organisation(db)
-      await seed.project(db, org.id, { name: 'Project 1' })
-      await seed.project(db, org.id, { name: 'Project 2' })
+      const project1 = await seed.project(db, org.id, { name: 'Project 1' })
+      const project2 = await seed.project(db, org.id, { name: 'Project 2' })
 
       // Act
       await db.delete(organisations).where(eq(organisations.id, org.id))
 
-      // Assert
-      const remainingProjects = await db
-        .select()
-        .from(projects)
-        .where(eq(projects.organisationId, org.id))
-
-      expect(remainingProjects).toEqual([])
+      // Assert - Projects should remain but with null organisationId
+      const remainingProjects = await db.select().from(projects)
+      expect(remainingProjects).toHaveLength(2)
+      expect(remainingProjects[0].organisationId).toBeNull()
+      expect(remainingProjects[1].organisationId).toBeNull()
     })
   })
 

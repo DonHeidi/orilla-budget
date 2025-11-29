@@ -15,12 +15,13 @@ export interface AuthenticatedUser {
 
 /**
  * Project membership with details
+ * Organisation fields are nullable for projects without an organisation
  */
 export interface ProjectMembership {
   projectId: string
   projectName: string
-  organisationId: string
-  organisationName: string
+  organisationId: string | null
+  organisationName: string | null
   role: 'owner' | 'expert' | 'reviewer' | 'client' | 'viewer'
 }
 

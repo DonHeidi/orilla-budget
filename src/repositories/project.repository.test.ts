@@ -378,7 +378,7 @@ describe('projectRepository', () => {
       expect(result[0]).toBeUndefined()
     })
 
-    it('should cascade delete when organisation is deleted', async () => {
+    it('should set organisationId to null when organisation is deleted', async () => {
       // Arrange
       const org = await seed.organisation(db, { id: 'org-1' })
       const project = await seed.project(db, 'org-1')
@@ -388,13 +388,14 @@ describe('projectRepository', () => {
         .delete(schema.organisations)
         .where(eq(schema.organisations.id, 'org-1'))
 
-      // Assert - Project should be deleted due to cascade
+      // Assert - Project should remain but with null organisationId
       const result = await db
         .select()
         .from(schema.projects)
         .where(eq(schema.projects.id, project.id))
         .limit(1)
-      expect(result[0]).toBeUndefined()
+      expect(result[0]).toBeDefined()
+      expect(result[0].organisationId).toBeNull()
     })
 
     it('should not affect other projects', async () => {

@@ -205,6 +205,7 @@ export const createProjectSchema = projectSchema.omit({
 // Time Entry Schema - Very flexible for smooth UX
 export const timeEntrySchema = z.object({
   id: z.string(),
+  createdByUserId: z.string().nullable().optional(),
   projectId: z.string().optional(),
   organisationId: z.string().optional(),
   title: z.string().min(1, 'Title is required'),
