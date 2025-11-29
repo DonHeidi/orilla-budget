@@ -108,6 +108,19 @@ export const timeEntries = sqliteTable('time_entries', {
   description: text('description').default('').notNull(),
   hours: real('hours').notNull(),
   date: text('date').notNull(),
+  // Approval workflow fields
+  status: text('status', { enum: ['pending', 'questioned', 'approved'] })
+    .notNull()
+    .default('pending'),
+  statusChangedAt: text('status_changed_at'),
+  statusChangedBy: text('status_changed_by').references(() => users.id, {
+    onDelete: 'set null',
+  }),
+  lastEditedAt: text('last_edited_at'),
+  createdBy: text('created_by').references(() => users.id, {
+    onDelete: 'set null',
+  }),
+  // Legacy field - kept for backwards compatibility, set when status becomes 'approved'
   approvedDate: text('approved_date'),
   billed: integer('billed', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull(),
@@ -149,6 +162,16 @@ export const timeSheetEntries = sqliteTable('time_sheet_entries', {
   timeEntryId: text('time_entry_id')
     .notNull()
     .references(() => timeEntries.id, { onDelete: 'cascade' }),
+  // Track entry state when added to sheet (for edit detection)
+  entryLastEditedAtWhenAdded: text('entry_last_edited_at_when_added'),
+  // Individual approval within sheet context
+  approvedInSheet: integer('approved_in_sheet', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+  approvedInSheetAt: text('approved_in_sheet_at'),
+  approvedInSheetBy: text('approved_in_sheet_by').references(() => users.id, {
+    onDelete: 'set null',
+  }),
   createdAt: text('created_at').notNull(),
 })
 
@@ -188,4 +211,68 @@ export const invitations = sqliteTable('invitations', {
     .notNull()
     .default('pending'),
   createdAt: text('created_at').notNull(),
+})
+
+// Entry messages - threaded comments on time entries
+export const entryMessages = sqliteTable('entry_messages', {
+  id: text('id').primaryKey(),
+  timeEntryId: text('time_entry_id')
+    .notNull()
+    .references(() => timeEntries.id, { onDelete: 'cascade' }),
+  authorId: text('author_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  // Optional: link to parent message for threading
+  parentMessageId: text('parent_message_id'),
+  // Track if this message triggered a status change
+  statusChange: text('status_change', {
+    enum: ['questioned', 'approved', 'pending'],
+  }),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+  deletedAt: text('deleted_at'), // Soft delete for audit trail
+})
+
+// Project approval settings - per-project workflow configuration
+export const projectApprovalSettings = sqliteTable('project_approval_settings', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id')
+    .notNull()
+    .unique()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  approvalMode: text('approval_mode', {
+    enum: ['required', 'optional', 'self_approve', 'multi_stage'],
+  })
+    .notNull()
+    .default('required'),
+  autoApproveAfterDays: integer('auto_approve_after_days').notNull().default(0),
+  requireAllEntriesApproved: integer('require_all_entries_approved', {
+    mode: 'boolean',
+  })
+    .notNull()
+    .default(true),
+  allowSelfApproveNoClient: integer('allow_self_approve_no_client', {
+    mode: 'boolean',
+  })
+    .notNull()
+    .default(false),
+  // For multi_stage mode: JSON array of role names in order, e.g. ['reviewer', 'client']
+  approvalStages: text('approval_stages'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+})
+
+// Time sheet approvals - track multi-stage approvals
+export const timeSheetApprovals = sqliteTable('time_sheet_approvals', {
+  id: text('id').primaryKey(),
+  timeSheetId: text('time_sheet_id')
+    .notNull()
+    .references(() => timeSheets.id, { onDelete: 'cascade' }),
+  stage: text('stage').notNull(), // Role that approved: 'reviewer', 'client', etc.
+  approvedBy: text('approved_by')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  approvedAt: text('approved_at').notNull(),
+  notes: text('notes'),
 })
