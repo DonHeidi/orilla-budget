@@ -1,13 +1,17 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute, useRouter, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { useState, useMemo, useEffect } from 'react'
+import { getCookie } from '@tanstack/react-start/server'
+import { useState, useEffect } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Trash2, Plus, X } from 'lucide-react'
+import { Trash2, Plus, X, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { timeSheetRepository } from '@/repositories/timeSheet.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { accountRepository } from '@/repositories/account.repository'
+import { projectApprovalSettingsRepository } from '@/repositories/projectApprovalSettings.repository'
+import { sessionRepository } from '@/repositories/session.repository'
+import { SESSION_COOKIE_NAME } from '@/lib/auth.shared'
 import {
   addEntriesToSheetSchema,
   type TimeSheet,
@@ -15,7 +19,10 @@ import {
   type Organisation,
   type Project,
   type Account,
+  type EntryStatus,
 } from '@/schemas'
+import { EntryStatusBadge } from '@/components/EntryStatusBadge'
+import { TimeSheetApprovalSummary } from '@/components/TimeSheetApprovalSummary'
 import { DataTable } from '@/components/DataTable'
 import {
   Sheet,
@@ -45,11 +52,27 @@ const getTimeSheetDetailFn = createServerFn({ method: 'GET' }).handler(
     const projects = await projectRepository.findAll()
     const accounts = await accountRepository.findAll()
 
+    // Get approval settings if sheet has a project
+    let approvalSettings = null
+    if (sheetData?.timeSheet.projectId) {
+      approvalSettings = await projectApprovalSettingsRepository.findByProjectId(
+        sheetData.timeSheet.projectId
+      )
+    }
+
+    // Check if sheet can be approved (all entries approved, etc.)
+    let canApproveResult = null
+    if (sheetData) {
+      canApproveResult = await timeSheetRepository.canApproveSheet(id)
+    }
+
     return {
       sheetData: sheetData,
       organisations: organisations,
       projects: projects,
       accounts: accounts,
+      approvalSettings: approvalSettings,
+      canApproveResult: canApproveResult,
     }
   }
 )
@@ -95,7 +118,13 @@ const submitTimeSheetFn = createServerFn({ method: 'POST' }).handler(
 
 const approveTimeSheetFn = createServerFn({ method: 'POST' }).handler(
   async ({ id }: { id: string }) => {
-    return await timeSheetRepository.approveSheet(id)
+    const token = getCookie(SESSION_COOKIE_NAME)
+    if (!token) throw new Error('Not authenticated')
+
+    const sessionData = await sessionRepository.findValidWithUserAndPii(token)
+    if (!sessionData?.user) throw new Error('Not authenticated')
+
+    return await timeSheetRepository.approveSheet(id, sessionData.user.id)
   }
 )
 
@@ -140,8 +169,16 @@ function TimeSheetDetailPage() {
 
   const { timeSheet, entries, totalHours, organisation, project, account } =
     data.sheetData
+  const { approvalSettings, canApproveResult } = data
   const currentValues = { ...timeSheet, ...editedValues }
   const isDraft = timeSheet.status === 'draft'
+  const isSubmitted = timeSheet.status === 'submitted'
+
+  // Map entries to include status for approval summary
+  const entriesWithStatus = entries.map((entry: TimeEntry) => ({
+    ...entry,
+    status: (entry.status as EntryStatus) || 'pending',
+  }))
 
   const handleFieldClick = (fieldName: string) => {
     if (isDraft || fieldName === 'status') {
@@ -181,6 +218,11 @@ function TimeSheetDetailPage() {
   }
 
   const handleApprove = async () => {
+    // Check if approval is blocked
+    if (canApproveResult && !canApproveResult.canApprove) {
+      alert(canApproveResult.reason || 'Cannot approve this time sheet')
+      return
+    }
     await approveTimeSheetFn({ id })
     router.invalidate()
   }
@@ -199,8 +241,8 @@ function TimeSheetDetailPage() {
 
   const handleRemoveEntry = async (entryId: string) => {
     // Prevent removal of approved entries
-    const entry = timeSheetData?.entries.find((e) => e.id === entryId)
-    if (entry?.approvedDate) {
+    const entry = entries.find((e: TimeEntry) => e.id === entryId)
+    if (entry?.status === 'approved') {
       return
     }
     await removeEntryFromSheetFn({ sheetId: id, entryId })
@@ -215,16 +257,23 @@ function TimeSheetDetailPage() {
     {
       accessorKey: 'title',
       header: 'Title',
-      cell: ({ getValue }) => (
-        <span className="font-medium">{getValue() as string}</span>
+      cell: ({ row }) => (
+        <Link
+          to="/dashboard/time-entries/$id"
+          params={{ id: row.original.id }}
+          className="font-medium text-primary hover:underline flex items-center gap-1"
+        >
+          {row.original.title}
+          <ExternalLink className="h-3 w-3" />
+        </Link>
       ),
     },
     {
-      accessorKey: 'description',
-      header: 'Description',
-      cell: ({ getValue }) => {
-        const desc = getValue() as string
-        return desc || <span className="text-gray-400">-</span>
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => {
+        const status = (row.original as TimeEntry & { status?: EntryStatus }).status || 'pending'
+        return <EntryStatusBadge status={status} size="sm" />
       },
     },
     {
@@ -241,7 +290,8 @@ function TimeSheetDetailPage() {
       id: 'actions',
       header: () => null,
       cell: ({ row }) => {
-        const isApproved = !!row.original.approvedDate
+        const status = (row.original as TimeEntry & { status?: EntryStatus }).status
+        const isApproved = status === 'approved'
         return (
           isDraft && (
             <Button
@@ -296,7 +346,17 @@ function TimeSheetDetailPage() {
               )}
               {timeSheet.status === 'submitted' && (
                 <>
-                  <Button onClick={handleApprove} size="sm" variant="default">
+                  <Button
+                    onClick={handleApprove}
+                    size="sm"
+                    variant="default"
+                    disabled={canApproveResult && !canApproveResult.canApprove}
+                    title={
+                      canApproveResult && !canApproveResult.canApprove
+                        ? canApproveResult.reason
+                        : undefined
+                    }
+                  >
                     Approve
                   </Button>
                   <Button
@@ -327,6 +387,19 @@ function TimeSheetDetailPage() {
               )}
             </div>
           </div>
+
+          {/* Approval Summary - show for submitted sheets */}
+          {isSubmitted && entriesWithStatus.length > 0 && (
+            <div className="border rounded-lg p-4 bg-muted/30">
+              <h3 className="text-sm font-medium mb-2">Entry Approval Status</h3>
+              <TimeSheetApprovalSummary entries={entriesWithStatus} />
+              {canApproveResult && !canApproveResult.canApprove && (
+                <p className="text-sm text-destructive mt-2">
+                  {canApproveResult.reason}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Editable Fields */}
           <div className="space-y-4">
