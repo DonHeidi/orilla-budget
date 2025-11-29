@@ -6,10 +6,11 @@ import {
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
-import { FolderKanban, Building2, Clock } from 'lucide-react'
+import { FolderKanban, Building2, Clock, Settings2, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { projectRepository } from '@/repositories/project.repository'
-import type { Project } from '@/schemas'
+import { projectApprovalSettingsRepository } from '@/repositories/projectApprovalSettings.repository'
+import type { Project, ProjectApprovalSettings, UpdateProjectApprovalSettings } from '@/schemas'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,6 +21,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { ApprovalSettingsForm } from '@/components/ApprovalSettingsForm'
 
 // Use parent route for data (follows pattern from time-entries.$id.tsx)
 const parentRouteApi = getRouteApi('/dashboard/projects')
@@ -65,6 +67,28 @@ const deleteProjectFn = createServerFn({ method: 'POST' }).handler(
   }
 )
 
+// Server functions for approval settings
+const getApprovalSettingsFn = createServerFn({ method: 'GET' }).handler(
+  async ({ data }: { data: { projectId: string } }) => {
+    const settings =
+      await projectApprovalSettingsRepository.getOrCreateForProject(
+        data.projectId
+      )
+    return settings
+  }
+)
+
+const updateApprovalSettingsFn = createServerFn({ method: 'POST' }).handler(
+  async ({
+    data,
+  }: {
+    data: { projectId: string; settings: UpdateProjectApprovalSettings }
+  }) => {
+    await projectApprovalSettingsRepository.update(data.projectId, data.settings)
+    return { success: true }
+  }
+)
+
 // Route definition - no loader, uses parent route data
 export const Route = createFileRoute('/dashboard/projects/$id')({
   component: ProjectDetailPage,
@@ -78,6 +102,10 @@ function ProjectDetailPage() {
   const [editingField, setEditingField] = useState<string | null>(null)
   const [editedValues, setEditedValues] = useState<Partial<Project>>({})
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showApprovalSettings, setShowApprovalSettings] = useState(false)
+  const [approvalSettings, setApprovalSettings] =
+    useState<ProjectApprovalSettings | null>(null)
+  const [loadingSettings, setLoadingSettings] = useState(false)
 
   // Get data from route loader
   const projects = data.projects
@@ -178,6 +206,39 @@ function ProjectDetailPage() {
       navigate({ to: '/dashboard/projects' })
     } catch (error) {
       console.error('Failed to delete project:', error)
+    }
+  }
+
+  const handleToggleApprovalSettings = async () => {
+    if (!showApprovalSettings && !approvalSettings) {
+      setLoadingSettings(true)
+      try {
+        const settings = await getApprovalSettingsFn({
+          data: { projectId: project.id },
+        })
+        setApprovalSettings(settings)
+      } catch (error) {
+        console.error('Failed to load approval settings:', error)
+      } finally {
+        setLoadingSettings(false)
+      }
+    }
+    setShowApprovalSettings(!showApprovalSettings)
+  }
+
+  const handleSaveApprovalSettings = async (
+    updates: UpdateProjectApprovalSettings
+  ) => {
+    await updateApprovalSettingsFn({
+      data: { projectId: project.id, settings: updates },
+    })
+    // Update local state
+    if (approvalSettings) {
+      setApprovalSettings({
+        ...approvalSettings,
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      })
     }
   }
 
@@ -403,6 +464,46 @@ function ProjectDetailPage() {
               <p className="text-base mt-1">
                 {formatDateTime(project.createdAt)}
               </p>
+            </div>
+
+            {/* Approval Settings Section */}
+            <div className="border-t pt-4">
+              <button
+                type="button"
+                onClick={handleToggleApprovalSettings}
+                className="flex items-center justify-between w-full text-left group"
+              >
+                <div className="flex items-center gap-2">
+                  <Settings2 className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Approval Workflow Settings
+                  </span>
+                </div>
+                {showApprovalSettings ? (
+                  <ChevronUp className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
+
+              {showApprovalSettings && (
+                <div className="mt-4 pl-6">
+                  {loadingSettings ? (
+                    <p className="text-sm text-muted-foreground">
+                      Loading settings...
+                    </p>
+                  ) : approvalSettings ? (
+                    <ApprovalSettingsForm
+                      settings={approvalSettings}
+                      onSave={handleSaveApprovalSettings}
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Failed to load settings
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
