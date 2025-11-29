@@ -43,6 +43,21 @@ export const PROJECT_PERMISSIONS = {
   'time-sheets:submit': 'Submit time sheets for approval',
   'time-sheets:approve': 'Approve/reject time sheets',
 
+  // Entry-level approval (within time sheets)
+  'entries:question': 'Mark entries as questioned',
+  'entries:approve': 'Approve individual entries',
+  'entries:change-status': 'Change entry status',
+
+  // Entry messages (threaded comments on entries)
+  'messages:view': 'View entry messages',
+  'messages:create': 'Create entry messages',
+  'messages:delete-own': 'Delete own messages',
+  'messages:delete-all': 'Delete any message',
+
+  // Approval settings (project-level configuration)
+  'approval-settings:view': 'View project approval settings',
+  'approval-settings:edit': 'Edit project approval settings',
+
   // Project management
   'project:view': 'View project details',
   'project:edit': 'Edit project settings',
@@ -108,6 +123,18 @@ export const PROJECT_ROLE_PERMISSIONS: Record<ProjectRole, ProjectPermission[]> 
       'time-sheets:edit',
       'time-sheets:submit',
       'time-sheets:approve',
+      // Entry-level approval - full access
+      'entries:question',
+      'entries:approve',
+      'entries:change-status',
+      // Messages - full access
+      'messages:view',
+      'messages:create',
+      'messages:delete-own',
+      'messages:delete-all',
+      // Approval settings - full access
+      'approval-settings:view',
+      'approval-settings:edit',
       // Contacts
       'contacts:view',
       'contacts:invite',
@@ -126,6 +153,12 @@ export const PROJECT_ROLE_PERMISSIONS: Record<ProjectRole, ProjectPermission[]> 
       'time-sheets:create',
       'time-sheets:edit',
       'time-sheets:submit',
+      // Messages - view and create
+      'messages:view',
+      'messages:create',
+      'messages:delete-own',
+      // Approval settings - view only
+      'approval-settings:view',
       // Contacts - view only
       'contacts:view',
     ],
@@ -138,6 +171,17 @@ export const PROJECT_ROLE_PERMISSIONS: Record<ProjectRole, ProjectPermission[]> 
       // Time sheets - view and approve
       'time-sheets:view',
       'time-sheets:approve',
+      // Entry-level approval - full access
+      'entries:question',
+      'entries:approve',
+      'entries:change-status',
+      // Messages - full access
+      'messages:view',
+      'messages:create',
+      'messages:delete-own',
+      'messages:delete-all',
+      // Approval settings - view only
+      'approval-settings:view',
       // Contacts - view only
       'contacts:view',
     ],
@@ -149,6 +193,13 @@ export const PROJECT_ROLE_PERMISSIONS: Record<ProjectRole, ProjectPermission[]> 
       'time-entries:view',
       // Time sheets - view only
       'time-sheets:view',
+      // Entry-level approval - can question and approve
+      'entries:question',
+      'entries:approve',
+      // Messages - view and create (can't delete others)
+      'messages:view',
+      'messages:create',
+      'messages:delete-own',
       // Contacts - can invite others
       'contacts:view',
       'contacts:invite',
@@ -159,6 +210,8 @@ export const PROJECT_ROLE_PERMISSIONS: Record<ProjectRole, ProjectPermission[]> 
       'project:view',
       'time-entries:view',
       'time-sheets:view',
+      // Messages - view only
+      'messages:view',
     ],
   }
 

@@ -73,7 +73,12 @@ describe('permissions', () => {
 
     it('viewer has minimal read-only access', () => {
       const viewerPerms = PROJECT_ROLE_PERMISSIONS.viewer
-      expect(viewerPerms).toEqual(['project:view', 'time-entries:view', 'time-sheets:view'])
+      expect(viewerPerms).toEqual([
+        'project:view',
+        'time-entries:view',
+        'time-sheets:view',
+        'messages:view',
+      ])
     })
   })
 
@@ -205,7 +210,7 @@ describe('permissions', () => {
 
     it('returns limited permissions for viewer', () => {
       const perms = getProjectPermissionsForRole('viewer')
-      expect(perms).toHaveLength(3)
+      expect(perms).toHaveLength(4) // project:view, time-entries:view, time-sheets:view, messages:view
     })
 
     it('returns correct permissions for each role', () => {

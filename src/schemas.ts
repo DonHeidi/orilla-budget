@@ -202,6 +202,10 @@ export const createProjectSchema = projectSchema.omit({
   createdAt: true,
 })
 
+// Entry status schema - for individual entry approval workflow
+export const entryStatusSchema = z.enum(['pending', 'questioned', 'approved'])
+export type EntryStatus = z.infer<typeof entryStatusSchema>
+
 // Time Entry Schema - Very flexible for smooth UX
 export const timeEntrySchema = z.object({
   id: z.string(),
@@ -212,7 +216,14 @@ export const timeEntrySchema = z.object({
   description: z.string().optional().default(''),
   hours: z.number().positive('Hours must be a positive number'),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
-  approvedDate: z.string().datetime().optional(),
+  // Approval workflow fields
+  status: entryStatusSchema.default('pending'),
+  statusChangedAt: z.string().datetime().optional().nullable(),
+  statusChangedBy: z.string().optional().nullable(),
+  lastEditedAt: z.string().datetime().optional().nullable(),
+  createdBy: z.string().optional().nullable(),
+  // Legacy field - set when status becomes 'approved'
+  approvedDate: z.string().datetime().optional().nullable(),
   billed: z.boolean().default(false),
   createdAt: z.string().datetime(),
 })
@@ -220,6 +231,10 @@ export const timeEntrySchema = z.object({
 export const createTimeEntrySchema = timeEntrySchema.omit({
   id: true,
   createdAt: true,
+  statusChangedAt: true,
+  statusChangedBy: true,
+  lastEditedAt: true,
+  approvedDate: true,
 })
 
 // Quick Time Entry Schema (for the quick entry form) - Only title and hours required
@@ -303,11 +318,17 @@ export const updateTimeSheetSchema = timeSheetSchema
   .partial()
   .required({ id: true })
 
-// Time Sheet Entry Schema (junction table)
+// Time Sheet Entry Schema (junction table with approval tracking)
 export const timeSheetEntrySchema = z.object({
   id: z.string(),
   timeSheetId: z.string(),
   timeEntryId: z.string(),
+  // Track entry state when added to sheet (for edit detection)
+  entryLastEditedAtWhenAdded: z.string().datetime().optional().nullable(),
+  // Individual approval within sheet context
+  approvedInSheet: z.boolean().default(false),
+  approvedInSheetAt: z.string().datetime().optional().nullable(),
+  approvedInSheetBy: z.string().optional().nullable(),
   createdAt: z.string().datetime(),
 })
 
@@ -402,3 +423,89 @@ export interface AuthSession {
   user: AuthenticatedUser
   projectMemberships: ProjectMembership[]
 }
+
+// ============================================================================
+// APPROVAL WORKFLOW SCHEMAS
+// ============================================================================
+
+// Entry Message Schema - threaded comments on time entries
+export const entryMessageSchema = z.object({
+  id: z.string(),
+  timeEntryId: z.string(),
+  authorId: z.string(),
+  content: z.string().min(1, 'Message content is required').max(5000, 'Message too long'),
+  parentMessageId: z.string().nullable().optional(),
+  statusChange: entryStatusSchema.nullable().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  deletedAt: z.string().datetime().nullable().optional(),
+})
+
+export const createEntryMessageSchema = z.object({
+  timeEntryId: z.string(),
+  content: z.string().min(1, 'Message content is required').max(5000, 'Message too long'),
+  parentMessageId: z.string().optional(),
+  statusChange: entryStatusSchema.optional(),
+})
+
+export type EntryMessage = z.infer<typeof entryMessageSchema>
+export type CreateEntryMessage = z.infer<typeof createEntryMessageSchema>
+
+// Approval mode schema - for project-level workflow configuration
+export const approvalModeSchema = z.enum([
+  'required',
+  'optional',
+  'self_approve',
+  'multi_stage',
+])
+export type ApprovalMode = z.infer<typeof approvalModeSchema>
+
+// Approval stage schema - roles that can be configured as approval stages
+export const approvalStageSchema = z.enum(['expert', 'reviewer', 'client', 'owner'])
+export type ApprovalStage = z.infer<typeof approvalStageSchema>
+
+// Project Approval Settings Schema
+export const projectApprovalSettingsSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  approvalMode: approvalModeSchema.default('required'),
+  autoApproveAfterDays: z.number().int().min(0).default(0),
+  requireAllEntriesApproved: z.boolean().default(true),
+  allowSelfApproveNoClient: z.boolean().default(false),
+  approvalStages: z.array(approvalStageSchema).optional().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+})
+
+export const updateProjectApprovalSettingsSchema = projectApprovalSettingsSchema
+  .omit({ id: true, projectId: true, createdAt: true, updatedAt: true })
+  .partial()
+
+export type ProjectApprovalSettings = z.infer<typeof projectApprovalSettingsSchema>
+export type UpdateProjectApprovalSettings = z.infer<typeof updateProjectApprovalSettingsSchema>
+
+// Time Sheet Approval Schema - for multi-stage approval tracking
+export const timeSheetApprovalSchema = z.object({
+  id: z.string(),
+  timeSheetId: z.string(),
+  stage: z.string(), // Role that approved: 'reviewer', 'client', etc.
+  approvedBy: z.string(),
+  approvedAt: z.string().datetime(),
+  notes: z.string().optional().nullable(),
+})
+
+export const createTimeSheetApprovalSchema = z.object({
+  timeSheetId: z.string(),
+  stage: z.string(),
+  notes: z.string().optional(),
+})
+
+export type TimeSheetApproval = z.infer<typeof timeSheetApprovalSchema>
+export type CreateTimeSheetApproval = z.infer<typeof createTimeSheetApprovalSchema>
+
+// Entry status update schema (with optional message)
+export const updateEntryStatusSchema = z.object({
+  entryId: z.string(),
+  status: entryStatusSchema,
+  message: z.string().optional(),
+})

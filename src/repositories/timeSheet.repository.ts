@@ -6,10 +6,12 @@ import {
   organisations,
   projects,
   accounts,
+  timeSheetApprovals,
 } from '@/db'
-import { eq, sql, and, notInArray } from 'drizzle-orm'
-import type { TimeSheet, TimeEntry } from '@/schemas'
+import { eq, sql, and, notInArray, ne } from 'drizzle-orm'
+import type { TimeSheet, TimeEntry, EntryStatus } from '@/schemas'
 import type { TimeSheetWithEntries } from '@/types'
+import { generateId } from '@/lib/auth'
 
 export const timeSheetRepository = {
   // Basic CRUD operations
@@ -142,10 +144,23 @@ export const timeSheetRepository = {
   // Entry management
   async addEntries(sheetId: string, entryIds: string[]): Promise<void> {
     const now = new Date().toISOString()
+
+    // Get the current lastEditedAt for each entry to store in the junction table
+    const entryData = await db
+      .select({ id: timeEntries.id, lastEditedAt: timeEntries.lastEditedAt })
+      .from(timeEntries)
+      .where(sql`${timeEntries.id} IN ${entryIds}`)
+
+    const lastEditedMap = new Map(
+      entryData.map((e) => [e.id, e.lastEditedAt])
+    )
+
     const entries = entryIds.map((entryId) => ({
-      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      id: generateId(),
       timeSheetId: sheetId,
       timeEntryId: entryId,
+      entryLastEditedAtWhenAdded: lastEditedMap.get(entryId) ?? null,
+      approvedInSheet: false,
       createdAt: now,
     }))
 
@@ -228,7 +243,7 @@ export const timeSheetRepository = {
     })
   },
 
-  async approveSheet(id: string): Promise<void> {
+  async approveSheet(id: string, approvedBy: string): Promise<void> {
     const now = new Date().toISOString()
 
     // Update sheet status
@@ -237,14 +252,29 @@ export const timeSheetRepository = {
       approvedDate: now,
     })
 
-    // Approve all entries in this sheet
+    // Approve all entries in this sheet and update their status
     const entries = await this.getEntriesInSheet(id)
     for (const entry of entries) {
       await db
         .update(timeEntries)
-        .set({ approvedDate: now })
+        .set({
+          approvedDate: now,
+          status: 'approved',
+          statusChangedAt: now,
+          statusChangedBy: approvedBy,
+        })
         .where(eq(timeEntries.id, entry.id))
     }
+
+    // Mark all entries as approved in sheet
+    await db
+      .update(timeSheetEntries)
+      .set({
+        approvedInSheet: true,
+        approvedInSheetAt: now,
+        approvedInSheetBy: approvedBy,
+      })
+      .where(eq(timeSheetEntries.timeSheetId, id))
   },
 
   async rejectSheet(id: string, reason?: string): Promise<void> {
@@ -263,5 +293,187 @@ export const timeSheetRepository = {
       rejectedDate: undefined,
       rejectionReason: undefined,
     })
+
+    // Clear multi-stage approvals when reverting to draft
+    await db
+      .delete(timeSheetApprovals)
+      .where(eq(timeSheetApprovals.timeSheetId, id))
+
+    // Reset entry approval status in sheet
+    await db
+      .update(timeSheetEntries)
+      .set({
+        approvedInSheet: false,
+        approvedInSheetAt: null,
+        approvedInSheetBy: null,
+      })
+      .where(eq(timeSheetEntries.timeSheetId, id))
+  },
+
+  // ============================================================================
+  // APPROVAL WORKFLOW METHODS
+  // ============================================================================
+
+  /**
+   * Check if a time sheet can be approved
+   * Returns status info including whether all entries are approved
+   */
+  async canApproveSheet(id: string): Promise<{
+    canApprove: boolean
+    reason?: string
+    hasQuestionedEntries: boolean
+    pendingEntryCount: number
+    approvedEntryCount: number
+    totalEntryCount: number
+  }> {
+    const entries = await this.getEntriesInSheet(id)
+
+    if (entries.length === 0) {
+      return {
+        canApprove: false,
+        reason: 'Time sheet has no entries',
+        hasQuestionedEntries: false,
+        pendingEntryCount: 0,
+        approvedEntryCount: 0,
+        totalEntryCount: 0,
+      }
+    }
+
+    const questionedEntries = entries.filter((e) => e.status === 'questioned')
+    const pendingEntries = entries.filter((e) => e.status === 'pending')
+    const approvedEntries = entries.filter((e) => e.status === 'approved')
+
+    if (questionedEntries.length > 0) {
+      return {
+        canApprove: false,
+        reason: `${questionedEntries.length} entries have open questions`,
+        hasQuestionedEntries: true,
+        pendingEntryCount: pendingEntries.length,
+        approvedEntryCount: approvedEntries.length,
+        totalEntryCount: entries.length,
+      }
+    }
+
+    return {
+      canApprove: true,
+      hasQuestionedEntries: false,
+      pendingEntryCount: pendingEntries.length,
+      approvedEntryCount: approvedEntries.length,
+      totalEntryCount: entries.length,
+    }
+  },
+
+  /**
+   * Get entries with their statuses for a time sheet
+   */
+  async getEntriesWithStatus(sheetId: string): Promise<
+    Array<
+      TimeEntry & {
+        approvedInSheet: boolean
+        approvedInSheetAt: string | null
+        approvedInSheetBy: string | null
+      }
+    >
+  > {
+    const result = await db
+      .select({
+        id: timeEntries.id,
+        projectId: timeEntries.projectId,
+        organisationId: timeEntries.organisationId,
+        title: timeEntries.title,
+        description: timeEntries.description,
+        hours: timeEntries.hours,
+        date: timeEntries.date,
+        status: timeEntries.status,
+        statusChangedAt: timeEntries.statusChangedAt,
+        statusChangedBy: timeEntries.statusChangedBy,
+        lastEditedAt: timeEntries.lastEditedAt,
+        createdBy: timeEntries.createdBy,
+        approvedDate: timeEntries.approvedDate,
+        billed: timeEntries.billed,
+        createdAt: timeEntries.createdAt,
+        approvedInSheet: timeSheetEntries.approvedInSheet,
+        approvedInSheetAt: timeSheetEntries.approvedInSheetAt,
+        approvedInSheetBy: timeSheetEntries.approvedInSheetBy,
+      })
+      .from(timeSheetEntries)
+      .innerJoin(timeEntries, eq(timeSheetEntries.timeEntryId, timeEntries.id))
+      .where(eq(timeSheetEntries.timeSheetId, sheetId))
+
+    return result
+  },
+
+  /**
+   * Approve a single entry within a time sheet
+   */
+  async approveEntryInSheet(
+    sheetId: string,
+    entryId: string,
+    approvedBy: string
+  ): Promise<void> {
+    const now = new Date().toISOString()
+
+    // Update entry status
+    await db
+      .update(timeEntries)
+      .set({
+        status: 'approved',
+        statusChangedAt: now,
+        statusChangedBy: approvedBy,
+        approvedDate: now,
+      })
+      .where(eq(timeEntries.id, entryId))
+
+    // Update junction table
+    await db
+      .update(timeSheetEntries)
+      .set({
+        approvedInSheet: true,
+        approvedInSheetAt: now,
+        approvedInSheetBy: approvedBy,
+      })
+      .where(
+        and(
+          eq(timeSheetEntries.timeSheetId, sheetId),
+          eq(timeSheetEntries.timeEntryId, entryId)
+        )
+      )
+  },
+
+  /**
+   * Question an entry within a time sheet
+   */
+  async questionEntryInSheet(
+    sheetId: string,
+    entryId: string,
+    questionedBy: string
+  ): Promise<void> {
+    const now = new Date().toISOString()
+
+    // Update entry status to questioned
+    await db
+      .update(timeEntries)
+      .set({
+        status: 'questioned',
+        statusChangedAt: now,
+        statusChangedBy: questionedBy,
+        approvedDate: null,
+      })
+      .where(eq(timeEntries.id, entryId))
+
+    // Reset approval in junction table
+    await db
+      .update(timeSheetEntries)
+      .set({
+        approvedInSheet: false,
+        approvedInSheetAt: null,
+        approvedInSheetBy: null,
+      })
+      .where(
+        and(
+          eq(timeSheetEntries.timeSheetId, sheetId),
+          eq(timeSheetEntries.timeEntryId, entryId)
+        )
+      )
   },
 }
