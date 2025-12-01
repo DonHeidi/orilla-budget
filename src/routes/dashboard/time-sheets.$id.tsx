@@ -68,16 +68,33 @@ const getTimeSheetDetailFn = createServerFn({ method: 'GET' }).handler(
     }
 
     const sheetData = await timeSheetRepository.findWithEntries(id)
-    const organisations = await organisationRepository.findAll()
-    const projects = await projectRepository.findAll()
-    const accounts = await accountRepository.findAll()
+
+    if (!sheetData) {
+      return {
+        sheetData: null,
+        organisations: [],
+        projects: [],
+        accounts: [],
+        approvalSettings: null,
+        canApproveResult: null,
+        approvalPermission: { allowed: false, reason: 'Time sheet not found' },
+        rejectPermission: { allowed: false, reason: 'Time sheet not found' },
+        revertPermission: { allowed: false, reason: 'Time sheet not found' },
+        projectMembers: [],
+        userMembership: null,
+        currentUser: null,
+        hasClientInteraction: false,
+        accessDenied: true,
+        accessDeniedReason: 'Time sheet not found',
+      }
+    }
 
     // Get approval settings and project members if sheet has a project
     let approvalSettings = null
     let projectMembers: Array<{ userId: string; role: string }> = []
     let userMembership = null
 
-    if (sheetData?.timeSheet.projectId) {
+    if (sheetData.timeSheet.projectId) {
       approvalSettings = await projectApprovalSettingsRepository.findByProjectId(
         sheetData.timeSheet.projectId
       )
@@ -88,6 +105,58 @@ const getTimeSheetDetailFn = createServerFn({ method: 'GET' }).handler(
         userMembership = projectMembers.find((m) => m.userId === currentUser.id) || null
       }
     }
+
+    // Access check: User must be either an admin or a member of the project
+    const isSystemAdmin = currentUser?.role === 'super_admin' || currentUser?.role === 'admin'
+    const hasProjectAccess = userMembership !== null
+    const sheetHasNoProject = !sheetData.timeSheet.projectId
+
+    // Allow access if: admin, has project membership, or sheet has no project (org-level)
+    // For sheets without a project, only admins should have access
+    if (!isSystemAdmin && !hasProjectAccess && !sheetHasNoProject) {
+      return {
+        sheetData: null,
+        organisations: [],
+        projects: [],
+        accounts: [],
+        approvalSettings: null,
+        canApproveResult: null,
+        approvalPermission: { allowed: false, reason: 'Access denied' },
+        rejectPermission: { allowed: false, reason: 'Access denied' },
+        revertPermission: { allowed: false, reason: 'Access denied' },
+        projectMembers: [],
+        userMembership: null,
+        currentUser: null,
+        hasClientInteraction: false,
+        accessDenied: true,
+        accessDeniedReason: 'You do not have access to this time sheet',
+      }
+    }
+
+    // For sheets without a project, only admins can view
+    if (sheetHasNoProject && !isSystemAdmin) {
+      return {
+        sheetData: null,
+        organisations: [],
+        projects: [],
+        accounts: [],
+        approvalSettings: null,
+        canApproveResult: null,
+        approvalPermission: { allowed: false, reason: 'Access denied' },
+        rejectPermission: { allowed: false, reason: 'Access denied' },
+        revertPermission: { allowed: false, reason: 'Access denied' },
+        projectMembers: [],
+        userMembership: null,
+        currentUser: null,
+        hasClientInteraction: false,
+        accessDenied: true,
+        accessDeniedReason: 'Only administrators can view organisation-level time sheets',
+      }
+    }
+
+    const organisations = await organisationRepository.findAll()
+    const projects = await projectRepository.findAll()
+    const accounts = await accountRepository.findAll()
 
     // Check if sheet can be approved (entry status check)
     let canApproveResult = null
@@ -171,6 +240,8 @@ const getTimeSheetDetailFn = createServerFn({ method: 'GET' }).handler(
       userMembership: userMembership,
       currentUser: currentUser ? { id: currentUser.id, role: currentUser.role } : null,
       hasClientInteraction: hasClientInteraction,
+      accessDenied: false,
+      accessDeniedReason: null,
     }
   }
 )
@@ -367,8 +438,25 @@ function TimeSheetDetailPage() {
   const [editingField, setEditingField] = useState<string | null>(null)
   const [editedValues, setEditedValues] = useState<Partial<TimeSheet>>({})
 
-  if (!data.sheetData) {
-    return <div>Time sheet not found</div>
+  // Handle access denied or not found
+  if (data.accessDenied || !data.sheetData) {
+    return (
+      <Sheet open={true} onOpenChange={() => router.navigate({ to: '/dashboard/time-sheets' })}>
+        <SheetContent className="w-full sm:max-w-[800px] overflow-y-auto">
+          <SheetHeader className="space-y-3 pb-6 border-b">
+            <SheetTitle>Access Denied</SheetTitle>
+            <SheetDescription>
+              {data.accessDeniedReason || 'Time sheet not found'}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="py-6">
+            <Button onClick={() => router.navigate({ to: '/dashboard/time-sheets' })}>
+              Go Back to Time Sheets
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+    )
   }
 
   const { timeSheet, entries, totalHours, organisation, project, account } =

@@ -58,6 +58,19 @@ export const timeSheetRepository = {
       .where(eq(timeSheets.accountId, accountId))
   },
 
+  /**
+   * Find time sheets by multiple project IDs
+   * Used for filtering time sheets to only those the user has access to
+   */
+  async findByProjectIds(projectIds: string[]): Promise<TimeSheet[]> {
+    if (projectIds.length === 0) return []
+
+    return await db
+      .select()
+      .from(timeSheets)
+      .where(sql`${timeSheets.projectId} IN ${projectIds}`)
+  },
+
   async create(sheet: TimeSheet): Promise<TimeSheet> {
     await db.insert(timeSheets).values(sheet)
     return sheet
