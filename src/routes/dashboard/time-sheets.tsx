@@ -16,6 +16,7 @@ import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
 import { accountRepository } from '@/repositories/account.repository'
+import { getCurrentSessionFn } from '@/lib/auth/session.server'
 import {
   createTimeSheetSchema,
   addEntriesToSheetSchema,
@@ -54,7 +55,26 @@ const timeTabs = [
 
 // Server Functions
 const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
-  const timeSheets = await timeSheetRepository.findAll()
+  // Get current session to determine user's project access
+  const session = await getCurrentSessionFn()
+  const user = session.user
+  const projectMemberships = session.projectMemberships
+
+  // Determine which time sheets to fetch based on user role
+  let timeSheets: TimeSheet[] = []
+
+  // System admins can see all time sheets
+  const isSystemAdmin = user?.role === 'super_admin' || user?.role === 'admin'
+
+  if (isSystemAdmin) {
+    timeSheets = await timeSheetRepository.findAll()
+  } else if (projectMemberships.length > 0) {
+    // Regular users only see time sheets for projects they're members of
+    const userProjectIds = projectMemberships.map((m) => m.projectId)
+    timeSheets = await timeSheetRepository.findByProjectIds(userProjectIds)
+  }
+  // If no memberships and not admin, timeSheets stays empty
+
   const organisations = await organisationRepository.findAll()
   const projects = await projectRepository.findAll()
   const timeEntries = await timeEntryRepository.findAll()
