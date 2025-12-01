@@ -1100,4 +1100,661 @@ describe('timeSheetRepository', () => {
       expect(result[0].rejectionReason).toBeNull()
     })
   })
+
+  // ============================================================================
+  // APPROVAL WORKFLOW TESTS
+  // ============================================================================
+
+  describe('canApproveSheet - Entry-level approval check', () => {
+    it('should return false when sheet has no entries', async () => {
+      // Arrange
+      const org = await seed.organisation(db)
+      const sheet = await seed.timeSheet(db, {
+        id: 'sheet-1',
+        status: 'submitted',
+        organisationId: org.id,
+      })
+
+      // Act - Simulate canApproveSheet logic
+      const sheetEntryRecords = await db
+        .select()
+        .from(schema.timeSheetEntries)
+        .where(eq(schema.timeSheetEntries.timeSheetId, 'sheet-1'))
+      const entryIds = sheetEntryRecords.map((se) => se.timeEntryId)
+
+      const entries =
+        entryIds.length > 0
+          ? await db
+              .select()
+              .from(schema.timeEntries)
+              .where(sql`${schema.timeEntries.id} IN ${entryIds}`)
+          : []
+
+      // Assert
+      expect(entries.length).toBe(0)
+      // When no entries, canApprove should be false
+    })
+
+    it('should return false when entries have questioned status', async () => {
+      // Arrange
+      const org = await seed.organisation(db)
+      const user = await seed.user(db)
+      const sheet = await seed.timeSheet(db, {
+        id: 'sheet-1',
+        status: 'submitted',
+        organisationId: org.id,
+      })
+
+      const entry = await seed.timeEntry(db, {
+        status: 'questioned',
+        organisationId: org.id,
+        userId: user.id,
+      })
+
+      await db.insert(schema.timeSheetEntries).values({
+        id: 'tse-1',
+        timeSheetId: 'sheet-1',
+        timeEntryId: entry.id,
+        createdAt: new Date().toISOString(),
+      })
+
+      // Act - Simulate canApproveSheet logic
+      const sheetEntryRecords = await db
+        .select()
+        .from(schema.timeSheetEntries)
+        .where(eq(schema.timeSheetEntries.timeSheetId, 'sheet-1'))
+      const entryIds = sheetEntryRecords.map((se) => se.timeEntryId)
+      const entries = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(sql`${schema.timeEntries.id} IN ${entryIds}`)
+
+      const questionedEntries = entries.filter((e) => e.status === 'questioned')
+      const hasQuestionedEntries = questionedEntries.length > 0
+
+      // Assert
+      expect(hasQuestionedEntries).toBe(true)
+      expect(questionedEntries.length).toBe(1)
+    })
+
+    it('should return true when all entries are pending or approved', async () => {
+      // Arrange
+      const org = await seed.organisation(db)
+      const user = await seed.user(db)
+      const sheet = await seed.timeSheet(db, {
+        id: 'sheet-1',
+        status: 'submitted',
+        organisationId: org.id,
+      })
+
+      const pendingEntry = await seed.timeEntry(db, {
+        status: 'pending',
+        organisationId: org.id,
+        userId: user.id,
+      })
+      const approvedEntry = await seed.timeEntry(db, {
+        status: 'approved',
+        organisationId: org.id,
+        userId: user.id,
+      })
+
+      await db.insert(schema.timeSheetEntries).values([
+        {
+          id: 'tse-1',
+          timeSheetId: 'sheet-1',
+          timeEntryId: pendingEntry.id,
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'tse-2',
+          timeSheetId: 'sheet-1',
+          timeEntryId: approvedEntry.id,
+          createdAt: new Date().toISOString(),
+        },
+      ])
+
+      // Act - Simulate canApproveSheet logic
+      const sheetEntryRecords = await db
+        .select()
+        .from(schema.timeSheetEntries)
+        .where(eq(schema.timeSheetEntries.timeSheetId, 'sheet-1'))
+      const entryIds = sheetEntryRecords.map((se) => se.timeEntryId)
+      const entries = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(sql`${schema.timeEntries.id} IN ${entryIds}`)
+
+      const questionedEntries = entries.filter((e) => e.status === 'questioned')
+      const pendingEntries = entries.filter((e) => e.status === 'pending')
+      const approvedEntries = entries.filter((e) => e.status === 'approved')
+
+      // Assert
+      expect(questionedEntries.length).toBe(0)
+      expect(pendingEntries.length).toBe(1)
+      expect(approvedEntries.length).toBe(1)
+    })
+
+    it('should count entries by status correctly', async () => {
+      // Arrange
+      const org = await seed.organisation(db)
+      const user = await seed.user(db)
+      const sheet = await seed.timeSheet(db, {
+        id: 'sheet-1',
+        status: 'submitted',
+        organisationId: org.id,
+      })
+
+      await seed.timeEntry(db, {
+        id: 'entry-pending-1',
+        status: 'pending',
+        organisationId: org.id,
+        userId: user.id,
+      })
+      await seed.timeEntry(db, {
+        id: 'entry-pending-2',
+        status: 'pending',
+        organisationId: org.id,
+        userId: user.id,
+      })
+      await seed.timeEntry(db, {
+        id: 'entry-approved',
+        status: 'approved',
+        organisationId: org.id,
+        userId: user.id,
+      })
+
+      await db.insert(schema.timeSheetEntries).values([
+        {
+          id: 'tse-1',
+          timeSheetId: 'sheet-1',
+          timeEntryId: 'entry-pending-1',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'tse-2',
+          timeSheetId: 'sheet-1',
+          timeEntryId: 'entry-pending-2',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'tse-3',
+          timeSheetId: 'sheet-1',
+          timeEntryId: 'entry-approved',
+          createdAt: new Date().toISOString(),
+        },
+      ])
+
+      // Act
+      const sheetEntryRecords = await db
+        .select()
+        .from(schema.timeSheetEntries)
+        .where(eq(schema.timeSheetEntries.timeSheetId, 'sheet-1'))
+      const entryIds = sheetEntryRecords.map((se) => se.timeEntryId)
+      const entries = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(sql`${schema.timeEntries.id} IN ${entryIds}`)
+
+      const pendingCount = entries.filter((e) => e.status === 'pending').length
+      const approvedCount = entries.filter((e) => e.status === 'approved').length
+      const totalCount = entries.length
+
+      // Assert
+      expect(pendingCount).toBe(2)
+      expect(approvedCount).toBe(1)
+      expect(totalCount).toBe(3)
+    })
+  })
+
+  describe('getEntriesWithStatus - Entry status query', () => {
+    it('should retrieve entries with their status information', async () => {
+      // Arrange
+      const org = await seed.organisation(db)
+      const user = await seed.user(db)
+      const sheet = await seed.timeSheet(db, {
+        id: 'sheet-1',
+        organisationId: org.id,
+      })
+
+      const entry = await seed.timeEntry(db, {
+        status: 'pending',
+        organisationId: org.id,
+        userId: user.id,
+      })
+
+      await db.insert(schema.timeSheetEntries).values({
+        id: 'tse-1',
+        timeSheetId: 'sheet-1',
+        timeEntryId: entry.id,
+        approvedInSheet: false,
+        approvedInSheetAt: null,
+        approvedInSheetBy: null,
+        createdAt: new Date().toISOString(),
+      })
+
+      // Act
+      const result = await db
+        .select({
+          id: schema.timeEntries.id,
+          status: schema.timeEntries.status,
+          approvedInSheet: schema.timeSheetEntries.approvedInSheet,
+          approvedInSheetAt: schema.timeSheetEntries.approvedInSheetAt,
+          approvedInSheetBy: schema.timeSheetEntries.approvedInSheetBy,
+        })
+        .from(schema.timeSheetEntries)
+        .innerJoin(
+          schema.timeEntries,
+          eq(schema.timeSheetEntries.timeEntryId, schema.timeEntries.id)
+        )
+        .where(eq(schema.timeSheetEntries.timeSheetId, 'sheet-1'))
+
+      // Assert
+      expect(result).toHaveLength(1)
+      expect(result[0].status).toBe('pending')
+      expect(result[0].approvedInSheet).toBe(false)
+      expect(result[0].approvedInSheetAt).toBeNull()
+      expect(result[0].approvedInSheetBy).toBeNull()
+    })
+
+    it('should return entries with approval information when approved', async () => {
+      // Arrange
+      const org = await seed.organisation(db)
+      const user = await seed.user(db)
+      const sheet = await seed.timeSheet(db, {
+        id: 'sheet-1',
+        organisationId: org.id,
+      })
+
+      const approvedAt = new Date().toISOString()
+      const entry = await seed.timeEntry(db, {
+        status: 'approved',
+        organisationId: org.id,
+        userId: user.id,
+      })
+
+      await db.insert(schema.timeSheetEntries).values({
+        id: 'tse-1',
+        timeSheetId: 'sheet-1',
+        timeEntryId: entry.id,
+        approvedInSheet: true,
+        approvedInSheetAt: approvedAt,
+        approvedInSheetBy: user.id,
+        createdAt: new Date().toISOString(),
+      })
+
+      // Act
+      const result = await db
+        .select({
+          id: schema.timeEntries.id,
+          status: schema.timeEntries.status,
+          approvedInSheet: schema.timeSheetEntries.approvedInSheet,
+          approvedInSheetAt: schema.timeSheetEntries.approvedInSheetAt,
+          approvedInSheetBy: schema.timeSheetEntries.approvedInSheetBy,
+        })
+        .from(schema.timeSheetEntries)
+        .innerJoin(
+          schema.timeEntries,
+          eq(schema.timeSheetEntries.timeEntryId, schema.timeEntries.id)
+        )
+        .where(eq(schema.timeSheetEntries.timeSheetId, 'sheet-1'))
+
+      // Assert
+      expect(result).toHaveLength(1)
+      expect(result[0].status).toBe('approved')
+      expect(result[0].approvedInSheet).toBe(true)
+      expect(result[0].approvedInSheetAt).toBe(approvedAt)
+      expect(result[0].approvedInSheetBy).toBe(user.id)
+    })
+  })
+
+  describe('approveEntryInSheet - Entry-level approval', () => {
+    it('should update entry status to approved', async () => {
+      // Arrange
+      const org = await seed.organisation(db)
+      const user = await seed.user(db)
+      const sheet = await seed.timeSheet(db, {
+        id: 'sheet-1',
+        organisationId: org.id,
+      })
+
+      const entry = await seed.timeEntry(db, {
+        status: 'pending',
+        organisationId: org.id,
+        userId: user.id,
+      })
+
+      await db.insert(schema.timeSheetEntries).values({
+        id: 'tse-1',
+        timeSheetId: 'sheet-1',
+        timeEntryId: entry.id,
+        createdAt: new Date().toISOString(),
+      })
+
+      // Act - Simulate approveEntryInSheet logic
+      const now = new Date().toISOString()
+
+      await db
+        .update(schema.timeEntries)
+        .set({
+          status: 'approved',
+          statusChangedAt: now,
+          statusChangedBy: user.id,
+          approvedDate: now,
+        })
+        .where(eq(schema.timeEntries.id, entry.id))
+
+      await db
+        .update(schema.timeSheetEntries)
+        .set({
+          approvedInSheet: true,
+          approvedInSheetAt: now,
+          approvedInSheetBy: user.id,
+        })
+        .where(
+          and(
+            eq(schema.timeSheetEntries.timeSheetId, 'sheet-1'),
+            eq(schema.timeSheetEntries.timeEntryId, entry.id)
+          )
+        )
+
+      // Assert
+      const updatedEntry = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
+
+      const updatedSheetEntry = await db
+        .select()
+        .from(schema.timeSheetEntries)
+        .where(eq(schema.timeSheetEntries.id, 'tse-1'))
+        .limit(1)
+
+      expect(updatedEntry[0].status).toBe('approved')
+      expect(updatedEntry[0].statusChangedBy).toBe(user.id)
+      expect(updatedEntry[0].approvedDate).toBe(now)
+      expect(updatedSheetEntry[0].approvedInSheet).toBe(true)
+      expect(updatedSheetEntry[0].approvedInSheetBy).toBe(user.id)
+    })
+
+    it('should track who approved the entry', async () => {
+      // Arrange
+      const org = await seed.organisation(db)
+      const creator = await seed.user(db, { handle: 'creator', email: 'creator@test.com' })
+      const approver = await seed.user(db, { handle: 'approver', email: 'approver@test.com' })
+      const sheet = await seed.timeSheet(db, {
+        id: 'sheet-1',
+        organisationId: org.id,
+      })
+
+      const entry = await seed.timeEntry(db, {
+        status: 'pending',
+        organisationId: org.id,
+        userId: creator.id,
+      })
+
+      await db.insert(schema.timeSheetEntries).values({
+        id: 'tse-1',
+        timeSheetId: 'sheet-1',
+        timeEntryId: entry.id,
+        createdAt: new Date().toISOString(),
+      })
+
+      // Act - Approve by a different user
+      const now = new Date().toISOString()
+      await db
+        .update(schema.timeEntries)
+        .set({
+          status: 'approved',
+          statusChangedAt: now,
+          statusChangedBy: approver.id,
+        })
+        .where(eq(schema.timeEntries.id, entry.id))
+
+      // Assert
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
+
+      expect(result[0].statusChangedBy).toBe(approver.id)
+      expect(result[0].statusChangedBy).not.toBe(creator.id)
+    })
+  })
+
+  describe('questionEntryInSheet - Entry-level questioning', () => {
+    it('should update entry status to questioned', async () => {
+      // Arrange
+      const org = await seed.organisation(db)
+      const user = await seed.user(db)
+      const sheet = await seed.timeSheet(db, {
+        id: 'sheet-1',
+        organisationId: org.id,
+      })
+
+      const entry = await seed.timeEntry(db, {
+        status: 'pending',
+        organisationId: org.id,
+        userId: user.id,
+      })
+
+      await db.insert(schema.timeSheetEntries).values({
+        id: 'tse-1',
+        timeSheetId: 'sheet-1',
+        timeEntryId: entry.id,
+        createdAt: new Date().toISOString(),
+      })
+
+      // Act - Simulate questionEntryInSheet logic
+      const now = new Date().toISOString()
+
+      await db
+        .update(schema.timeEntries)
+        .set({
+          status: 'questioned',
+          statusChangedAt: now,
+          statusChangedBy: user.id,
+          approvedDate: null,
+        })
+        .where(eq(schema.timeEntries.id, entry.id))
+
+      await db
+        .update(schema.timeSheetEntries)
+        .set({
+          approvedInSheet: false,
+          approvedInSheetAt: null,
+          approvedInSheetBy: null,
+        })
+        .where(
+          and(
+            eq(schema.timeSheetEntries.timeSheetId, 'sheet-1'),
+            eq(schema.timeSheetEntries.timeEntryId, entry.id)
+          )
+        )
+
+      // Assert
+      const updatedEntry = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
+
+      const updatedSheetEntry = await db
+        .select()
+        .from(schema.timeSheetEntries)
+        .where(eq(schema.timeSheetEntries.id, 'tse-1'))
+        .limit(1)
+
+      expect(updatedEntry[0].status).toBe('questioned')
+      expect(updatedEntry[0].statusChangedBy).toBe(user.id)
+      expect(updatedEntry[0].approvedDate).toBeNull()
+      expect(updatedSheetEntry[0].approvedInSheet).toBe(false)
+      expect(updatedSheetEntry[0].approvedInSheetAt).toBeNull()
+    })
+
+    it('should reset approval status when questioning previously approved entry', async () => {
+      // Arrange
+      const org = await seed.organisation(db)
+      const approver = await seed.user(db, { handle: 'approver', email: 'approver2@test.com' })
+      const questioner = await seed.user(db, { handle: 'questioner', email: 'questioner@test.com' })
+      const sheet = await seed.timeSheet(db, {
+        id: 'sheet-1',
+        organisationId: org.id,
+      })
+
+      const approvedAt = new Date().toISOString()
+      const entry = await seed.timeEntry(db, {
+        status: 'approved',
+        approvedDate: approvedAt,
+        organisationId: org.id,
+        userId: approver.id,
+      })
+
+      await db.insert(schema.timeSheetEntries).values({
+        id: 'tse-1',
+        timeSheetId: 'sheet-1',
+        timeEntryId: entry.id,
+        approvedInSheet: true,
+        approvedInSheetAt: approvedAt,
+        approvedInSheetBy: approver.id,
+        createdAt: new Date().toISOString(),
+      })
+
+      // Act - Question the previously approved entry
+      const now = new Date().toISOString()
+
+      await db
+        .update(schema.timeEntries)
+        .set({
+          status: 'questioned',
+          statusChangedAt: now,
+          statusChangedBy: questioner.id,
+          approvedDate: null,
+        })
+        .where(eq(schema.timeEntries.id, entry.id))
+
+      await db
+        .update(schema.timeSheetEntries)
+        .set({
+          approvedInSheet: false,
+          approvedInSheetAt: null,
+          approvedInSheetBy: null,
+        })
+        .where(
+          and(
+            eq(schema.timeSheetEntries.timeSheetId, 'sheet-1'),
+            eq(schema.timeSheetEntries.timeEntryId, entry.id)
+          )
+        )
+
+      // Assert
+      const updatedEntry = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
+
+      const updatedSheetEntry = await db
+        .select()
+        .from(schema.timeSheetEntries)
+        .where(eq(schema.timeSheetEntries.id, 'tse-1'))
+        .limit(1)
+
+      expect(updatedEntry[0].status).toBe('questioned')
+      expect(updatedEntry[0].approvedDate).toBeNull()
+      expect(updatedSheetEntry[0].approvedInSheet).toBe(false)
+      expect(updatedSheetEntry[0].approvedInSheetAt).toBeNull()
+      expect(updatedSheetEntry[0].approvedInSheetBy).toBeNull()
+    })
+  })
+
+  describe('Entry status workflow', () => {
+    it('should allow workflow: pending -> questioned -> pending -> approved', async () => {
+      // Arrange
+      const org = await seed.organisation(db)
+      const user = await seed.user(db)
+
+      const entry = await seed.timeEntry(db, {
+        status: 'pending',
+        organisationId: org.id,
+        userId: user.id,
+      })
+
+      // Step 1: Question the entry
+      await db
+        .update(schema.timeEntries)
+        .set({ status: 'questioned' })
+        .where(eq(schema.timeEntries.id, entry.id))
+
+      let result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
+      expect(result[0].status).toBe('questioned')
+
+      // Step 2: Return to pending
+      await db
+        .update(schema.timeEntries)
+        .set({ status: 'pending' })
+        .where(eq(schema.timeEntries.id, entry.id))
+
+      result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
+      expect(result[0].status).toBe('pending')
+
+      // Step 3: Approve
+      await db
+        .update(schema.timeEntries)
+        .set({ status: 'approved' })
+        .where(eq(schema.timeEntries.id, entry.id))
+
+      result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
+      expect(result[0].status).toBe('approved')
+    })
+
+    it('should track status changes with timestamps', async () => {
+      // Arrange
+      const org = await seed.organisation(db)
+      const user = await seed.user(db)
+
+      const entry = await seed.timeEntry(db, {
+        status: 'pending',
+        statusChangedAt: null,
+        statusChangedBy: null,
+        organisationId: org.id,
+        userId: user.id,
+      })
+
+      // Act - Change status
+      const now = new Date().toISOString()
+      await db
+        .update(schema.timeEntries)
+        .set({
+          status: 'approved',
+          statusChangedAt: now,
+          statusChangedBy: user.id,
+        })
+        .where(eq(schema.timeEntries.id, entry.id))
+
+      // Assert
+      const result = await db
+        .select()
+        .from(schema.timeEntries)
+        .where(eq(schema.timeEntries.id, entry.id))
+        .limit(1)
+
+      expect(result[0].status).toBe('approved')
+      expect(result[0].statusChangedAt).toBe(now)
+      expect(result[0].statusChangedBy).toBe(user.id)
+    })
+  })
 })

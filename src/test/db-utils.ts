@@ -28,9 +28,12 @@ export function createTestDb() {
 export async function cleanDatabase(db: ReturnType<typeof createTestDb>['db']) {
   await db.delete(schema.invitations)
   await db.delete(schema.contacts)
+  await db.delete(schema.entryMessages)
+  await db.delete(schema.timeSheetApprovals)
   await db.delete(schema.timeSheetEntries)
   await db.delete(schema.timeSheets)
   await db.delete(schema.timeEntries)
+  await db.delete(schema.projectApprovalSettings)
   await db.delete(schema.projectMembers)
   await db.delete(schema.projects)
   await db.delete(schema.accounts)
@@ -182,6 +185,59 @@ export const testFactories = {
       ...overrides,
     }
   },
+
+  entryMessage: (
+    timeEntryId: string,
+    authorId: string,
+    overrides?: Partial<typeof schema.entryMessages.$inferInsert>
+  ) => {
+    const now = new Date().toISOString()
+    return {
+      id: Math.random().toString(36).substring(2, 15),
+      timeEntryId,
+      authorId,
+      content: 'Test message content',
+      parentMessageId: null,
+      statusChange: null,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      ...overrides,
+    }
+  },
+
+  projectApprovalSettings: (
+    projectId: string,
+    overrides?: Partial<typeof schema.projectApprovalSettings.$inferInsert>
+  ) => {
+    const now = new Date().toISOString()
+    return {
+      id: Math.random().toString(36).substring(2, 15),
+      projectId,
+      approvalMode: 'required' as const,
+      autoApproveAfterDays: 0,
+      requireAllEntriesApproved: true,
+      allowSelfApproveNoClient: false,
+      approvalStages: null,
+      createdAt: now,
+      updatedAt: now,
+      ...overrides,
+    }
+  },
+
+  timeSheetApproval: (
+    timeSheetId: string,
+    approvedBy: string,
+    overrides?: Partial<typeof schema.timeSheetApprovals.$inferInsert>
+  ) => ({
+    id: Math.random().toString(36).substring(2, 15),
+    timeSheetId,
+    stage: 'reviewer',
+    approvedBy,
+    approvedAt: new Date().toISOString(),
+    notes: null,
+    ...overrides,
+  }),
 }
 
 /**
@@ -302,5 +358,43 @@ export const seed = {
       .values(testFactories.invitation(contactId, invitedByUserId, data))
       .returning()
     return invitation
+  },
+
+  async entryMessage(
+    db: ReturnType<typeof createTestDb>['db'],
+    timeEntryId: string,
+    authorId: string,
+    data?: Partial<typeof schema.entryMessages.$inferInsert>
+  ) {
+    const [message] = await db
+      .insert(schema.entryMessages)
+      .values(testFactories.entryMessage(timeEntryId, authorId, data))
+      .returning()
+    return message
+  },
+
+  async projectApprovalSettings(
+    db: ReturnType<typeof createTestDb>['db'],
+    projectId: string,
+    data?: Partial<typeof schema.projectApprovalSettings.$inferInsert>
+  ) {
+    const [settings] = await db
+      .insert(schema.projectApprovalSettings)
+      .values(testFactories.projectApprovalSettings(projectId, data))
+      .returning()
+    return settings
+  },
+
+  async timeSheetApproval(
+    db: ReturnType<typeof createTestDb>['db'],
+    timeSheetId: string,
+    approvedBy: string,
+    data?: Partial<typeof schema.timeSheetApprovals.$inferInsert>
+  ) {
+    const [approval] = await db
+      .insert(schema.timeSheetApprovals)
+      .values(testFactories.timeSheetApproval(timeSheetId, approvedBy, data))
+      .returning()
+    return approval
   },
 }

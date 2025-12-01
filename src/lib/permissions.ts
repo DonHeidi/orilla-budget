@@ -323,3 +323,277 @@ export function canAccessProjectRoutes(
 ): boolean {
   return projectMemberships.length > 0
 }
+
+// ============================================================================
+// Contextual Permission Checking - can(user, action, resource, context)
+// ============================================================================
+
+/**
+ * Context for time sheet approval permission checks
+ */
+export interface TimeSheetApprovalContext {
+  /** The time sheet being acted upon */
+  timeSheet: {
+    id: string
+    status: string
+    projectId?: string | null
+    createdBy?: string | null
+  }
+  /** All project members (to check if client exists) */
+  projectMembers: Array<{ userId: string; role: ProjectRole }>
+  /** Current user's membership in the project */
+  userMembership?: { role: ProjectRole } | null
+}
+
+/**
+ * Result of a permission check with explanation
+ */
+export interface PermissionCheckResult {
+  allowed: boolean
+  reason?: string
+}
+
+/**
+ * Check if a user can approve a time sheet
+ *
+ * Rules:
+ * 1. User must have 'time-sheets:approve' permission on the project
+ * 2. Time sheet must be in 'submitted' status
+ * 3. If a client exists on the project, only the client (or owner/reviewer) can approve
+ *    - Experts cannot self-approve their own time sheets when a client exists
+ * 4. System admins can always approve
+ */
+export function canApproveTimeSheet(
+  user: { id: string; role?: SystemRole | null },
+  context: TimeSheetApprovalContext
+): PermissionCheckResult {
+  const { timeSheet, projectMembers, userMembership } = context
+
+  // System admins can always approve
+  if (user.role === 'super_admin' || user.role === 'admin') {
+    return { allowed: true }
+  }
+
+  // Must have project membership
+  if (!userMembership) {
+    return { allowed: false, reason: 'Not a member of this project' }
+  }
+
+  // Must have the approve permission
+  if (!hasProjectPermission(userMembership, 'time-sheets:approve')) {
+    return { allowed: false, reason: 'You do not have approval permissions' }
+  }
+
+  // Time sheet must be submitted
+  if (timeSheet.status !== 'submitted') {
+    return { allowed: false, reason: 'Time sheet is not submitted for approval' }
+  }
+
+  // Check if a client exists on the project
+  const hasClient = projectMembers.some((m) => m.role === 'client')
+
+  // If there's a client on the project, experts cannot self-approve
+  if (hasClient && userMembership.role === 'expert') {
+    return {
+      allowed: false,
+      reason: 'A client must review this time sheet before it can be approved',
+    }
+  }
+
+  // If there's a client and the user is an owner, they can approve
+  // (but ideally the client should do it)
+  if (hasClient && userMembership.role === 'owner') {
+    // Owners can approve, but we might want to warn them
+    return { allowed: true }
+  }
+
+  // Reviewers and clients can approve
+  if (userMembership.role === 'reviewer' || userMembership.role === 'client') {
+    return { allowed: true }
+  }
+
+  // Experts can approve if there's no client on the project
+  if (userMembership.role === 'expert' && !hasClient) {
+    return { allowed: true }
+  }
+
+  return { allowed: false, reason: 'You cannot approve this time sheet' }
+}
+
+/**
+ * Check if a user can approve a specific entry within a time sheet
+ *
+ * Rules:
+ * 1. User must have 'entries:approve' permission
+ * 2. Similar self-approval restrictions as time sheet approval
+ */
+export function canApproveEntry(
+  user: { id: string; role?: SystemRole | null },
+  context: {
+    entry: { id: string; createdBy?: string | null; status?: string }
+    projectMembers: Array<{ userId: string; role: ProjectRole }>
+    userMembership?: { role: ProjectRole } | null
+  }
+): PermissionCheckResult {
+  const { entry, projectMembers, userMembership } = context
+
+  // System admins can always approve
+  if (user.role === 'super_admin' || user.role === 'admin') {
+    return { allowed: true }
+  }
+
+  // Must have project membership
+  if (!userMembership) {
+    return { allowed: false, reason: 'Not a member of this project' }
+  }
+
+  // Must have the approve permission
+  if (!hasProjectPermission(userMembership, 'entries:approve')) {
+    return { allowed: false, reason: 'You do not have entry approval permissions' }
+  }
+
+  // Check if a client exists on the project
+  const hasClient = projectMembers.some((m) => m.role === 'client')
+
+  // If there's a client, experts cannot self-approve their own entries
+  if (hasClient && userMembership.role === 'expert' && entry.createdBy === user.id) {
+    return {
+      allowed: false,
+      reason: 'You cannot approve your own entries when a client is on the project',
+    }
+  }
+
+  return { allowed: true }
+}
+
+/**
+ * Check if a user can question an entry
+ */
+export function canQuestionEntry(
+  user: { id: string; role?: SystemRole | null },
+  context: {
+    entry: { id: string; status?: string }
+    userMembership?: { role: ProjectRole } | null
+  }
+): PermissionCheckResult {
+  const { userMembership } = context
+
+  // System admins can always question
+  if (user.role === 'super_admin' || user.role === 'admin') {
+    return { allowed: true }
+  }
+
+  // Must have project membership
+  if (!userMembership) {
+    return { allowed: false, reason: 'Not a member of this project' }
+  }
+
+  // Must have the question permission
+  if (!hasProjectPermission(userMembership, 'entries:question')) {
+    return { allowed: false, reason: 'You do not have permission to question entries' }
+  }
+
+  return { allowed: true }
+}
+
+/**
+ * Check if a user can reject a time sheet
+ *
+ * Rules:
+ * 1. Time sheet must be in 'submitted' status
+ * 2. Only clients, reviewers, owners, or system admins can reject
+ * 3. Experts cannot reject - they should revert to draft instead
+ */
+export function canRejectTimeSheet(
+  user: { id: string; role?: SystemRole | null },
+  context: {
+    timeSheet: { status: string }
+    userMembership?: { role: ProjectRole } | null
+  }
+): PermissionCheckResult {
+  const { timeSheet, userMembership } = context
+
+  // System admins can always reject
+  if (user.role === 'super_admin' || user.role === 'admin') {
+    return { allowed: true }
+  }
+
+  // Must have project membership
+  if (!userMembership) {
+    return { allowed: false, reason: 'Not a member of this project' }
+  }
+
+  // Time sheet must be submitted
+  if (timeSheet.status !== 'submitted') {
+    return { allowed: false, reason: 'Time sheet is not submitted' }
+  }
+
+  // Experts cannot reject - only revert to draft
+  if (userMembership.role === 'expert') {
+    return {
+      allowed: false,
+      reason: 'Experts cannot reject time sheets. Use "Revert to Draft" instead.',
+    }
+  }
+
+  // Clients, reviewers, and owners can reject
+  if (['client', 'reviewer', 'owner'].includes(userMembership.role)) {
+    return { allowed: true }
+  }
+
+  return { allowed: false, reason: 'You do not have permission to reject time sheets' }
+}
+
+/**
+ * Check if a user can revert a time sheet to draft
+ *
+ * Rules:
+ * 1. Time sheet must be in 'submitted', 'approved', or 'rejected' status
+ * 2. If user is an expert and a client has made changes (approved entries, questions, messages),
+ *    they cannot revert - they must ask the client
+ * 3. Clients, reviewers, owners, and admins can always revert
+ */
+export function canRevertToDraft(
+  user: { id: string; role?: SystemRole | null },
+  context: {
+    timeSheet: { status: string }
+    userMembership?: { role: ProjectRole } | null
+    /** Whether any client/reviewer has interacted with this sheet (approvals, questions, messages) */
+    hasClientInteraction: boolean
+  }
+): PermissionCheckResult {
+  const { timeSheet, userMembership, hasClientInteraction } = context
+
+  // System admins can always revert
+  if (user.role === 'super_admin' || user.role === 'admin') {
+    return { allowed: true }
+  }
+
+  // Must have project membership
+  if (!userMembership) {
+    return { allowed: false, reason: 'Not a member of this project' }
+  }
+
+  // Can only revert from submitted, approved, or rejected
+  if (!['submitted', 'approved', 'rejected'].includes(timeSheet.status)) {
+    return { allowed: false, reason: 'Time sheet cannot be reverted from this status' }
+  }
+
+  // Experts can only revert if no client/reviewer has interacted
+  if (userMembership.role === 'expert') {
+    if (hasClientInteraction) {
+      return {
+        allowed: false,
+        reason: 'Cannot revert: a reviewer or client has already reviewed this time sheet',
+      }
+    }
+    return { allowed: true }
+  }
+
+  // Clients, reviewers, and owners can always revert
+  if (['client', 'reviewer', 'owner'].includes(userMembership.role)) {
+    return { allowed: true }
+  }
+
+  return { allowed: false, reason: 'You do not have permission to revert time sheets' }
+}

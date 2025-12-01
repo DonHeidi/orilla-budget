@@ -3,15 +3,23 @@ import { createServerFn } from '@tanstack/react-start'
 import { getCookie } from '@tanstack/react-start/server'
 import { useState, useEffect } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Trash2, Plus, X, ExternalLink } from 'lucide-react'
+import { Trash2, Plus, X, ExternalLink, Check, MessageCircleQuestion, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { timeSheetRepository } from '@/repositories/timeSheet.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { accountRepository } from '@/repositories/account.repository'
 import { projectApprovalSettingsRepository } from '@/repositories/projectApprovalSettings.repository'
+import { projectMemberRepository } from '@/repositories/projectMember.repository'
 import { sessionRepository } from '@/repositories/session.repository'
 import { SESSION_COOKIE_NAME } from '@/lib/auth.shared'
+import {
+  canApproveTimeSheet,
+  canApproveEntry,
+  canQuestionEntry,
+  canRejectTimeSheet,
+  canRevertToDraft,
+} from '@/lib/permissions'
 import {
   addEntriesToSheetSchema,
   type TimeSheet,
@@ -46,24 +54,107 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 
 // Server Functions
 const getTimeSheetDetailFn = createServerFn({ method: 'GET' }).handler(
-  async ({ id }: { id: string }) => {
+  async ({ data }: { data: { id: string } }) => {
+    const { id } = data
+
+    // Get current user
+    const token = getCookie(SESSION_COOKIE_NAME)
+    let currentUser = null
+    if (token) {
+      const sessionData = await sessionRepository.findValidWithUserAndPii(token)
+      if (sessionData?.user) {
+        currentUser = sessionData.user
+      }
+    }
+
     const sheetData = await timeSheetRepository.findWithEntries(id)
     const organisations = await organisationRepository.findAll()
     const projects = await projectRepository.findAll()
     const accounts = await accountRepository.findAll()
 
-    // Get approval settings if sheet has a project
+    // Get approval settings and project members if sheet has a project
     let approvalSettings = null
+    let projectMembers: Array<{ userId: string; role: string }> = []
+    let userMembership = null
+
     if (sheetData?.timeSheet.projectId) {
       approvalSettings = await projectApprovalSettingsRepository.findByProjectId(
         sheetData.timeSheet.projectId
       )
+      projectMembers = await projectMemberRepository.findByProjectId(
+        sheetData.timeSheet.projectId
+      )
+      if (currentUser) {
+        userMembership = projectMembers.find((m) => m.userId === currentUser.id) || null
+      }
     }
 
-    // Check if sheet can be approved (all entries approved, etc.)
+    // Check if sheet can be approved (entry status check)
     let canApproveResult = null
     if (sheetData) {
       canApproveResult = await timeSheetRepository.canApproveSheet(id)
+    }
+
+    // Check if any client/reviewer has interacted with this sheet
+    // (approved entries, questioned entries, or messages from non-experts)
+    let hasClientInteraction = false
+    if (sheetData && sheetData.entries.length > 0) {
+      // Check if any entry has been approved or questioned by someone other than the sheet creator
+      const clientOrReviewerUserIds = projectMembers
+        .filter((m) => ['client', 'reviewer', 'owner'].includes(m.role))
+        .map((m) => m.userId)
+
+      for (const entry of sheetData.entries) {
+        // Check if entry was status-changed by a client/reviewer
+        if (
+          entry.statusChangedBy &&
+          clientOrReviewerUserIds.includes(entry.statusChangedBy)
+        ) {
+          hasClientInteraction = true
+          break
+        }
+      }
+
+      // Also check for entry messages from clients/reviewers
+      if (!hasClientInteraction) {
+        const { entryMessageRepository } = await import(
+          '@/repositories/entryMessage.repository'
+        )
+        for (const entry of sheetData.entries) {
+          const messages = await entryMessageRepository.findByEntryId(entry.id)
+          if (messages.some((m) => clientOrReviewerUserIds.includes(m.authorId))) {
+            hasClientInteraction = true
+            break
+          }
+        }
+      }
+    }
+
+    // Check permission to approve (user/role based)
+    let approvalPermission = { allowed: false, reason: 'Not authenticated' }
+    let rejectPermission = { allowed: false, reason: 'Not authenticated' }
+    let revertPermission = { allowed: false, reason: 'Not authenticated' }
+
+    if (currentUser && sheetData) {
+      const userContext = { id: currentUser.id, role: currentUser.role }
+      const membershipContext = userMembership as { role: any } | null
+
+      approvalPermission = canApproveTimeSheet(userContext, {
+        timeSheet: sheetData.timeSheet,
+        projectMembers: projectMembers as Array<{ userId: string; role: any }>,
+        userMembership: membershipContext,
+      })
+
+      rejectPermission = canRejectTimeSheet(userContext, {
+        timeSheet: sheetData.timeSheet,
+        userMembership: membershipContext,
+      })
+
+      revertPermission = canRevertToDraft(userContext, {
+        timeSheet: sheetData.timeSheet,
+        userMembership: membershipContext,
+        hasClientInteraction,
+      })
     }
 
     return {
@@ -73,6 +164,13 @@ const getTimeSheetDetailFn = createServerFn({ method: 'GET' }).handler(
       accounts: accounts,
       approvalSettings: approvalSettings,
       canApproveResult: canApproveResult,
+      approvalPermission: approvalPermission,
+      rejectPermission: rejectPermission,
+      revertPermission: revertPermission,
+      projectMembers: projectMembers,
+      userMembership: userMembership,
+      currentUser: currentUser ? { id: currentUser.id, role: currentUser.role } : null,
+      hasClientInteraction: hasClientInteraction,
     }
   }
 )
@@ -105,38 +203,38 @@ const addEntriesToSheetFn = createServerFn({ method: 'POST' })
   })
 
 const removeEntryFromSheetFn = createServerFn({ method: 'POST' }).handler(
-  async ({ sheetId, entryId }: { sheetId: string; entryId: string }) => {
-    return await timeSheetRepository.removeEntry(sheetId, entryId)
+  async ({ data }: { data: { sheetId: string; entryId: string } }) => {
+    return await timeSheetRepository.removeEntry(data.sheetId, data.entryId)
   }
 )
 
 const submitTimeSheetFn = createServerFn({ method: 'POST' }).handler(
-  async ({ id }: { id: string }) => {
-    return await timeSheetRepository.submitSheet(id)
+  async ({ data }: { data: { id: string } }) => {
+    return await timeSheetRepository.submitSheet(data.id)
   }
 )
 
 const approveTimeSheetFn = createServerFn({ method: 'POST' }).handler(
-  async ({ id }: { id: string }) => {
+  async ({ data }: { data: { id: string } }) => {
     const token = getCookie(SESSION_COOKIE_NAME)
     if (!token) throw new Error('Not authenticated')
 
     const sessionData = await sessionRepository.findValidWithUserAndPii(token)
     if (!sessionData?.user) throw new Error('Not authenticated')
 
-    return await timeSheetRepository.approveSheet(id, sessionData.user.id)
+    return await timeSheetRepository.approveSheet(data.id, sessionData.user.id)
   }
 )
 
 const rejectTimeSheetFn = createServerFn({ method: 'POST' }).handler(
-  async ({ id, reason }: { id: string; reason?: string }) => {
-    return await timeSheetRepository.rejectSheet(id, reason)
+  async ({ data }: { data: { id: string; reason?: string } }) => {
+    return await timeSheetRepository.rejectSheet(data.id, data.reason)
   }
 )
 
 const revertToDraftFn = createServerFn({ method: 'POST' }).handler(
-  async ({ id }: { id: string }) => {
-    return await timeSheetRepository.revertToDraft(id)
+  async ({ data }: { data: { id: string } }) => {
+    return await timeSheetRepository.revertToDraft(data.id)
   }
 )
 
@@ -147,9 +245,112 @@ const getAvailableEntriesFn = createServerFn({ method: 'POST' }).handler(
   }
 )
 
+const approveEntryFn = createServerFn({ method: 'POST' }).handler(
+  async ({ data }: { data: { sheetId: string; entryId: string } }) => {
+    const token = getCookie(SESSION_COOKIE_NAME)
+    if (!token) throw new Error('Not authenticated')
+
+    const sessionData = await sessionRepository.findValidWithUserAndPii(token)
+    if (!sessionData?.user) throw new Error('Not authenticated')
+
+    return await timeSheetRepository.approveEntryInSheet(
+      data.sheetId,
+      data.entryId,
+      sessionData.user.id
+    )
+  }
+)
+
+const questionEntryFn = createServerFn({ method: 'POST' }).handler(
+  async ({
+    data,
+  }: {
+    data: {
+      sheetId: string
+      entryId: string
+      message?: string
+    }
+  }) => {
+    const token = getCookie(SESSION_COOKIE_NAME)
+    if (!token) throw new Error('Not authenticated')
+
+    const sessionData = await sessionRepository.findValidWithUserAndPii(token)
+    if (!sessionData?.user) throw new Error('Not authenticated')
+
+    await timeSheetRepository.questionEntryInSheet(
+      data.sheetId,
+      data.entryId,
+      sessionData.user.id
+    )
+
+    // If a message was provided, create an entry message
+    if (data.message && data.message.trim()) {
+      const { entryMessageRepository } = await import(
+        '@/repositories/entryMessage.repository'
+      )
+      await entryMessageRepository.create(
+        {
+          timeEntryId: data.entryId,
+          content: data.message.trim(),
+          statusChange: 'questioned',
+        },
+        sessionData.user.id
+      )
+    }
+  }
+)
+
+const resolveQuestionFn = createServerFn({ method: 'POST' }).handler(
+  async ({
+    data,
+  }: {
+    data: {
+      sheetId: string
+      entryId: string
+      message?: string
+    }
+  }) => {
+    const token = getCookie(SESSION_COOKIE_NAME)
+    if (!token) throw new Error('Not authenticated')
+
+    const sessionData = await sessionRepository.findValidWithUserAndPii(token)
+    if (!sessionData?.user) throw new Error('Not authenticated')
+
+    // Update the entry status back to pending
+    const { timeEntries } = await import('@/db/schema')
+    const { db } = await import('@/db')
+    const { eq } = await import('drizzle-orm')
+
+    const now = new Date().toISOString()
+    await db
+      .update(timeEntries)
+      .set({
+        status: 'pending',
+        statusChangedAt: now,
+        statusChangedBy: sessionData.user.id,
+      })
+      .where(eq(timeEntries.id, data.entryId))
+
+    // If a message was provided, create an entry message
+    if (data.message && data.message.trim()) {
+      const { entryMessageRepository } = await import(
+        '@/repositories/entryMessage.repository'
+      )
+      await entryMessageRepository.create(
+        {
+          timeEntryId: data.entryId,
+          content: data.message.trim(),
+          statusChange: 'pending',
+        },
+        sessionData.user.id
+      )
+    }
+  }
+)
+
 export const Route = createFileRoute('/dashboard/time-sheets/$id')({
   component: TimeSheetDetailPage,
-  loader: ({ params }) => getTimeSheetDetailFn({ id: params.id }),
+  loader: ({ params }) => getTimeSheetDetailFn({ data: { id: params.id } }),
 })
 
 function TimeSheetDetailPage() {
@@ -159,6 +360,9 @@ function TimeSheetDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showRejectDialog, setShowRejectDialog] = useState(false)
   const [showAddEntriesDialog, setShowAddEntriesDialog] = useState(false)
+  const [showQuestionDialog, setShowQuestionDialog] = useState(false)
+  const [questioningEntry, setQuestioningEntry] = useState<TimeEntry | null>(null)
+  const [questionMessage, setQuestionMessage] = useState('')
   const [rejectionReason, setRejectionReason] = useState('')
   const [editingField, setEditingField] = useState<string | null>(null)
   const [editedValues, setEditedValues] = useState<Partial<TimeSheet>>({})
@@ -169,10 +373,30 @@ function TimeSheetDetailPage() {
 
   const { timeSheet, entries, totalHours, organisation, project, account } =
     data.sheetData
-  const { approvalSettings, canApproveResult } = data
+  const {
+    approvalSettings,
+    canApproveResult,
+    approvalPermission,
+    rejectPermission,
+    revertPermission,
+    projectMembers,
+    currentUser,
+  } = data
   const currentValues = { ...timeSheet, ...editedValues }
   const isDraft = timeSheet.status === 'draft'
   const isSubmitted = timeSheet.status === 'submitted'
+
+  // Combined approval check: both entry status AND user permission
+  const canApprove = canApproveResult?.canApprove && approvalPermission?.allowed
+  const approvalBlockReason = !canApproveResult?.canApprove
+    ? canApproveResult?.reason
+    : !approvalPermission?.allowed
+      ? approvalPermission?.reason
+      : undefined
+
+  // Reject and revert permissions
+  const canReject = rejectPermission?.allowed
+  const canRevert = revertPermission?.allowed
 
   // Map entries to include status for approval summary
   const entriesWithStatus = entries.map((entry: TimeEntry) => ({
@@ -213,30 +437,50 @@ function TimeSheetDetailPage() {
       alert('Cannot submit an empty time sheet. Please add at least one entry.')
       return
     }
-    await submitTimeSheetFn({ id })
-    router.invalidate()
+    try {
+      await submitTimeSheetFn({ data: { id } })
+      router.invalidate()
+    } catch (err) {
+      console.error('[handleSubmit] Error:', err)
+      alert('Failed to submit time sheet. Please try again.')
+    }
   }
 
   const handleApprove = async () => {
-    // Check if approval is blocked
-    if (canApproveResult && !canApproveResult.canApprove) {
-      alert(canApproveResult.reason || 'Cannot approve this time sheet')
+    // Check if approval is blocked (entry status or permission)
+    if (!canApprove) {
+      alert(approvalBlockReason || 'Cannot approve this time sheet')
       return
     }
-    await approveTimeSheetFn({ id })
-    router.invalidate()
+    try {
+      await approveTimeSheetFn({ data: { id } })
+      router.invalidate()
+    } catch (err) {
+      console.error('[handleApprove] Error:', err)
+      alert('Failed to approve time sheet. Please try again.')
+    }
   }
 
   const handleReject = async () => {
-    await rejectTimeSheetFn({ id, reason: rejectionReason })
-    setShowRejectDialog(false)
-    setRejectionReason('')
-    router.invalidate()
+    try {
+      await rejectTimeSheetFn({ data: { id, reason: rejectionReason } })
+      setShowRejectDialog(false)
+      setRejectionReason('')
+      router.invalidate()
+    } catch (err) {
+      console.error('[handleReject] Error:', err)
+      alert('Failed to reject time sheet. Please try again.')
+    }
   }
 
   const handleRevertToDraft = async () => {
-    await revertToDraftFn({ id })
-    router.invalidate()
+    try {
+      await revertToDraftFn({ data: { id } })
+      router.invalidate()
+    } catch (err) {
+      console.error('[handleRevertToDraft] Error:', err)
+      alert('Failed to revert time sheet. Please try again.')
+    }
   }
 
   const handleRemoveEntry = async (entryId: string) => {
@@ -245,8 +489,55 @@ function TimeSheetDetailPage() {
     if (entry?.status === 'approved') {
       return
     }
-    await removeEntryFromSheetFn({ sheetId: id, entryId })
-    router.invalidate()
+    try {
+      await removeEntryFromSheetFn({ data: { sheetId: id, entryId } })
+      router.invalidate()
+    } catch (err) {
+      console.error('[handleRemoveEntry] Error:', err)
+    }
+  }
+
+  const handleApproveEntry = async (entryId: string) => {
+    try {
+      await approveEntryFn({ data: { sheetId: id, entryId } })
+      router.invalidate()
+    } catch (err) {
+      console.error('[handleApproveEntry] Error:', err)
+    }
+  }
+
+  const handleOpenQuestionDialog = (entry: TimeEntry) => {
+    setQuestioningEntry(entry)
+    setQuestionMessage('')
+    setShowQuestionDialog(true)
+  }
+
+  const handleQuestionEntry = async () => {
+    if (!questioningEntry) return
+    try {
+      await questionEntryFn({
+        data: {
+          sheetId: id,
+          entryId: questioningEntry.id,
+          message: questionMessage,
+        },
+      })
+      setShowQuestionDialog(false)
+      setQuestioningEntry(null)
+      setQuestionMessage('')
+      router.invalidate()
+    } catch (err) {
+      console.error('[handleQuestionEntry] Error:', err)
+    }
+  }
+
+  const handleResolveQuestion = async (entryId: string) => {
+    try {
+      await resolveQuestionFn({ data: { sheetId: id, entryId } })
+      router.invalidate()
+    } catch (err) {
+      console.error('[handleResolveQuestion] Error:', err)
+    }
   }
 
   const entryColumns: ColumnDef<TimeEntry>[] = [
@@ -290,10 +581,13 @@ function TimeSheetDetailPage() {
       id: 'actions',
       header: () => null,
       cell: ({ row }) => {
-        const status = (row.original as TimeEntry & { status?: EntryStatus }).status
+        const status = (row.original as TimeEntry & { status?: EntryStatus }).status || 'pending'
         const isApproved = status === 'approved'
-        return (
-          isDraft && (
+        const isQuestioned = status === 'questioned'
+
+        // Draft: show remove button
+        if (isDraft) {
+          return (
             <Button
               variant="ghost"
               size="sm"
@@ -305,7 +599,55 @@ function TimeSheetDetailPage() {
               <X className="h-4 w-4" />
             </Button>
           )
-        )
+        }
+
+        // Submitted: show approval actions
+        if (isSubmitted) {
+          return (
+            <div className="flex gap-1">
+              {/* Approve button - show for pending entries */}
+              {!isApproved && !isQuestioned && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleApproveEntry(row.original.id)}
+                  title="Approve entry"
+                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+              )}
+
+              {/* Question button - show for pending or approved entries */}
+              {!isQuestioned && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleOpenQuestionDialog(row.original)}
+                  title="Question this entry"
+                  className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                >
+                  <MessageCircleQuestion className="h-4 w-4" />
+                </Button>
+              )}
+
+              {/* Resolve button - show for questioned entries */}
+              {isQuestioned && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleResolveQuestion(row.original.id)}
+                  title="Mark as resolved (return to pending)"
+                  className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          )
+        }
+
+        return null
       },
     },
   ]
@@ -344,18 +686,14 @@ function TimeSheetDetailPage() {
                   </Button>
                 </>
               )}
-              {timeSheet.status === 'submitted' && (
+              {timeSheet.status === 'submitted' && currentUser && (
                 <>
                   <Button
                     onClick={handleApprove}
                     size="sm"
                     variant="default"
-                    disabled={canApproveResult && !canApproveResult.canApprove}
-                    title={
-                      canApproveResult && !canApproveResult.canApprove
-                        ? canApproveResult.reason
-                        : undefined
-                    }
+                    disabled={!canApprove}
+                    title={approvalBlockReason}
                   >
                     Approve
                   </Button>
@@ -363,6 +701,8 @@ function TimeSheetDetailPage() {
                     onClick={() => setShowRejectDialog(true)}
                     size="sm"
                     variant="destructive"
+                    disabled={!canReject}
+                    title={!canReject ? rejectPermission?.reason : undefined}
                   >
                     Reject
                   </Button>
@@ -370,21 +710,26 @@ function TimeSheetDetailPage() {
                     onClick={handleRevertToDraft}
                     size="sm"
                     variant="outline"
+                    disabled={!canRevert}
+                    title={!canRevert ? revertPermission?.reason : undefined}
                   >
                     Revert to Draft
                   </Button>
                 </>
               )}
               {(timeSheet.status === 'rejected' ||
-                timeSheet.status === 'approved') && (
-                <Button
-                  onClick={handleRevertToDraft}
-                  size="sm"
-                  variant="outline"
-                >
-                  Revert to Draft
-                </Button>
-              )}
+                timeSheet.status === 'approved') &&
+                currentUser && (
+                  <Button
+                    onClick={handleRevertToDraft}
+                    size="sm"
+                    variant="outline"
+                    disabled={!canRevert}
+                    title={!canRevert ? revertPermission?.reason : undefined}
+                  >
+                    Revert to Draft
+                  </Button>
+                )}
             </div>
           </div>
 
@@ -393,9 +738,9 @@ function TimeSheetDetailPage() {
             <div className="border rounded-lg p-4 bg-muted/30">
               <h3 className="text-sm font-medium mb-2">Entry Approval Status</h3>
               <TimeSheetApprovalSummary entries={entriesWithStatus} />
-              {canApproveResult && !canApproveResult.canApprove && (
+              {approvalBlockReason && (
                 <p className="text-sm text-destructive mt-2">
-                  {canApproveResult.reason}
+                  {approvalBlockReason}
                 </p>
               )}
             </div>
@@ -768,6 +1113,57 @@ function TimeSheetDetailPage() {
               router.invalidate()
             }}
           />
+        )}
+
+        {/* Question Entry Dialog */}
+        {showQuestionDialog && questioningEntry && (
+          <Dialog open={showQuestionDialog} onOpenChange={setShowQuestionDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Question Entry</DialogTitle>
+                <DialogDescription>
+                  Add a question or comment about "{questioningEntry.title}"
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="text-sm text-muted-foreground">
+                  <p><strong>Date:</strong> {questioningEntry.date}</p>
+                  <p><strong>Hours:</strong> {questioningEntry.hours}h</p>
+                  {questioningEntry.description && (
+                    <p><strong>Description:</strong> {questioningEntry.description}</p>
+                  )}
+                </div>
+                <textarea
+                  value={questionMessage}
+                  onChange={(e) => setQuestionMessage(e.target.value)}
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  placeholder="What would you like to clarify about this entry?"
+                  rows={3}
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowQuestionDialog(false)
+                    setQuestioningEntry(null)
+                    setQuestionMessage('')
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={handleQuestionEntry}
+                  className="bg-amber-600 hover:bg-amber-700"
+                >
+                  <MessageCircleQuestion className="mr-2 h-4 w-4" />
+                  Question Entry
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
       </SheetContent>
     </Sheet>
