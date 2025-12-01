@@ -20,6 +20,17 @@ import {
   invitationSchema,
   createInvitationSchema,
   invitationStatusSchema,
+  // Approval workflow schemas
+  entryStatusSchema,
+  entryMessageSchema,
+  createEntryMessageSchema,
+  approvalModeSchema,
+  approvalStageSchema,
+  projectApprovalSettingsSchema,
+  updateProjectApprovalSettingsSchema,
+  timeSheetApprovalSchema,
+  createTimeSheetApprovalSchema,
+  updateEntryStatusSchema,
 } from './schemas'
 
 describe('userSchema', () => {
@@ -1595,6 +1606,355 @@ describe('createInvitationSchema', () => {
       projectId: 'proj-1',
     })
 
+    expect(result.success).toBe(false)
+  })
+})
+
+// ============================================================================
+// APPROVAL WORKFLOW SCHEMA TESTS
+// ============================================================================
+
+describe('entryStatusSchema', () => {
+  it('should accept valid entry statuses', () => {
+    const validStatuses = ['pending', 'questioned', 'approved']
+    validStatuses.forEach((status) => {
+      const result = entryStatusSchema.safeParse(status)
+      expect(result.success).toBe(true)
+    })
+  })
+
+  it('should reject invalid entry status', () => {
+    const result = entryStatusSchema.safeParse('invalid')
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('entryMessageSchema', () => {
+  const timestamp = new Date().toISOString()
+
+  describe('valid data', () => {
+    it('should accept valid entry message', () => {
+      const result = entryMessageSchema.safeParse({
+        id: 'msg-1',
+        timeEntryId: 'entry-1',
+        authorId: 'user-1',
+        content: 'This is a test message',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it('should accept message with parent and status change', () => {
+      const result = entryMessageSchema.safeParse({
+        id: 'msg-2',
+        timeEntryId: 'entry-1',
+        authorId: 'user-1',
+        content: 'Reply message',
+        parentMessageId: 'msg-1',
+        statusChange: 'questioned',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      expect(result.success).toBe(true)
+    })
+  })
+
+  describe('invalid data', () => {
+    it('should reject empty content', () => {
+      const result = entryMessageSchema.safeParse({
+        id: 'msg-1',
+        timeEntryId: 'entry-1',
+        authorId: 'user-1',
+        content: '',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject content over 5000 characters', () => {
+      const result = entryMessageSchema.safeParse({
+        id: 'msg-1',
+        timeEntryId: 'entry-1',
+        authorId: 'user-1',
+        content: 'a'.repeat(5001),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject invalid status change', () => {
+      const result = entryMessageSchema.safeParse({
+        id: 'msg-1',
+        timeEntryId: 'entry-1',
+        authorId: 'user-1',
+        content: 'Test',
+        statusChange: 'invalid_status',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      expect(result.success).toBe(false)
+    })
+  })
+})
+
+describe('createEntryMessageSchema', () => {
+  it('should accept minimal valid data', () => {
+    const result = createEntryMessageSchema.safeParse({
+      timeEntryId: 'entry-1',
+      content: 'New message',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('should accept optional fields', () => {
+    const result = createEntryMessageSchema.safeParse({
+      timeEntryId: 'entry-1',
+      content: 'New message',
+      parentMessageId: 'msg-1',
+      statusChange: 'approved',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.parentMessageId).toBe('msg-1')
+      expect(result.data.statusChange).toBe('approved')
+    }
+  })
+})
+
+describe('approvalModeSchema', () => {
+  it('should accept valid approval modes', () => {
+    const validModes = ['required', 'optional', 'self_approve', 'multi_stage']
+    validModes.forEach((mode) => {
+      const result = approvalModeSchema.safeParse(mode)
+      expect(result.success).toBe(true)
+    })
+  })
+
+  it('should reject invalid approval mode', () => {
+    const result = approvalModeSchema.safeParse('invalid_mode')
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('approvalStageSchema', () => {
+  it('should accept valid approval stages', () => {
+    const validStages = ['expert', 'reviewer', 'client', 'owner']
+    validStages.forEach((stage) => {
+      const result = approvalStageSchema.safeParse(stage)
+      expect(result.success).toBe(true)
+    })
+  })
+
+  it('should reject invalid approval stage', () => {
+    const result = approvalStageSchema.safeParse('invalid_stage')
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('projectApprovalSettingsSchema', () => {
+  const timestamp = new Date().toISOString()
+
+  describe('valid data', () => {
+    it('should accept valid settings with defaults', () => {
+      const result = projectApprovalSettingsSchema.safeParse({
+        id: 'settings-1',
+        projectId: 'proj-1',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.approvalMode).toBe('required')
+        expect(result.data.autoApproveAfterDays).toBe(0)
+        expect(result.data.requireAllEntriesApproved).toBe(true)
+        expect(result.data.allowSelfApproveNoClient).toBe(false)
+      }
+    })
+
+    it('should accept multi-stage with approval stages', () => {
+      const result = projectApprovalSettingsSchema.safeParse({
+        id: 'settings-1',
+        projectId: 'proj-1',
+        approvalMode: 'multi_stage',
+        approvalStages: ['reviewer', 'client'],
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.approvalStages).toEqual(['reviewer', 'client'])
+      }
+    })
+
+    it('should accept custom settings', () => {
+      const result = projectApprovalSettingsSchema.safeParse({
+        id: 'settings-1',
+        projectId: 'proj-1',
+        approvalMode: 'optional',
+        autoApproveAfterDays: 7,
+        requireAllEntriesApproved: false,
+        allowSelfApproveNoClient: true,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.autoApproveAfterDays).toBe(7)
+        expect(result.data.requireAllEntriesApproved).toBe(false)
+        expect(result.data.allowSelfApproveNoClient).toBe(true)
+      }
+    })
+  })
+
+  describe('invalid data', () => {
+    it('should reject negative autoApproveAfterDays', () => {
+      const result = projectApprovalSettingsSchema.safeParse({
+        id: 'settings-1',
+        projectId: 'proj-1',
+        autoApproveAfterDays: -1,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject invalid approval mode', () => {
+      const result = projectApprovalSettingsSchema.safeParse({
+        id: 'settings-1',
+        projectId: 'proj-1',
+        approvalMode: 'invalid',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it('should reject invalid approval stage in array', () => {
+      const result = projectApprovalSettingsSchema.safeParse({
+        id: 'settings-1',
+        projectId: 'proj-1',
+        approvalMode: 'multi_stage',
+        approvalStages: ['reviewer', 'invalid_stage'],
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      expect(result.success).toBe(false)
+    })
+  })
+})
+
+describe('updateProjectApprovalSettingsSchema', () => {
+  it('should accept partial updates', () => {
+    const result = updateProjectApprovalSettingsSchema.safeParse({
+      approvalMode: 'optional',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('should accept empty object', () => {
+    const result = updateProjectApprovalSettingsSchema.safeParse({})
+    expect(result.success).toBe(true)
+  })
+
+  it('should accept multiple fields', () => {
+    const result = updateProjectApprovalSettingsSchema.safeParse({
+      approvalMode: 'multi_stage',
+      approvalStages: ['expert', 'reviewer'],
+      autoApproveAfterDays: 14,
+    })
+    expect(result.success).toBe(true)
+  })
+})
+
+describe('timeSheetApprovalSchema', () => {
+  const timestamp = new Date().toISOString()
+
+  it('should accept valid time sheet approval', () => {
+    const result = timeSheetApprovalSchema.safeParse({
+      id: 'approval-1',
+      timeSheetId: 'sheet-1',
+      stage: 'reviewer',
+      approvedBy: 'user-1',
+      approvedAt: timestamp,
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('should accept approval with notes', () => {
+    const result = timeSheetApprovalSchema.safeParse({
+      id: 'approval-1',
+      timeSheetId: 'sheet-1',
+      stage: 'client',
+      approvedBy: 'user-1',
+      approvedAt: timestamp,
+      notes: 'Approved after discussion',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.notes).toBe('Approved after discussion')
+    }
+  })
+
+  it('should reject missing required fields', () => {
+    const result = timeSheetApprovalSchema.safeParse({
+      id: 'approval-1',
+      timeSheetId: 'sheet-1',
+    })
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('createTimeSheetApprovalSchema', () => {
+  it('should accept minimal valid data', () => {
+    const result = createTimeSheetApprovalSchema.safeParse({
+      timeSheetId: 'sheet-1',
+      stage: 'reviewer',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('should accept with optional notes', () => {
+    const result = createTimeSheetApprovalSchema.safeParse({
+      timeSheetId: 'sheet-1',
+      stage: 'client',
+      notes: 'All entries look good',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.notes).toBe('All entries look good')
+    }
+  })
+})
+
+describe('updateEntryStatusSchema', () => {
+  it('should accept valid status update', () => {
+    const result = updateEntryStatusSchema.safeParse({
+      entryId: 'entry-1',
+      status: 'approved',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('should accept status update with message', () => {
+    const result = updateEntryStatusSchema.safeParse({
+      entryId: 'entry-1',
+      status: 'questioned',
+      message: 'Please clarify the hours',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.message).toBe('Please clarify the hours')
+    }
+  })
+
+  it('should reject invalid status', () => {
+    const result = updateEntryStatusSchema.safeParse({
+      entryId: 'entry-1',
+      status: 'invalid_status',
+    })
     expect(result.success).toBe(false)
   })
 })
