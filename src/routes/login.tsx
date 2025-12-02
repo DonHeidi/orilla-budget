@@ -1,38 +1,10 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { createServerFn, useServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
-import { z } from 'zod'
-import { SESSION_COOKIE_NAME, SESSION_COOKIE_OPTIONS } from '@/lib/auth.shared'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { userRepository } from '@/repositories/user.repository'
-import { sessionRepository } from '@/repositories/session.repository'
-
-const LoginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-})
-
-const loginFn = createServerFn({ method: 'POST' })
-  .inputValidator(LoginSchema)
-  .handler(async ({ data }) => {
-    const user = await userRepository.verifyPassword(data.email, data.password)
-
-    if (!user) {
-      return { success: false as const, error: 'Invalid email or password' }
-    }
-
-    const session = await sessionRepository.create(user.id)
-    await userRepository.updateLastLogin(user.id)
-
-    return {
-      success: true as const,
-      user: { id: user.id, handle: user.handle, role: user.role },
-      token: session.token,
-    }
-  })
+import { authClient } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
@@ -41,7 +13,6 @@ export const Route = createFileRoute('/login')({
 function LoginPage() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
-  const login = useServerFn(loginFn)
 
   const form = useForm({
     defaultValues: {
@@ -52,14 +23,19 @@ function LoginPage() {
       setError(null)
 
       try {
-        const result = await login({ data: value })
+        const { data, error: signInError } = await authClient.signIn.email({
+          email: value.email,
+          password: value.password,
+        })
 
-        if (result.success && result.token) {
-          // Set the session cookie on the client
-          document.cookie = `${SESSION_COOKIE_NAME}=${result.token}; path=${SESSION_COOKIE_OPTIONS.path}; max-age=${SESSION_COOKIE_OPTIONS.maxAge}; SameSite=${SESSION_COOKIE_OPTIONS.sameSite}`
+        if (signInError) {
+          setError(signInError.message || 'Invalid email or password')
+          return
+        }
+
+        if (data) {
+          // Better Auth handles cookie setting automatically via tanstackStartCookies plugin
           router.navigate({ to: '/dashboard' })
-        } else {
-          setError(result.error || 'Login failed')
         }
       } catch (err) {
         console.error('Login error:', err)

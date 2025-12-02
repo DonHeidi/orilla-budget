@@ -70,7 +70,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AuthProvider } from '@/components/auth-provider'
-import { getCurrentSessionFn, logoutFn } from '@/lib/auth/session.server'
+import { getCurrentSessionFn, logoutFn } from '@/lib/auth/better-auth-session.server'
 import type { AuthSession } from '@/lib/auth/types'
 import { hasSystemPermission } from '@/lib/permissions'
 
