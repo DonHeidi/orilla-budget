@@ -1064,3 +1064,4 @@ Immediate action items.
 | [User Management Enhancements](docs/roadmap/2025-11-28-user-management-enhancements.md) | Planned | Email integration, 2FA, OAuth, audit logging, GDPR |
 | [Dashboard Improvements](docs/roadmap/2025-11-22-dashboard-improvements.md) | In Progress | Bug fixes, UI/UX improvements |
 | [Focus Timer & Mindfulness](docs/roadmap/2025-11-25-focus-timer-mindfulness.md) | Planned | Focus timer feature |
+| [Better Auth Migration](docs/roadmap/2025-12-02-better-auth-migration.md) | In Progress | Migrate custom auth to Better Auth framework |

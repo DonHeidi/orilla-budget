@@ -28,6 +28,7 @@ import { Route as DashboardProjectsIdRouteImport } from './routes/dashboard/proj
 import { Route as DashboardContactsIdRouteImport } from './routes/dashboard/contacts.$id'
 import { Route as DashboardOrgsOrganisationsRouteImport } from './routes/dashboard/_orgs.organisations'
 import { Route as DashboardOrgsAccountsRouteImport } from './routes/dashboard/_orgs.accounts'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as DashboardOrgsOrganisationsIdRouteImport } from './routes/dashboard/_orgs.organisations.$id'
 import { Route as DashboardOrgsAccountsIdRouteImport } from './routes/dashboard/_orgs.accounts.$id'
 
@@ -126,6 +127,11 @@ const DashboardOrgsAccountsRoute = DashboardOrgsAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => DashboardOrgsRoute,
 } as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardOrgsOrganisationsIdRoute =
   DashboardOrgsOrganisationsIdRouteImport.update({
     id: '/$id',
@@ -150,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/users': typeof DashboardUsersRouteWithChildren
   '/invite/$code': typeof InviteCodeRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
   '/dashboard/accounts': typeof DashboardOrgsAccountsRouteWithChildren
   '/dashboard/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
   '/dashboard/contacts/$id': typeof DashboardContactsIdRoute
@@ -171,6 +178,7 @@ export interface FileRoutesByTo {
   '/dashboard/time-sheets': typeof DashboardTimeSheetsRouteWithChildren
   '/dashboard/users': typeof DashboardUsersRouteWithChildren
   '/invite/$code': typeof InviteCodeRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
   '/dashboard/accounts': typeof DashboardOrgsAccountsRouteWithChildren
   '/dashboard/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
   '/dashboard/contacts/$id': typeof DashboardContactsIdRoute
@@ -195,6 +203,7 @@ export interface FileRoutesById {
   '/dashboard/users': typeof DashboardUsersRouteWithChildren
   '/invite/$code': typeof InviteCodeRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
   '/dashboard/_orgs/accounts': typeof DashboardOrgsAccountsRouteWithChildren
   '/dashboard/_orgs/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
   '/dashboard/contacts/$id': typeof DashboardContactsIdRoute
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/dashboard/users'
     | '/invite/$code'
     | '/dashboard/'
+    | '/api/auth/$'
     | '/dashboard/accounts'
     | '/dashboard/organisations'
     | '/dashboard/contacts/$id'
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/dashboard/time-sheets'
     | '/dashboard/users'
     | '/invite/$code'
+    | '/api/auth/$'
     | '/dashboard/accounts'
     | '/dashboard/organisations'
     | '/dashboard/contacts/$id'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/dashboard/users'
     | '/invite/$code'
     | '/dashboard/'
+    | '/api/auth/$'
     | '/dashboard/_orgs/accounts'
     | '/dashboard/_orgs/organisations'
     | '/dashboard/contacts/$id'
@@ -280,6 +292,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PortalRoute: typeof PortalRoute
   InviteCodeRoute: typeof InviteCodeRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -416,6 +429,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/accounts'
       preLoaderRoute: typeof DashboardOrgsAccountsRouteImport
       parentRoute: typeof DashboardOrgsRoute
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/dashboard/_orgs/organisations/$id': {
       id: '/dashboard/_orgs/organisations/$id'
@@ -561,6 +581,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PortalRoute: PortalRoute,
   InviteCodeRoute: InviteCodeRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
