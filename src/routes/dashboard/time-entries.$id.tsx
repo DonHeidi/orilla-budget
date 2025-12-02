@@ -5,14 +5,13 @@ import {
   getRouteApi,
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { getCookie } from '@tanstack/react-start/server'
 import { useState, useEffect } from 'react'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
 import { entryMessageRepository } from '@/repositories/entryMessage.repository'
-import { sessionRepository } from '@/repositories/session.repository'
 import { hasProjectPermission } from '@/lib/permissions'
-import { projectMemberRepository } from '@/repositories/projectMember.repository'
-import { SESSION_COOKIE_NAME } from '@/lib/auth.shared'
+import { getCurrentUser } from '@/lib/auth/helpers.server'
+import { db, betterAuth } from '@/db'
+import { eq, and } from 'drizzle-orm'
 import type { TimeEntry, EntryStatus, EntryMessage } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,16 +50,6 @@ function formatDateTime(isoString: string): string {
   return date.toLocaleString('en-US', options)
 }
 
-// Helper to get current user from session cookie
-async function getCurrentUser() {
-  const token = getCookie(SESSION_COOKIE_NAME)
-  if (!token) return null
-
-  const sessionData = await sessionRepository.findValidWithUserAndPii(token)
-  if (!sessionData || !sessionData.user.isActive) return null
-
-  return sessionData.user
-}
 
 // Server function for updates
 const updateTimeEntryFn = createServerFn({ method: 'POST' }).handler(
@@ -175,11 +164,17 @@ const getEntryPermissionsFn = createServerFn({ method: 'GET' }).handler(
       }
     }
 
-    // Get user's role in project
-    const membership = await projectMemberRepository.findByProjectAndUser(
-      data.projectId,
-      user.id
-    )
+    // Get user's role in project from Better Auth team_member table
+    const membership = await db
+      .select({ projectRole: betterAuth.teamMember.projectRole })
+      .from(betterAuth.teamMember)
+      .where(
+        and(
+          eq(betterAuth.teamMember.teamId, data.projectId),
+          eq(betterAuth.teamMember.userId, user.id)
+        )
+      )
+      .get()
 
     if (!membership) {
       // Check system admin
@@ -193,9 +188,10 @@ const getEntryPermissionsFn = createServerFn({ method: 'GET' }).handler(
     }
 
     // Check permissions based on project role
-    const canApprove = hasProjectPermission(membership.role, 'entries:approve')
-    const canQuestion = hasProjectPermission(membership.role, 'entries:question')
-    const canComment = hasProjectPermission(membership.role, 'messages:create')
+    const role = membership.projectRole as 'owner' | 'expert' | 'reviewer' | 'client' | 'viewer'
+    const canApprove = hasProjectPermission({ role }, 'entries:approve')
+    const canQuestion = hasProjectPermission({ role }, 'entries:question')
+    const canComment = hasProjectPermission({ role }, 'messages:create')
 
     // Check if user is the entry owner (created it)
     const entry = await timeEntryRepository.findById(data.entryId)

@@ -1,16 +1,14 @@
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { getCookie } from '@tanstack/react-start/server'
 import { useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Plus, Mail, Building2, User, UserCheck } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { contactRepository } from '@/repositories/contact.repository'
-import { sessionRepository } from '@/repositories/session.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { createContactSchema, type Contact } from '@/schemas'
-import { SESSION_COOKIE_NAME } from '@/lib/auth.shared'
+import { getCurrentUser } from '@/lib/auth/helpers.server'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,18 +36,13 @@ interface ContactsData {
 
 const getContactsDataFn = createServerFn({ method: 'GET' }).handler(
   async (): Promise<ContactsData> => {
-    const token = getCookie(SESSION_COOKIE_NAME)
-    if (!token) {
-      return { contacts: [], organisations: [] }
-    }
-
-    const session = await sessionRepository.findValidWithUserAndPii(token)
-    if (!session) {
+    const user = await getCurrentUser()
+    if (!user) {
       return { contacts: [], organisations: [] }
     }
 
     const [contacts, organisations] = await Promise.all([
-      contactRepository.findByOwner(session.user.id),
+      contactRepository.findByOwner(user.id),
       organisationRepository.findAll(),
     ])
 
@@ -60,19 +53,14 @@ const getContactsDataFn = createServerFn({ method: 'GET' }).handler(
 const createContactFn = createServerFn({ method: 'POST' })
   .inputValidator((data: { email: string; organisationId?: string; name?: string }) => data)
   .handler(async ({ data }) => {
-    const token = getCookie(SESSION_COOKIE_NAME)
-    if (!token) {
+    const user = await getCurrentUser()
+    if (!user) {
       throw new Error('Not authenticated')
-    }
-
-    const session = await sessionRepository.findValidWithUserAndPii(token)
-    if (!session) {
-      throw new Error('Invalid session')
     }
 
     // Check if contact already exists
     const existing = await contactRepository.findByOwnerAndEmail(
-      session.user.id,
+      user.id,
       data.email
     )
     if (existing) {
@@ -80,7 +68,7 @@ const createContactFn = createServerFn({ method: 'POST' })
     }
 
     return await contactRepository.createWithPii({
-      ownerId: session.user.id,
+      ownerId: user.id,
       email: data.email,
       organisationId: data.organisationId,
       name: data.name,

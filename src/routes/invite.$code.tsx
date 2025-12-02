@@ -4,18 +4,16 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { getCookie } from '@tanstack/react-start/server'
 import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { CheckCircle, XCircle, UserPlus, LogIn } from 'lucide-react'
 import { invitationRepository } from '@/repositories/invitation.repository'
-import { userRepository } from '@/repositories/user.repository'
-import { sessionRepository } from '@/repositories/session.repository'
-import { projectMemberRepository } from '@/repositories/projectMember.repository'
 import { contactRepository } from '@/repositories/contact.repository'
-import { SESSION_COOKIE_NAME } from '@/lib/auth.shared'
-import { createSession } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth/helpers.server'
+import { auth } from '@/lib/better-auth'
+import { db, betterAuth } from '@/db'
+import { eq, and } from 'drizzle-orm'
 import { registrationSchema } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,19 +45,16 @@ const getInvitationFn = createServerFn({ method: 'GET' })
     }
 
     // Check if user is already authenticated
-    const token = getCookie(SESSION_COOKIE_NAME)
-    if (token) {
-      const session = await sessionRepository.findValidWithUserAndPii(token)
-      if (session) {
-        return {
-          invitation,
-          isAuthenticated: true,
-          currentUser: {
-            id: session.user.id,
-            handle: session.user.handle,
-            email: session.user.email,
-          },
-        }
+    const user = await getCurrentUser()
+    if (user) {
+      return {
+        invitation,
+        isAuthenticated: true,
+        currentUser: {
+          id: user.id,
+          handle: user.handle,
+          email: user.email,
+        },
       }
     }
 
@@ -73,14 +68,9 @@ const getInvitationFn = createServerFn({ method: 'GET' })
 const acceptInvitationFn = createServerFn({ method: 'POST' })
   .inputValidator((data: { code: string }) => data)
   .handler(async ({ data }) => {
-    const token = getCookie(SESSION_COOKIE_NAME)
-    if (!token) {
+    const user = await getCurrentUser()
+    if (!user) {
       throw new Error('Not authenticated')
-    }
-
-    const session = await sessionRepository.findValidWithUserAndPii(token)
-    if (!session) {
-      throw new Error('Invalid session')
     }
 
     const invitation = await invitationRepository.findValidByCode(data.code)
@@ -91,16 +81,24 @@ const acceptInvitationFn = createServerFn({ method: 'POST' })
     // Add user to project if specified
     if (invitation.projectId && invitation.role) {
       // Check if already a member
-      const existingMembership = await projectMemberRepository.findByProjectAndUser(
-        invitation.projectId,
-        session.user.id
-      )
+      const existingMembership = await db
+        .select()
+        .from(betterAuth.teamMember)
+        .where(
+          and(
+            eq(betterAuth.teamMember.teamId, invitation.projectId),
+            eq(betterAuth.teamMember.userId, user.id)
+          )
+        )
+        .get()
 
       if (!existingMembership) {
-        await projectMemberRepository.create({
-          projectId: invitation.projectId,
-          userId: session.user.id,
-          role: invitation.role,
+        await db.insert(betterAuth.teamMember).values({
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          teamId: invitation.projectId,
+          userId: user.id,
+          projectRole: invitation.role,
+          createdAt: new Date(),
         })
       }
     }
@@ -108,7 +106,7 @@ const acceptInvitationFn = createServerFn({ method: 'POST' })
     // Link contact to user if not already linked
     const contact = await contactRepository.findById(invitation.contactId)
     if (contact && !contact.userId) {
-      await contactRepository.linkToUser(contact.id, session.user.id)
+      await contactRepository.linkToUser(contact.id, user.id)
     }
 
     // Mark invitation as accepted
@@ -127,49 +125,68 @@ const registerAndAcceptFn = createServerFn({ method: 'POST' })
       name?: string
     }) => data
   )
-  .handler(async ({ data, request }) => {
+  .handler(async ({ data }) => {
     const invitation = await invitationRepository.findValidByCode(data.code)
     if (!invitation) {
       throw new Error('Invalid or expired invitation')
     }
 
     // Check if user with email already exists
-    const existingUser = await userRepository.findByEmail(data.email)
+    const existingUser = await db
+      .select()
+      .from(betterAuth.user)
+      .where(eq(betterAuth.user.email, data.email))
+      .get()
     if (existingUser) {
       throw new Error('An account with this email already exists. Please log in instead.')
     }
 
     // Check if handle is taken
-    const existingHandle = await userRepository.findByHandle(data.handle)
+    const existingHandle = await db
+      .select()
+      .from(betterAuth.user)
+      .where(eq(betterAuth.user.handle, data.handle))
+      .get()
     if (existingHandle) {
       throw new Error('This handle is already taken')
     }
 
-    // Create user
-    const user = await userRepository.createWithPassword({
-      handle: data.handle,
-      email: data.email,
-      password: data.password,
-      name: data.name,
-      isActive: true,
+    // Create user using Better Auth API
+    const signUpResult = await auth.api.signUpEmail({
+      body: {
+        email: data.email,
+        password: data.password,
+        name: data.name || data.handle,
+      },
     })
 
-    // Create session
-    const session = await createSession(user.id)
+    if (!signUpResult.user) {
+      throw new Error('Failed to create user account')
+    }
+
+    const userId = signUpResult.user.id
+
+    // Update user with handle
+    await db
+      .update(betterAuth.user)
+      .set({ handle: data.handle })
+      .where(eq(betterAuth.user.id, userId))
 
     // Add user to project if specified
     if (invitation.projectId && invitation.role) {
-      await projectMemberRepository.create({
-        projectId: invitation.projectId,
-        userId: user.id,
-        role: invitation.role,
+      await db.insert(betterAuth.teamMember).values({
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        teamId: invitation.projectId,
+        userId: userId,
+        projectRole: invitation.role,
+        createdAt: new Date(),
       })
     }
 
     // Link contact to user
     const contact = await contactRepository.findById(invitation.contactId)
     if (contact) {
-      await contactRepository.linkToUser(contact.id, user.id)
+      await contactRepository.linkToUser(contact.id, userId)
     }
 
     // Mark invitation as accepted
@@ -178,7 +195,7 @@ const registerAndAcceptFn = createServerFn({ method: 'POST' })
     return {
       success: true,
       projectId: invitation.projectId,
-      sessionToken: session.token,
+      // Note: Better Auth handles the session automatically via cookies
     }
   })
 

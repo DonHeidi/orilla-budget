@@ -8,9 +8,9 @@ import { zodValidator } from '@tanstack/zod-form-adapter'
 import { cn } from '@/lib/utils'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
-import { projectMemberRepository } from '@/repositories/projectMember.repository'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
 import { getCurrentUser, isAdmin } from '@/lib/auth/helpers.server'
+import { db, betterAuth } from '@/db'
 import { createProjectSchema, type Project } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
@@ -71,11 +71,13 @@ const createProjectFn = createServerFn({ method: 'POST' })
 
     const created = await projectRepository.create(project)
 
-    // Add creator as owner
-    await projectMemberRepository.create({
-      projectId: created.id,
+    // Add creator as owner using Better Auth team_member table
+    await db.insert(betterAuth.teamMember).values({
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      teamId: created.id,
       userId: user.id,
-      role: 'owner',
+      projectRole: 'owner',
+      createdAt: new Date(),
     })
 
     return created

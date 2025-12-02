@@ -1,6 +1,5 @@
 import { createFileRoute, useRouter, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { getCookie } from '@tanstack/react-start/server'
 import { useState, useEffect } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Trash2, Plus, X, ExternalLink, Check, MessageCircleQuestion, RotateCcw } from 'lucide-react'
@@ -10,9 +9,9 @@ import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { accountRepository } from '@/repositories/account.repository'
 import { projectApprovalSettingsRepository } from '@/repositories/projectApprovalSettings.repository'
-import { projectMemberRepository } from '@/repositories/projectMember.repository'
-import { sessionRepository } from '@/repositories/session.repository'
-import { SESSION_COOKIE_NAME } from '@/lib/auth.shared'
+import { getCurrentUser } from '@/lib/auth/helpers.server'
+import { db, betterAuth } from '@/db'
+import { eq } from 'drizzle-orm'
 import {
   canApproveTimeSheet,
   canApproveEntry,
@@ -58,14 +57,7 @@ const getTimeSheetDetailFn = createServerFn({ method: 'GET' }).handler(
     const { id } = data
 
     // Get current user
-    const token = getCookie(SESSION_COOKIE_NAME)
-    let currentUser = null
-    if (token) {
-      const sessionData = await sessionRepository.findValidWithUserAndPii(token)
-      if (sessionData?.user) {
-        currentUser = sessionData.user
-      }
-    }
+    const currentUser = await getCurrentUser()
 
     const sheetData = await timeSheetRepository.findWithEntries(id)
 
@@ -98,9 +90,19 @@ const getTimeSheetDetailFn = createServerFn({ method: 'GET' }).handler(
       approvalSettings = await projectApprovalSettingsRepository.findByProjectId(
         sheetData.timeSheet.projectId
       )
-      projectMembers = await projectMemberRepository.findByProjectId(
-        sheetData.timeSheet.projectId
-      )
+      // Get project members from Better Auth team_member table
+      const teamMembers = await db
+        .select({
+          userId: betterAuth.teamMember.userId,
+          role: betterAuth.teamMember.projectRole,
+        })
+        .from(betterAuth.teamMember)
+        .where(eq(betterAuth.teamMember.teamId, sheetData.timeSheet.projectId))
+
+      projectMembers = teamMembers.map((m) => ({
+        userId: m.userId,
+        role: m.role as string,
+      }))
       if (currentUser) {
         userMembership = projectMembers.find((m) => m.userId === currentUser.id) || null
       }
@@ -287,13 +289,10 @@ const submitTimeSheetFn = createServerFn({ method: 'POST' }).handler(
 
 const approveTimeSheetFn = createServerFn({ method: 'POST' }).handler(
   async ({ data }: { data: { id: string } }) => {
-    const token = getCookie(SESSION_COOKIE_NAME)
-    if (!token) throw new Error('Not authenticated')
+    const user = await getCurrentUser()
+    if (!user) throw new Error('Not authenticated')
 
-    const sessionData = await sessionRepository.findValidWithUserAndPii(token)
-    if (!sessionData?.user) throw new Error('Not authenticated')
-
-    return await timeSheetRepository.approveSheet(data.id, sessionData.user.id)
+    return await timeSheetRepository.approveSheet(data.id, user.id)
   }
 )
 
@@ -318,16 +317,13 @@ const getAvailableEntriesFn = createServerFn({ method: 'POST' }).handler(
 
 const approveEntryFn = createServerFn({ method: 'POST' }).handler(
   async ({ data }: { data: { sheetId: string; entryId: string } }) => {
-    const token = getCookie(SESSION_COOKIE_NAME)
-    if (!token) throw new Error('Not authenticated')
-
-    const sessionData = await sessionRepository.findValidWithUserAndPii(token)
-    if (!sessionData?.user) throw new Error('Not authenticated')
+    const user = await getCurrentUser()
+    if (!user) throw new Error('Not authenticated')
 
     return await timeSheetRepository.approveEntryInSheet(
       data.sheetId,
       data.entryId,
-      sessionData.user.id
+      user.id
     )
   }
 )
@@ -342,16 +338,13 @@ const questionEntryFn = createServerFn({ method: 'POST' }).handler(
       message?: string
     }
   }) => {
-    const token = getCookie(SESSION_COOKIE_NAME)
-    if (!token) throw new Error('Not authenticated')
-
-    const sessionData = await sessionRepository.findValidWithUserAndPii(token)
-    if (!sessionData?.user) throw new Error('Not authenticated')
+    const user = await getCurrentUser()
+    if (!user) throw new Error('Not authenticated')
 
     await timeSheetRepository.questionEntryInSheet(
       data.sheetId,
       data.entryId,
-      sessionData.user.id
+      user.id
     )
 
     // If a message was provided, create an entry message
@@ -365,7 +358,7 @@ const questionEntryFn = createServerFn({ method: 'POST' }).handler(
           content: data.message.trim(),
           statusChange: 'questioned',
         },
-        sessionData.user.id
+        user.id
       )
     }
   }
@@ -381,26 +374,23 @@ const resolveQuestionFn = createServerFn({ method: 'POST' }).handler(
       message?: string
     }
   }) => {
-    const token = getCookie(SESSION_COOKIE_NAME)
-    if (!token) throw new Error('Not authenticated')
-
-    const sessionData = await sessionRepository.findValidWithUserAndPii(token)
-    if (!sessionData?.user) throw new Error('Not authenticated')
+    const user = await getCurrentUser()
+    if (!user) throw new Error('Not authenticated')
 
     // Update the entry status back to pending
     const { timeEntries } = await import('@/db/schema')
-    const { db } = await import('@/db')
-    const { eq } = await import('drizzle-orm')
+    const { db: dbLocal } = await import('@/db')
+    const { eq: eqLocal } = await import('drizzle-orm')
 
     const now = new Date().toISOString()
-    await db
+    await dbLocal
       .update(timeEntries)
       .set({
         status: 'pending',
         statusChangedAt: now,
-        statusChangedBy: sessionData.user.id,
+        statusChangedBy: user.id,
       })
-      .where(eq(timeEntries.id, data.entryId))
+      .where(eqLocal(timeEntries.id, data.entryId))
 
     // If a message was provided, create an entry message
     if (data.message && data.message.trim()) {
@@ -413,7 +403,7 @@ const resolveQuestionFn = createServerFn({ method: 'POST' }).handler(
           content: data.message.trim(),
           statusChange: 'pending',
         },
-        sessionData.user.id
+        user.id
       )
     }
   }
