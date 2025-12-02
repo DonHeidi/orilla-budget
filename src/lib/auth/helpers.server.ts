@@ -1,26 +1,31 @@
-import { getCookie } from '@tanstack/react-start/server'
-import { sessionRepository } from '@/repositories/session.repository'
-import { SESSION_COOKIE_NAME } from '@/lib/auth.shared'
+import { getRequest } from '@tanstack/react-start/server'
+import { auth } from '@/lib/better-auth'
 import type { AuthenticatedUser } from './types'
 
 /**
- * Get the current authenticated user from the request cookie
+ * Get the current authenticated user from Better Auth session
  * For use inside server functions that need user context
  * Returns null if not authenticated
  */
 export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
-  const token = getCookie(SESSION_COOKIE_NAME)
-  if (!token) return null
+  const request = getRequest()
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  })
 
-  const sessionData = await sessionRepository.findValidWithUserAndPii(token)
-  if (!sessionData || !sessionData.user.isActive) return null
+  if (!session?.user) return null
+
+  const user = session.user
+
+  // Check if user is active
+  if (user.isActive === false) return null
 
   return {
-    id: sessionData.user.id,
-    handle: sessionData.user.handle,
-    email: sessionData.user.email,
-    role: sessionData.user.role,
-    pii: sessionData.pii ? { name: sessionData.pii.name } : undefined,
+    id: user.id,
+    handle: user.handle || user.name,
+    email: user.email,
+    role: user.role as 'super_admin' | 'admin' | null,
+    pii: user.piiId ? { name: user.name } : undefined,
   }
 }
 

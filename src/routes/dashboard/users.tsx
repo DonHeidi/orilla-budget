@@ -1,17 +1,15 @@
 import { createFileRoute, Outlet, useNavigate, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { getCookie } from '@tanstack/react-start/server'
 import { useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Plus, Users, Copy, Check } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { z } from 'zod'
-import { userRepository } from '@/repositories/user.repository'
 import { contactRepository } from '@/repositories/contact.repository'
 import { invitationRepository } from '@/repositories/invitation.repository'
-import { sessionRepository } from '@/repositories/session.repository'
-import { SESSION_COOKIE_NAME } from '@/lib/auth.shared'
+import { getCurrentUser } from '@/lib/auth/helpers.server'
+import { db, betterAuth } from '@/db'
 import type { User, Contact, Invitation } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
@@ -26,10 +24,19 @@ import {
 } from '@/components/ui/sheet'
 
 const getUsersDataFn = createServerFn({ method: 'GET' }).handler(async () => {
-  const users = await userRepository.findAll()
+  // Query Better Auth user table
+  const users = await db.select().from(betterAuth.user)
 
   return {
-    users: users,
+    users: users.map((u) => ({
+      id: u.id,
+      handle: u.handle || u.name,
+      email: u.email,
+      role: u.role as 'super_admin' | 'admin' | null,
+      isActive: u.banned !== true,
+      createdAt: u.createdAt?.toISOString() ?? new Date().toISOString(),
+      updatedAt: u.updatedAt?.toISOString() ?? new Date().toISOString(),
+    })),
   }
 })
 
@@ -42,15 +49,12 @@ const inviteUserSchema = z.object({
 const createAndInviteUserFn = createServerFn({ method: 'POST' })
   .inputValidator(inviteUserSchema)
   .handler(async ({ data }) => {
-    const token = getCookie(SESSION_COOKIE_NAME)
-    if (!token) throw new Error('Not authenticated')
-
-    const session = await sessionRepository.findValidWithUserAndPii(token)
-    if (!session) throw new Error('Invalid session')
+    const user = await getCurrentUser()
+    if (!user) throw new Error('Not authenticated')
 
     // Check if contact already exists for this owner
     const existingContact = await contactRepository.findByOwnerAndEmail(
-      session.user.id,
+      user.id,
       data.email
     )
     if (existingContact) {
@@ -61,13 +65,13 @@ const createAndInviteUserFn = createServerFn({ method: 'POST' })
     const contact = await contactRepository.createWithPii({
       email: data.email,
       name: data.name,
-      ownerId: session.user.id,
+      ownerId: user.id,
     })
 
     // Create invitation (no project - general invitation)
     const invitation = await invitationRepository.create(
       { contactId: contact.id },
-      session.user.id
+      user.id
     )
 
     return { contact, invitation }

@@ -1,13 +1,11 @@
 import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { getCookie } from '@tanstack/react-start/server'
 import { useState } from 'react'
 import { Mail, Building2, User, UserCheck, Send } from 'lucide-react'
 import { contactRepository } from '@/repositories/contact.repository'
 import { invitationRepository } from '@/repositories/invitation.repository'
-import { sessionRepository } from '@/repositories/session.repository'
 import { projectRepository } from '@/repositories/project.repository'
-import { SESSION_COOKIE_NAME } from '@/lib/auth.shared'
+import { getCurrentUser } from '@/lib/auth/helpers.server'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -36,23 +34,18 @@ interface ContactDetailData {
 const getContactDetailFn = createServerFn({ method: 'GET' })
   .inputValidator((data: { id: string }) => data)
   .handler(async ({ data }): Promise<ContactDetailData> => {
-    const token = getCookie(SESSION_COOKIE_NAME)
-    if (!token) {
-      return { contact: null, invitations: [], projects: [] }
-    }
-
-    const session = await sessionRepository.findValidWithUserAndPii(token)
-    if (!session) {
+    const user = await getCurrentUser()
+    if (!user) {
       return { contact: null, invitations: [], projects: [] }
     }
 
     const contact = await contactRepository.findById(data.id)
-    if (!contact || contact.ownerId !== session.user.id) {
+    if (!contact || contact.ownerId !== user.id) {
       return { contact: null, invitations: [], projects: [] }
     }
 
     const [invitations, projects] = await Promise.all([
-      invitationRepository.findByInviter(session.user.id),
+      invitationRepository.findByInviter(user.id),
       projectRepository.findAll(),
     ])
 
@@ -71,14 +64,11 @@ const getContactDetailFn = createServerFn({ method: 'GET' })
 const deleteContactFn = createServerFn({ method: 'POST' })
   .inputValidator((data: { id: string }) => data)
   .handler(async ({ data }) => {
-    const token = getCookie(SESSION_COOKIE_NAME)
-    if (!token) throw new Error('Not authenticated')
-
-    const session = await sessionRepository.findValidWithUserAndPii(token)
-    if (!session) throw new Error('Invalid session')
+    const user = await getCurrentUser()
+    if (!user) throw new Error('Not authenticated')
 
     const contact = await contactRepository.findById(data.id)
-    if (!contact || contact.ownerId !== session.user.id) {
+    if (!contact || contact.ownerId !== user.id) {
       throw new Error('Contact not found or access denied')
     }
 
@@ -91,15 +81,12 @@ const createInvitationFn = createServerFn({ method: 'POST' })
     (data: { contactId: string; projectId?: string; role?: ProjectRole }) => data
   )
   .handler(async ({ data }) => {
-    const token = getCookie(SESSION_COOKIE_NAME)
-    if (!token) throw new Error('Not authenticated')
-
-    const session = await sessionRepository.findValidWithUserAndPii(token)
-    if (!session) throw new Error('Invalid session')
+    const user = await getCurrentUser()
+    if (!user) throw new Error('Not authenticated')
 
     // Verify contact ownership
     const contact = await contactRepository.findById(data.contactId)
-    if (!contact || contact.ownerId !== session.user.id) {
+    if (!contact || contact.ownerId !== user.id) {
       throw new Error('Contact not found or access denied')
     }
 
@@ -118,7 +105,7 @@ const createInvitationFn = createServerFn({ method: 'POST' })
         projectId: data.projectId,
         role: data.role,
       },
-      session.user.id
+      user.id
     )
   })
 

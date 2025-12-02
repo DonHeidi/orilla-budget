@@ -2,7 +2,8 @@ import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { Mail, AtSign } from 'lucide-react'
-import { userRepository } from '@/repositories/user.repository'
+import { db, betterAuth } from '@/db'
+import { eq } from 'drizzle-orm'
 import type { User } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,21 +43,44 @@ const updateUserFn = createServerFn({ method: 'POST' }).handler(
       throw new Error('No fields to update')
     }
 
-    return await userRepository.update(id, cleanUpdateData)
+    // Update Better Auth user table
+    await db
+      .update(betterAuth.user)
+      .set({
+        name: cleanUpdateData.handle || cleanUpdateData.name,
+        handle: cleanUpdateData.handle,
+        email: cleanUpdateData.email,
+        updatedAt: new Date(),
+      })
+      .where(eq(betterAuth.user.id, id))
+
+    return { success: true }
   }
 )
 
 const deleteUserFn = createServerFn({ method: 'POST' }).handler(
   async (ctx: { data: { id: string } }) => {
-    await userRepository.delete(ctx.data.id)
+    // Delete from Better Auth user table (cascades to sessions, accounts, etc.)
+    await db.delete(betterAuth.user).where(eq(betterAuth.user.id, ctx.data.id))
     return { success: true }
   }
 )
 
 const getUserDetailDataFn = createServerFn({ method: 'GET' }).handler(
   async () => {
-    const users = await userRepository.findAll()
-    return { users }
+    // Query Better Auth user table
+    const users = await db.select().from(betterAuth.user)
+    return {
+      users: users.map((u) => ({
+        id: u.id,
+        handle: u.handle || u.name,
+        email: u.email,
+        role: u.role as 'super_admin' | 'admin' | null,
+        isActive: u.banned !== true,
+        createdAt: u.createdAt?.toISOString() ?? new Date().toISOString(),
+        updatedAt: u.updatedAt?.toISOString() ?? new Date().toISOString(),
+      })),
+    }
   }
 )
 
