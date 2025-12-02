@@ -1,33 +1,31 @@
 import { hashPassword } from '../src/lib/auth'
 import { db } from '../src/db'
 import {
-  users,
-  organisations,
   accounts,
-  projects,
   timeEntries,
   timeSheets,
   timeSheetEntries,
   pii,
-  sessions,
   contacts,
   invitations,
-  projectMembers,
   entryMessages,
   projectApprovalSettings,
   timeSheetApprovals,
 } from '../src/db/schema'
-import { userRepository } from '../src/repositories/user.repository'
-import { organisationRepository } from '../src/repositories/organisation.repository'
+import {
+  user as baUser,
+  account as baAccount,
+  session as baSession,
+  organization as baOrganization,
+  team as baTeam,
+  teamMember as baTeamMember,
+  member as baMember,
+} from '../src/db/better-auth-schema'
 import { accountRepository } from '../src/repositories/account.repository'
-import { projectRepository } from '../src/repositories/project.repository'
 import { timeEntryRepository } from '../src/repositories/timeEntry.repository'
 import { timeSheetRepository } from '../src/repositories/timeSheet.repository'
 import type {
-  User,
-  Organisation,
   Account,
-  Project,
   TimeEntry,
   TimeSheet,
 } from '../src/schemas'
@@ -35,6 +33,18 @@ import type {
 // Parse CLI arguments
 const args = process.argv.slice(2)
 const shouldClear = args.includes('--clear')
+
+/**
+ * Generate a slug from a name
+ */
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
 
 /**
  * Clear all data from the database
@@ -52,12 +62,16 @@ async function clearDatabase() {
   await db.delete(projectApprovalSettings)
   await db.delete(invitations)
   await db.delete(contacts)
-  await db.delete(projectMembers)
-  await db.delete(projects)
-  await db.delete(accounts)
-  await db.delete(organisations)
-  await db.delete(sessions)
-  await db.delete(users)
+  await db.delete(accounts) // Client portal accounts (not Better Auth accounts)
+
+  // Better Auth tables
+  await db.delete(baTeamMember)
+  await db.delete(baTeam)
+  await db.delete(baMember)
+  await db.delete(baOrganization)
+  await db.delete(baSession)
+  await db.delete(baAccount)
+  await db.delete(baUser)
   await db.delete(pii)
 
   console.log('✓ Database cleared')
@@ -100,106 +114,123 @@ async function seedDatabase() {
     console.log('\n🌱 Starting database seed...\n')
 
     // ========================================
-    // USERS
+    // USERS (Better Auth)
     // ========================================
     console.log('👤 Creating users...')
 
     // Default password for all test users
     const defaultPassword = 'password123'
     const passwordHash = await hashPassword(defaultPassword)
+    const timestamp = new Date()
 
-    const testUsers: User[] = [
+    // User data for Better Auth
+    const testUsers = [
       // Super admin - full platform access
       {
         id: 'user-admin',
+        name: 'Admin',
         handle: 'admin',
         email: 'admin@orilla.dev',
-        passwordHash,
-        role: 'super_admin',
-        isActive: true,
-        createdAt: now(),
-        updatedAt: now(),
+        role: 'super_admin' as const,
       },
       // Admin - user management but not platform settings
       {
         id: 'user-staff',
+        name: 'Staff',
         handle: 'staff',
         email: 'staff@orilla.dev',
-        passwordHash,
-        role: 'admin',
-        isActive: true,
-        createdAt: now(),
-        updatedAt: now(),
+        role: 'admin' as const,
       },
       // Regular users - access via project membership only
       {
         id: 'user-1',
+        name: 'Alice',
         handle: 'alice',
         email: 'alice@orilla.dev',
-        passwordHash,
-        isActive: true,
-        createdAt: now(),
-        updatedAt: now(),
+        role: null,
       },
       {
         id: 'user-2',
+        name: 'Bob PM',
         handle: 'bob_pm',
         email: 'bob@orilla.dev',
-        passwordHash,
-        isActive: true,
-        createdAt: now(),
-        updatedAt: now(),
+        role: null,
       },
       {
         id: 'user-3',
+        name: 'Charlie Dev',
         handle: 'charlie_dev',
         email: 'charlie@orilla.dev',
-        passwordHash,
-        isActive: true,
-        createdAt: now(),
-        updatedAt: now(),
+        role: null,
       },
       // Client user - will be added to projects as client/viewer
       {
         id: 'user-client',
+        name: 'Jennifer Client',
         handle: 'jennifer_client',
         email: 'jennifer@acmesaas.com',
-        passwordHash,
-        isActive: true,
-        createdAt: now(),
-        updatedAt: now(),
+        role: null,
       },
     ]
 
     for (const user of testUsers) {
-      await userRepository.create(user)
+      // Create Better Auth user
+      await db.insert(baUser).values({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        emailVerified: true,
+        role: user.role,
+        handle: user.handle,
+        isActive: true,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+
+      // Create credential account with password hash
+      await db.insert(baAccount).values({
+        id: `acc-${user.id}`,
+        accountId: user.id,
+        providerId: 'credential',
+        userId: user.id,
+        password: passwordHash,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
     }
     console.log(`✓ Created ${testUsers.length} users (password: ${defaultPassword})`)
 
     // ========================================
-    // ORGANISATIONS
+    // ORGANISATIONS (Better Auth)
     // ========================================
     console.log('\n🏢 Creating organisations...')
 
-    const testOrganisations: Organisation[] = [
+    const testOrganisations = [
       {
         id: 'org-1',
         name: 'Acme SaaS Inc',
+        slug: slugify('Acme SaaS Inc'),
         contactName: 'Jennifer Williams',
         contactEmail: 'jennifer@acmesaas.com',
-        createdAt: now(),
       },
       {
         id: 'org-2',
         name: 'Creative Agency Co',
+        slug: slugify('Creative Agency Co'),
         contactName: 'Michael Chen',
         contactEmail: 'michael@creativeagency.co',
-        createdAt: now(),
       },
     ]
 
     for (const org of testOrganisations) {
-      await organisationRepository.create(org)
+      await db.insert(baOrganization).values({
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        contactName: org.contactName,
+        contactEmail: org.contactEmail,
+        createdAt: timestamp,
+      })
     }
     console.log(`✓ Created ${testOrganisations.length} organisations`)
 
@@ -289,109 +320,135 @@ async function seedDatabase() {
     console.log(`✓ Created ${testAccounts.length} accounts`)
 
     // ========================================
-    // PROJECTS
+    // PROJECTS (Better Auth Teams)
     // ========================================
     console.log('\n📁 Creating projects...')
 
-    const testProjects: Project[] = [
+    const testProjects = [
       // Acme SaaS Inc projects
       {
         id: 'proj-1',
-        organisationId: 'org-1',
+        organizationId: 'org-1',
         name: 'Website Redesign',
         description: 'Complete redesign of marketing website with modern UI/UX',
-        category: 'budget',
+        category: 'budget' as const,
         budgetHours: 200,
-        createdAt: now(),
       },
       {
         id: 'proj-2',
-        organisationId: 'org-1',
+        organizationId: 'org-1',
         name: 'Mobile App Development',
         description: 'Native iOS and Android applications',
-        category: 'fixed',
+        category: 'fixed' as const,
         budgetHours: null,
-        createdAt: now(),
       },
       {
         id: 'proj-3',
-        organisationId: 'org-1',
+        organizationId: 'org-1',
         name: 'API Integration',
         description: 'Third-party API integrations for CRM and analytics',
-        category: 'budget',
+        category: 'budget' as const,
         budgetHours: 80,
-        createdAt: now(),
       },
       // Creative Agency Co projects
       {
         id: 'proj-4',
-        organisationId: 'org-2',
+        organizationId: 'org-2',
         name: 'Brand Identity Package',
         description: 'Logo, color palette, and brand guidelines',
-        category: 'fixed',
+        category: 'fixed' as const,
         budgetHours: null,
-        createdAt: now(),
       },
       {
         id: 'proj-5',
-        organisationId: 'org-2',
+        organizationId: 'org-2',
         name: 'Social Media Campaign',
         description: 'Q1 social media content creation and management',
-        category: 'budget',
+        category: 'budget' as const,
         budgetHours: 120,
-        createdAt: now(),
       },
       {
         id: 'proj-6',
-        organisationId: 'org-2',
+        organizationId: 'org-2',
         name: 'Video Production',
         description: 'Promotional video series for product launch',
-        category: 'budget',
+        category: 'budget' as const,
         budgetHours: 60,
-        createdAt: now(),
       },
     ]
 
     for (const project of testProjects) {
-      await projectRepository.create(project)
+      await db.insert(baTeam).values({
+        id: project.id,
+        name: project.name,
+        organizationId: project.organizationId,
+        description: project.description,
+        category: project.category,
+        budgetHours: project.budgetHours,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
     }
     console.log(`✓ Created ${testProjects.length} projects`)
 
     // ========================================
-    // PROJECT MEMBERS
+    // PROJECT MEMBERS (Better Auth TeamMembers + Organization Members)
     // ========================================
     console.log('\n👥 Creating project members...')
 
     const testProjectMembers = [
       // Website Redesign (proj-1) - Acme SaaS
-      { id: 'pm-1', projectId: 'proj-1', userId: 'user-1', role: 'owner' as const, createdAt: now() },
-      { id: 'pm-2', projectId: 'proj-1', userId: 'user-2', role: 'expert' as const, createdAt: now() },
-      { id: 'pm-3', projectId: 'proj-1', userId: 'user-client', role: 'client' as const, createdAt: now() },
+      { id: 'pm-1', teamId: 'proj-1', userId: 'user-1', projectRole: 'owner' as const, orgId: 'org-1' },
+      { id: 'pm-2', teamId: 'proj-1', userId: 'user-2', projectRole: 'expert' as const, orgId: 'org-1' },
+      { id: 'pm-3', teamId: 'proj-1', userId: 'user-client', projectRole: 'client' as const, orgId: 'org-1' },
 
       // Mobile App Development (proj-2) - Acme SaaS
-      { id: 'pm-4', projectId: 'proj-2', userId: 'user-1', role: 'owner' as const, createdAt: now() },
-      { id: 'pm-5', projectId: 'proj-2', userId: 'user-3', role: 'expert' as const, createdAt: now() },
-      { id: 'pm-6', projectId: 'proj-2', userId: 'user-client', role: 'reviewer' as const, createdAt: now() },
+      { id: 'pm-4', teamId: 'proj-2', userId: 'user-1', projectRole: 'owner' as const, orgId: 'org-1' },
+      { id: 'pm-5', teamId: 'proj-2', userId: 'user-3', projectRole: 'expert' as const, orgId: 'org-1' },
+      { id: 'pm-6', teamId: 'proj-2', userId: 'user-client', projectRole: 'reviewer' as const, orgId: 'org-1' },
 
       // API Integration (proj-3) - Acme SaaS
-      { id: 'pm-7', projectId: 'proj-3', userId: 'user-2', role: 'owner' as const, createdAt: now() },
-      { id: 'pm-8', projectId: 'proj-3', userId: 'user-3', role: 'expert' as const, createdAt: now() },
+      { id: 'pm-7', teamId: 'proj-3', userId: 'user-2', projectRole: 'owner' as const, orgId: 'org-1' },
+      { id: 'pm-8', teamId: 'proj-3', userId: 'user-3', projectRole: 'expert' as const, orgId: 'org-1' },
 
       // Brand Identity Package (proj-4) - Creative Agency
-      { id: 'pm-9', projectId: 'proj-4', userId: 'user-3', role: 'owner' as const, createdAt: now() },
-      { id: 'pm-10', projectId: 'proj-4', userId: 'user-1', role: 'viewer' as const, createdAt: now() },
+      { id: 'pm-9', teamId: 'proj-4', userId: 'user-3', projectRole: 'owner' as const, orgId: 'org-2' },
+      { id: 'pm-10', teamId: 'proj-4', userId: 'user-1', projectRole: 'viewer' as const, orgId: 'org-2' },
 
       // Social Media Campaign (proj-5) - Creative Agency
-      { id: 'pm-11', projectId: 'proj-5', userId: 'user-3', role: 'owner' as const, createdAt: now() },
-      { id: 'pm-12', projectId: 'proj-5', userId: 'user-2', role: 'expert' as const, createdAt: now() },
+      { id: 'pm-11', teamId: 'proj-5', userId: 'user-3', projectRole: 'owner' as const, orgId: 'org-2' },
+      { id: 'pm-12', teamId: 'proj-5', userId: 'user-2', projectRole: 'expert' as const, orgId: 'org-2' },
 
       // Video Production (proj-6) - Creative Agency
-      { id: 'pm-13', projectId: 'proj-6', userId: 'user-1', role: 'owner' as const, createdAt: now() },
-      { id: 'pm-14', projectId: 'proj-6', userId: 'user-client', role: 'viewer' as const, createdAt: now() },
+      { id: 'pm-13', teamId: 'proj-6', userId: 'user-1', projectRole: 'owner' as const, orgId: 'org-2' },
+      { id: 'pm-14', teamId: 'proj-6', userId: 'user-client', projectRole: 'viewer' as const, orgId: 'org-2' },
     ]
 
+    // Track organization memberships to avoid duplicates
+    const orgMemberships = new Set<string>()
+
     for (const member of testProjectMembers) {
-      await db.insert(projectMembers).values(member)
+      // Create team member (project membership)
+      await db.insert(baTeamMember).values({
+        id: member.id,
+        teamId: member.teamId,
+        userId: member.userId,
+        projectRole: member.projectRole,
+        createdAt: timestamp,
+      })
+
+      // Create organization membership if not already created
+      const orgMemberKey = `${member.orgId}:${member.userId}`
+      if (!orgMemberships.has(orgMemberKey)) {
+        await db.insert(baMember).values({
+          id: `member-${member.orgId}-${member.userId}`,
+          organizationId: member.orgId,
+          userId: member.userId,
+          role: 'member',
+          createdAt: timestamp,
+        })
+        orgMemberships.add(orgMemberKey)
+      }
     }
     console.log(`✓ Created ${testProjectMembers.length} project members`)
 
