@@ -7,7 +7,7 @@ import {
   type SystemPermission,
   type ProjectPermission,
 } from '@/lib/permissions'
-import { logoutFn } from '@/lib/auth/session.server'
+import { logoutFn } from '@/lib/auth/better-auth-session.server'
 import type {
   AuthContextValue,
   AuthenticatedUser,
