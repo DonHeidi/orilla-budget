@@ -317,6 +317,71 @@ feat(dashboard): add bulk delete for time entries
 perf(db): add index on project queries
 ```
 
+### Atomic Commits
+
+This project strives for **atomic commits** - each commit should represent a single, complete, logical change.
+
+#### Principles
+
+1. **One concern per commit**: Each commit should address exactly one thing (one bug fix, one feature, one refactor). If you find yourself using "and" in your commit message, consider splitting it.
+
+2. **Complete and working**: Every commit should leave the codebase in a working state. Tests should pass, build should succeed.
+
+3. **Self-contained**: A commit should include all related changes - code, tests, types, and documentation updates for that specific change.
+
+4. **Reviewable**: Each commit should be small enough to review and understand in isolation.
+
+#### What belongs in a single commit
+
+| Scenario | Single Commit? |
+|----------|----------------|
+| Fix a bug + add test for it | ✅ Yes |
+| Add feature + update types + add tests | ✅ Yes |
+| Fix bug A + fix unrelated bug B | ❌ No - split into two commits |
+| Refactor + add new feature using refactor | ❌ No - refactor first, then feature |
+| Update dependencies + fix breaking changes | ✅ Yes (if tightly coupled) |
+| Format code + fix bug | ❌ No - format separately |
+
+#### Commit Workflow
+
+```bash
+# 1. Make changes for ONE logical unit of work
+# 2. Review what you're committing
+git diff --staged
+
+# 3. Commit with clear message
+git commit -m "fix(auth): handle expired session redirect"
+
+# 4. Repeat for next logical change
+```
+
+#### Splitting Large Changes
+
+If you've made multiple unrelated changes, use interactive staging:
+
+```bash
+# Stage specific files
+git add src/lib/auth.ts src/routes/login.tsx
+
+# Or stage specific hunks within a file
+git add -p
+
+# Commit the first logical change
+git commit -m "fix(auth): handle expired session redirect"
+
+# Stage and commit the next change
+git add src/components/Button.tsx
+git commit -m "style(button): update hover states"
+```
+
+#### Why Atomic Commits Matter
+
+- **Easier code review**: Reviewers can understand each change in isolation
+- **Simpler debugging**: `git bisect` can pinpoint exactly which change introduced a bug
+- **Clean history**: `git log` tells a clear story of how the codebase evolved
+- **Safe reverts**: Can revert a single change without losing unrelated work
+- **Better collaboration**: Team members can cherry-pick specific changes
+
 ### Git Worktree Workflow
 
 This project **requires git worktrees** for all development work. The main branch should always remain clean and stable. All features, fixes, and experiments MUST be developed in worktrees.
@@ -740,7 +805,100 @@ const getSessionFn = createServerFn({ method: 'GET' }).handler(async () => {
 
 #### Repository Pattern
 
-All database access goes through repository modules that encapsulate Drizzle ORM queries. Repositories provide standard CRUD operations and domain-specific queries. Repositories are meant to be used on the server only and should be imported using static imports in server functions.
+**All external dependencies** (database, APIs, authentication libraries, third-party services) are accessed through repository modules. Server functions should never directly call external code—they delegate to repositories instead.
+
+**Why This Pattern**:
+
+1. **Testability**: Repositories can be mocked for unit tests
+2. **Abstraction**: Implementation details are hidden behind a consistent interface
+3. **Single Responsibility**: Server functions handle request/response; repositories handle external interactions
+4. **Replaceability**: Swap implementations (e.g., change auth library) without touching server functions
+
+**Repository Types**:
+
+| Type | Purpose | Example |
+|------|---------|---------|
+| Data Repository | Database CRUD via Drizzle ORM | `user.repository.ts` |
+| Auth Repository | Authentication library interactions | `auth.repository.ts` |
+| API Repository | External API calls | `stripe.repository.ts` |
+| Service Repository | Complex business logic with multiple dependencies | `billing.repository.ts` |
+
+**Example: Database Repository**
+
+```typescript
+// src/repositories/user.repository.ts
+import { db } from '@/db'
+import { users } from '@/db/schema'
+import { eq } from 'drizzle-orm'
+
+export const userRepository = {
+  findAll: () => db.select().from(users),
+  findById: (id: string) => db.select().from(users).where(eq(users.id, id)).get(),
+  create: (data: NewUser) => db.insert(users).values(data).returning().get(),
+  update: (id: string, data: Partial<User>) =>
+    db.update(users).set(data).where(eq(users.id, id)).returning().get(),
+  delete: (id: string) => db.delete(users).where(eq(users.id, id)),
+}
+```
+
+**Example: Auth Repository (wrapping Better Auth)**
+
+```typescript
+// src/repositories/auth.repository.ts
+import { auth } from '@/lib/auth'
+
+export const authRepository = {
+  getSession: (headers: Headers) => auth.api.getSession({ headers }),
+  signIn: (email: string, password: string) =>
+    auth.api.signInEmail({ body: { email, password } }),
+  signOut: (headers: Headers) => auth.api.signOut({ headers }),
+  createUser: (data: { email: string; password: string; name: string }) =>
+    auth.api.signUpEmail({ body: data }),
+}
+```
+
+**Example: External API Repository**
+
+```typescript
+// src/repositories/notification.repository.ts
+export const notificationRepository = {
+  sendEmail: async (to: string, subject: string, body: string) => {
+    const response = await fetch('https://api.email-service.com/send', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.EMAIL_API_KEY}` },
+      body: JSON.stringify({ to, subject, body }),
+    })
+    return response.json()
+  },
+}
+```
+
+**Using Repositories in Server Functions**:
+
+```typescript
+// In a route file
+import { userRepository } from '@/repositories/user.repository'
+import { authRepository } from '@/repositories/auth.repository'
+
+const getUsersFn = createServerFn({ method: 'GET' }).handler(async () => {
+  // ✅ Delegate to repository
+  return userRepository.findAll()
+})
+
+const loginFn = createServerFn({ method: 'POST' })
+  .inputValidator(LoginSchema)
+  .handler(async ({ data }) => {
+    // ✅ Delegate to auth repository
+    return authRepository.signIn(data.email, data.password)
+  })
+```
+
+**Key Rules**:
+
+- Repositories are **server-only** code
+- Import repositories with static imports in server functions
+- Keep repositories focused on a single external dependency
+- Server functions should be thin—validate input, call repository, return response
 
 #### Interface Architecture
 
@@ -1064,4 +1222,6 @@ Immediate action items.
 | [User Management Enhancements](docs/roadmap/2025-11-28-user-management-enhancements.md) | Planned | Email integration, 2FA, OAuth, audit logging, GDPR |
 | [Dashboard Improvements](docs/roadmap/2025-11-22-dashboard-improvements.md) | In Progress | Bug fixes, UI/UX improvements |
 | [Focus Timer & Mindfulness](docs/roadmap/2025-11-25-focus-timer-mindfulness.md) | Planned | Focus timer feature |
-| [Better Auth Migration](docs/roadmap/2025-12-02-better-auth-migration.md) | In Progress | Migrate custom auth to Better Auth framework |
+| [Better Auth Migration](docs/roadmap/2025-12-02-better-auth-migration.md) | Completed | Migrate custom auth to Better Auth framework |
+| [Email Integration](docs/roadmap/2025-12-03-email-integration.md) | Planned | GDPR-safe email service, password reset, verification |
+| [User Auth Flows](docs/roadmap/2025-12-03-user-auth-flows.md) | Planned | Signup, password reset, settings, session management |
