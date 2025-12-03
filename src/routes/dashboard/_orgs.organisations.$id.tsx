@@ -5,8 +5,10 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
 import { useState } from 'react'
 import { Users, Mail, Building2 } from 'lucide-react'
+import { authRepository } from '@/repositories/auth.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import type { Organisation } from '@/schemas'
 import { Button } from '@/components/ui/button'
@@ -33,21 +35,52 @@ function formatDateTime(isoString: string): string {
   return date.toLocaleString('en-US', options)
 }
 
+/**
+ * Generate a slug from text
+ */
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 // Server function for updates only
 const updateOrganisationFn = createServerFn({ method: 'POST' }).handler(
   async ({ data }: { data: Organisation }) => {
+    const request = getRequest()
     const { id, createdAt, ...updateData } = data
 
     // Filter out undefined values
     const cleanUpdateData = Object.fromEntries(
       Object.entries(updateData).filter(([_, value]) => value !== undefined)
-    )
+    ) as Record<string, unknown>
 
     if (Object.keys(cleanUpdateData).length === 0) {
       throw new Error('No fields to update')
     }
 
-    return await organisationRepository.update(id, cleanUpdateData)
+    // Use Better Auth API for name updates
+    if (cleanUpdateData.name) {
+      await authRepository.updateOrganization(id, {
+        name: cleanUpdateData.name as string,
+        slug: slugify(cleanUpdateData.name as string),
+      })
+    }
+
+    // Update custom contact fields via repository helper
+    const customFields: Record<string, unknown> = {}
+    if ('contactName' in cleanUpdateData) customFields.contactName = cleanUpdateData.contactName
+    if ('contactEmail' in cleanUpdateData) customFields.contactEmail = cleanUpdateData.contactEmail
+    if ('contactPhone' in cleanUpdateData) customFields.contactPhone = cleanUpdateData.contactPhone
+
+    if (Object.keys(customFields).length > 0) {
+      await organisationRepository.updateContactFields(id, customFields as { contactName?: string | null; contactEmail?: string | null; contactPhone?: string | null })
+    }
+
+    return await organisationRepository.findById(id)
   }
 )
 

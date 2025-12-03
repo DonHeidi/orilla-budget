@@ -9,9 +9,8 @@ import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { accountRepository } from '@/repositories/account.repository'
 import { projectApprovalSettingsRepository } from '@/repositories/projectApprovalSettings.repository'
-import { getCurrentUser } from '@/lib/auth/helpers.server'
-import { db, betterAuth } from '@/db'
-import { eq } from 'drizzle-orm'
+import { projectMemberRepository } from '@/repositories/projectMember.repository'
+import { getCurrentUser } from '@/repositories/auth.repository'
 import {
   canApproveTimeSheet,
   canApproveEntry,
@@ -90,18 +89,14 @@ const getTimeSheetDetailFn = createServerFn({ method: 'GET' }).handler(
       approvalSettings = await projectApprovalSettingsRepository.findByProjectId(
         sheetData.timeSheet.projectId
       )
-      // Get project members from Better Auth team_member table
-      const teamMembers = await db
-        .select({
-          userId: betterAuth.teamMember.userId,
-          role: betterAuth.teamMember.projectRole,
-        })
-        .from(betterAuth.teamMember)
-        .where(eq(betterAuth.teamMember.teamId, sheetData.timeSheet.projectId))
+      // Get project members
+      const teamMembers = await projectMemberRepository.findByProjectId(
+        sheetData.timeSheet.projectId
+      )
 
       projectMembers = teamMembers.map((m) => ({
         userId: m.userId,
-        role: m.role as string,
+        role: m.projectRole as string,
       }))
       if (currentUser) {
         userMembership = projectMembers.find((m) => m.userId === currentUser.id) || null

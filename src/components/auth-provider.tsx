@@ -7,12 +7,12 @@ import {
   type SystemPermission,
   type ProjectPermission,
 } from '@/lib/permissions'
-import { logoutFn } from '@/lib/auth/better-auth-session.server'
+import { logoutFn } from '@/lib/auth-server'
 import type {
   AuthContextValue,
   AuthenticatedUser,
   ProjectMembership,
-} from '@/lib/auth/types'
+} from '@/lib/auth'
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
 

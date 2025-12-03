@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useRouter } from '@tanstack/react-router'
 import { createServerFn, useServerFn } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
 import { useState, useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { cn } from '@/lib/utils'
+import { authRepository } from '@/repositories/auth.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { accountRepository } from '@/repositories/account.repository'
 import { projectRepository } from '@/repositories/project.repository'
@@ -70,8 +72,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AuthProvider } from '@/components/auth-provider'
-import { getCurrentSessionFn, logoutFn } from '@/lib/auth/better-auth-session.server'
-import type { AuthSession } from '@/lib/auth/types'
+import { getCurrentSessionFn, logoutFn } from '@/lib/auth-server'
+import type { AuthSession } from '@/lib/auth'
 import { hasSystemPermission } from '@/lib/permissions'
 
 // Server Functions
@@ -90,6 +92,18 @@ const getAllDataFn = createServerFn({ method: 'GET' }).handler(async () => {
   }
 })
 
+/**
+ * Generate a slug from text
+ */
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 const createOrganisationFn = createServerFn({ method: 'POST' })
   .inputValidator((data: {
     name: string
@@ -98,15 +112,31 @@ const createOrganisationFn = createServerFn({ method: 'POST' })
     totalBudgetHours: number
   }) => data)
   .handler(async ({ data }) => {
-    const organisation: Organisation = {
-      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    const request = getRequest()
+
+    // Create organization via Better Auth API
+    const result = await authRepository.createOrganization({
       name: data.name,
+      slug: slugify(data.name),
+    })
+
+    if (!result) {
+      throw new Error('Failed to create organization')
+    }
+
+    // Update with custom contact fields
+    await organisationRepository.updateContactFields(result.id, {
       contactName: data.contactName,
       contactEmail: data.contactEmail,
-      totalBudgetHours: data.totalBudgetHours,
-      createdAt: new Date().toISOString(),
+    })
+
+    // Fetch the updated organization
+    const org = await organisationRepository.findById(result.id)
+    if (!org) {
+      throw new Error('Failed to fetch created organization')
     }
-    return await organisationRepository.create(organisation)
+
+    return org
   })
 
 const createAccountFn = createServerFn({ method: 'POST' })
@@ -133,16 +163,32 @@ const createProjectFn = createServerFn({ method: 'POST' })
     budgetHours: number
   }) => data)
   .handler(async ({ data }) => {
-    const project: Project = {
-      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      organisationId: data.organisationId,
+    const request = getRequest()
+
+    // Create team (project) via Better Auth API
+    const result = await authRepository.createTeam({
       name: data.name,
+      organizationId: data.organisationId,
+    })
+
+    if (!result) {
+      throw new Error('Failed to create project')
+    }
+
+    // Update with custom project fields
+    await projectRepository.updateCustomFields(result.id, {
       description: data.description,
       category: data.category,
       budgetHours: data.budgetHours,
-      createdAt: new Date().toISOString(),
+    })
+
+    // Fetch the updated project
+    const project = await projectRepository.findById(result.id)
+    if (!project) {
+      throw new Error('Failed to fetch created project')
     }
-    return await projectRepository.create(project)
+
+    return project
   })
 
 const createTimeEntryFn = createServerFn({ method: 'POST' })
@@ -184,24 +230,51 @@ const updateTimeEntryFn = createServerFn({ method: 'POST' })
 const updateProjectFn = createServerFn({ method: 'POST' })
   .inputValidator((data: Project) => data)
   .handler(async ({ data }) => {
-    const { id, createdAt, ...updateData } = data
+    const request = getRequest()
+    const { id, createdAt, organizationId, ...updateData } = data
 
     // Filter out undefined values
     const cleanUpdateData = Object.fromEntries(
       Object.entries(updateData).filter(([_, value]) => value !== undefined)
-    )
+    ) as Record<string, unknown>
 
     if (Object.keys(cleanUpdateData).length === 0) {
       throw new Error('No fields to update')
     }
 
-    return await projectRepository.update(id, cleanUpdateData)
+    // Use Better Auth API for name updates
+    if (cleanUpdateData.name) {
+      await authRepository.updateTeam(id, {
+        name: cleanUpdateData.name as string,
+      })
+    }
+
+    // Update custom fields via repository helper
+    const customFields: Record<string, unknown> = {}
+    if ('description' in cleanUpdateData) customFields.description = cleanUpdateData.description
+    if ('category' in cleanUpdateData) customFields.category = cleanUpdateData.category
+    if ('budgetHours' in cleanUpdateData) customFields.budgetHours = cleanUpdateData.budgetHours
+
+    if (Object.keys(customFields).length > 0) {
+      await projectRepository.updateCustomFields(id, customFields as { description?: string | null; category?: string | null; budgetHours?: number | null })
+    }
+
+    return await projectRepository.findById(id)
   })
 
 const deleteProjectFn = createServerFn({ method: 'POST' })
   .inputValidator((data: { id: string }) => data)
   .handler(async ({ data }) => {
-    return await projectRepository.delete(data.id)
+    const request = getRequest()
+
+    // Get the project to find its organization
+    const project = await projectRepository.findById(data.id)
+    if (!project) {
+      throw new Error('Project not found')
+    }
+
+    // Delete via Better Auth API
+    await authRepository.removeTeam(data.id)
   })
 
 export const Route = createFileRoute('/dashboard')({

@@ -5,9 +5,11 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
 import { useState } from 'react'
 import { FolderKanban, Building2, Clock, Settings2, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { authRepository } from '@/repositories/auth.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { projectApprovalSettingsRepository } from '@/repositories/projectApprovalSettings.repository'
 import type { Project, ProjectApprovalSettings, UpdateProjectApprovalSettings } from '@/schemas'
@@ -43,25 +45,53 @@ function formatDateTime(isoString: string): string {
 // Server function for updates only
 const updateProjectFn = createServerFn({ method: 'POST' }).handler(
   async ({ data }: { data: Project }) => {
-    const { id, createdAt, ...updateData } = data
+    const request = getRequest()
+    const { id, createdAt, organizationId, ...updateData } = data
 
     // Filter out undefined values
     const cleanUpdateData = Object.fromEntries(
       Object.entries(updateData).filter(([_, value]) => value !== undefined)
-    )
+    ) as Record<string, unknown>
 
     if (Object.keys(cleanUpdateData).length === 0) {
       throw new Error('No fields to update')
     }
 
-    return await projectRepository.update(id, cleanUpdateData)
+    // Use Better Auth API for name updates
+    if (cleanUpdateData.name) {
+      await authRepository.updateTeam(id, {
+        name: cleanUpdateData.name as string,
+      })
+    }
+
+    // Update custom fields via repository helper
+    const customFields: Record<string, unknown> = {}
+    if ('description' in cleanUpdateData) customFields.description = cleanUpdateData.description
+    if ('category' in cleanUpdateData) customFields.category = cleanUpdateData.category
+    if ('budgetHours' in cleanUpdateData) customFields.budgetHours = cleanUpdateData.budgetHours
+
+    if (Object.keys(customFields).length > 0) {
+      await projectRepository.updateCustomFields(id, customFields as { description?: string | null; category?: string | null; budgetHours?: number | null })
+    }
+
+    return await projectRepository.findById(id)
   }
 )
 
 const deleteProjectFn = createServerFn({ method: 'POST' }).handler(
   async (ctx: { data: { id: string } }) => {
+    const request = getRequest()
     console.log('Deleting project with id:', ctx.data.id)
-    await projectRepository.delete(ctx.data.id)
+
+    // Get the project to find its organization
+    const project = await projectRepository.findById(ctx.data.id)
+    if (!project) {
+      throw new Error('Project not found')
+    }
+
+    // Delete via Better Auth API
+    await authRepository.removeTeam(ctx.data.id)
+
     console.log('Project deleted successfully')
     return { success: true }
   }

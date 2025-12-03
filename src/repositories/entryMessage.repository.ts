@@ -1,4 +1,4 @@
-import { db, entryMessages, users, timeEntries } from '@/db'
+import { db, betterAuth, entryMessages } from '@/db'
 import { eq, and, isNull, desc } from 'drizzle-orm'
 import type { EntryMessage, CreateEntryMessage, EntryStatus } from '@/schemas'
 import { generateId } from '@/lib/auth'
@@ -61,11 +61,11 @@ export const entryMessageRepository = {
         createdAt: entryMessages.createdAt,
         updatedAt: entryMessages.updatedAt,
         deletedAt: entryMessages.deletedAt,
-        authorHandle: users.handle,
-        authorEmail: users.email,
+        authorHandle: betterAuth.user.handle,
+        authorEmail: betterAuth.user.email,
       })
       .from(entryMessages)
-      .innerJoin(users, eq(entryMessages.authorId, users.id))
+      .innerJoin(betterAuth.user, eq(entryMessages.authorId, betterAuth.user.id))
       .where(
         and(
           eq(entryMessages.timeEntryId, timeEntryId),
@@ -144,11 +144,11 @@ export const entryMessageRepository = {
         createdAt: entryMessages.createdAt,
         updatedAt: entryMessages.updatedAt,
         deletedAt: entryMessages.deletedAt,
-        authorHandle: users.handle,
-        authorEmail: users.email,
+        authorHandle: betterAuth.user.handle,
+        authorEmail: betterAuth.user.email,
       })
       .from(entryMessages)
-      .innerJoin(users, eq(entryMessages.authorId, users.id))
+      .innerJoin(betterAuth.user, eq(entryMessages.authorId, betterAuth.user.id))
       .where(
         and(
           eq(entryMessages.timeEntryId, timeEntryId),

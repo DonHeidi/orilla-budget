@@ -16,7 +16,7 @@ import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
 import { accountRepository } from '@/repositories/account.repository'
-import { getCurrentSessionFn } from '@/lib/auth/better-auth-session.server'
+import { getCurrentSessionFn } from '@/lib/auth-server'
 import {
   createTimeSheetSchema,
   addEntriesToSheetSchema,

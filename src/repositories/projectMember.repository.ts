@@ -1,40 +1,48 @@
-import { db, projectMembers, projects, users, organisations } from '@/db'
+import { db, betterAuth } from '@/db'
 import { eq, and } from 'drizzle-orm'
-import type { ProjectMember, CreateProjectMember, ProjectRole } from '@/schemas'
-import { generateId, now } from '@/lib/auth'
+import type { ProjectRole } from '@/schemas'
+
+// ProjectMember type derived from Better Auth teamMember schema
+export type ProjectMember = typeof betterAuth.teamMember.$inferSelect
+export type CreateProjectMember = {
+  projectId: string // Maps to teamId
+  userId: string
+  role: ProjectRole
+}
 
 export interface ProjectMemberWithDetails {
   id: string
   projectId: string
   userId: string
   role: ProjectRole
-  createdAt: string
+  createdAt: Date | null
   projectName: string
-  userHandle: string
+  userHandle: string | null
   userEmail: string
 }
 
 export interface ProjectMembershipForAuth {
   projectId: string
   projectName: string
-  organisationId: string | null
+  organisationId: string
   organisationName: string | null
   role: ProjectRole
 }
 
+/**
+ * Project Member Repository
+ *
+ * Project members are stored as "teamMembers" in Better Auth's organization plugin.
+ * This repository handles READ operations via direct DB queries.
+ * For mutations, use authRepository in server functions:
+ * - authRepository.addMember() - add member to team
+ *
+ * This separation ensures server-only code isn't bundled for the client.
+ */
 export const projectMemberRepository = {
-  /**
-   * Create a new project membership
-   */
-  async create(data: CreateProjectMember): Promise<ProjectMember> {
-    const member: ProjectMember = {
-      id: generateId(),
-      ...data,
-      createdAt: now(),
-    }
-    await db.insert(projectMembers).values(member)
-    return member
-  },
+  // ============================================
+  // READ OPERATIONS (direct DB - no side effects)
+  // ============================================
 
   /**
    * Find a membership by ID
@@ -42,8 +50,8 @@ export const projectMemberRepository = {
   async findById(id: string): Promise<ProjectMember | undefined> {
     const result = await db
       .select()
-      .from(projectMembers)
-      .where(eq(projectMembers.id, id))
+      .from(betterAuth.teamMember)
+      .where(eq(betterAuth.teamMember.id, id))
       .limit(1)
     return result[0]
   },
@@ -57,11 +65,11 @@ export const projectMemberRepository = {
   ): Promise<ProjectMember | undefined> {
     const result = await db
       .select()
-      .from(projectMembers)
+      .from(betterAuth.teamMember)
       .where(
         and(
-          eq(projectMembers.projectId, projectId),
-          eq(projectMembers.userId, userId)
+          eq(betterAuth.teamMember.teamId, projectId),
+          eq(betterAuth.teamMember.userId, userId)
         )
       )
       .limit(1)
@@ -74,8 +82,8 @@ export const projectMemberRepository = {
   async findByUserId(userId: string): Promise<ProjectMember[]> {
     return await db
       .select()
-      .from(projectMembers)
-      .where(eq(projectMembers.userId, userId))
+      .from(betterAuth.teamMember)
+      .where(eq(betterAuth.teamMember.userId, userId))
   },
 
   /**
@@ -86,19 +94,19 @@ export const projectMemberRepository = {
   ): Promise<ProjectMemberWithDetails[]> {
     const result = await db
       .select({
-        id: projectMembers.id,
-        projectId: projectMembers.projectId,
-        userId: projectMembers.userId,
-        role: projectMembers.role,
-        createdAt: projectMembers.createdAt,
-        projectName: projects.name,
-        userHandle: users.handle,
-        userEmail: users.email,
+        id: betterAuth.teamMember.id,
+        projectId: betterAuth.teamMember.teamId,
+        userId: betterAuth.teamMember.userId,
+        role: betterAuth.teamMember.projectRole,
+        createdAt: betterAuth.teamMember.createdAt,
+        projectName: betterAuth.team.name,
+        userHandle: betterAuth.user.handle,
+        userEmail: betterAuth.user.email,
       })
-      .from(projectMembers)
-      .innerJoin(projects, eq(projectMembers.projectId, projects.id))
-      .innerJoin(users, eq(projectMembers.userId, users.id))
-      .where(eq(projectMembers.userId, userId))
+      .from(betterAuth.teamMember)
+      .innerJoin(betterAuth.team, eq(betterAuth.teamMember.teamId, betterAuth.team.id))
+      .innerJoin(betterAuth.user, eq(betterAuth.teamMember.userId, betterAuth.user.id))
+      .where(eq(betterAuth.teamMember.userId, userId))
 
     return result as ProjectMemberWithDetails[]
   },
@@ -109,8 +117,8 @@ export const projectMemberRepository = {
   async findByProjectId(projectId: string): Promise<ProjectMember[]> {
     return await db
       .select()
-      .from(projectMembers)
-      .where(eq(projectMembers.projectId, projectId))
+      .from(betterAuth.teamMember)
+      .where(eq(betterAuth.teamMember.teamId, projectId))
   },
 
   /**
@@ -121,55 +129,21 @@ export const projectMemberRepository = {
   ): Promise<ProjectMemberWithDetails[]> {
     const result = await db
       .select({
-        id: projectMembers.id,
-        projectId: projectMembers.projectId,
-        userId: projectMembers.userId,
-        role: projectMembers.role,
-        createdAt: projectMembers.createdAt,
-        projectName: projects.name,
-        userHandle: users.handle,
-        userEmail: users.email,
+        id: betterAuth.teamMember.id,
+        projectId: betterAuth.teamMember.teamId,
+        userId: betterAuth.teamMember.userId,
+        role: betterAuth.teamMember.projectRole,
+        createdAt: betterAuth.teamMember.createdAt,
+        projectName: betterAuth.team.name,
+        userHandle: betterAuth.user.handle,
+        userEmail: betterAuth.user.email,
       })
-      .from(projectMembers)
-      .innerJoin(projects, eq(projectMembers.projectId, projects.id))
-      .innerJoin(users, eq(projectMembers.userId, users.id))
-      .where(eq(projectMembers.projectId, projectId))
+      .from(betterAuth.teamMember)
+      .innerJoin(betterAuth.team, eq(betterAuth.teamMember.teamId, betterAuth.team.id))
+      .innerJoin(betterAuth.user, eq(betterAuth.teamMember.userId, betterAuth.user.id))
+      .where(eq(betterAuth.teamMember.teamId, projectId))
 
     return result as ProjectMemberWithDetails[]
-  },
-
-  /**
-   * Update a membership (typically to change the role)
-   */
-  async update(
-    id: string,
-    data: Partial<Pick<ProjectMember, 'role'>>
-  ): Promise<void> {
-    await db.update(projectMembers).set(data).where(eq(projectMembers.id, id))
-  },
-
-  /**
-   * Delete a membership
-   */
-  async delete(id: string): Promise<void> {
-    await db.delete(projectMembers).where(eq(projectMembers.id, id))
-  },
-
-  /**
-   * Delete a membership by project and user
-   */
-  async deleteByProjectAndUser(
-    projectId: string,
-    userId: string
-  ): Promise<void> {
-    await db
-      .delete(projectMembers)
-      .where(
-        and(
-          eq(projectMembers.projectId, projectId),
-          eq(projectMembers.userId, userId)
-        )
-      )
   },
 
   /**
@@ -182,17 +156,51 @@ export const projectMemberRepository = {
   ): Promise<ProjectMembershipForAuth[]> {
     const result = await db
       .select({
-        projectId: projectMembers.projectId,
-        projectName: projects.name,
-        organisationId: projects.organisationId,
-        organisationName: organisations.name,
-        role: projectMembers.role,
+        projectId: betterAuth.teamMember.teamId,
+        projectName: betterAuth.team.name,
+        organisationId: betterAuth.team.organizationId,
+        organisationName: betterAuth.organization.name,
+        role: betterAuth.teamMember.projectRole,
       })
-      .from(projectMembers)
-      .innerJoin(projects, eq(projectMembers.projectId, projects.id))
-      .leftJoin(organisations, eq(projects.organisationId, organisations.id))
-      .where(eq(projectMembers.userId, userId))
+      .from(betterAuth.teamMember)
+      .innerJoin(betterAuth.team, eq(betterAuth.teamMember.teamId, betterAuth.team.id))
+      .leftJoin(betterAuth.organization, eq(betterAuth.team.organizationId, betterAuth.organization.id))
+      .where(eq(betterAuth.teamMember.userId, userId))
 
     return result as ProjectMembershipForAuth[]
+  },
+
+  // ============================================
+  // HELPER OPERATIONS (direct DB for app-specific fields)
+  // ============================================
+
+  /**
+   * Update project role (app-specific field, not managed by Better Auth)
+   * Call this after using authRepository.addMember() to set the project-specific role
+   */
+  async updateProjectRole(
+    projectId: string,
+    userId: string,
+    role: ProjectRole
+  ): Promise<void> {
+    await db
+      .update(betterAuth.teamMember)
+      .set({ projectRole: role })
+      .where(
+        and(
+          eq(betterAuth.teamMember.teamId, projectId),
+          eq(betterAuth.teamMember.userId, userId)
+        )
+      )
+  },
+
+  /**
+   * Update project role by membership ID
+   */
+  async updateProjectRoleById(id: string, role: ProjectRole): Promise<void> {
+    await db
+      .update(betterAuth.teamMember)
+      .set({ projectRole: role })
+      .where(eq(betterAuth.teamMember.id, id))
   },
 }

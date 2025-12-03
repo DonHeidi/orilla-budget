@@ -1,10 +1,9 @@
 import {
   db,
+  betterAuth,
   timeSheets,
   timeSheetEntries,
   timeEntries,
-  organisations,
-  projects,
   accounts,
   timeSheetApprovals,
 } from '@/db'
@@ -119,8 +118,8 @@ export const timeSheetRepository = {
     if (sheet.organisationId) {
       const orgResult = await db
         .select()
-        .from(organisations)
-        .where(eq(organisations.id, sheet.organisationId))
+        .from(betterAuth.organization)
+        .where(eq(betterAuth.organization.id, sheet.organisationId))
         .limit(1)
       organisation = orgResult[0]
     }
@@ -128,8 +127,8 @@ export const timeSheetRepository = {
     if (sheet.projectId) {
       const projResult = await db
         .select()
-        .from(projects)
-        .where(eq(projects.id, sheet.projectId))
+        .from(betterAuth.team)
+        .where(eq(betterAuth.team.id, sheet.projectId))
         .limit(1)
       project = projResult[0]
     }
