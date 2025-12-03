@@ -229,7 +229,8 @@ describe('organisationRepository', () => {
       expect(accountResult[0]).toBeUndefined()
     })
 
-    it('should set organisationId to null on associated projects', async () => {
+    it('should cascade delete associated projects', async () => {
+      // Better Auth: team (project) has cascade delete from organization
       // Arrange
       const org = await seed.organisation(db, { id: 'org-1' })
       const project = await seed.project(db, 'org-1')
@@ -239,14 +240,13 @@ describe('organisationRepository', () => {
         .delete(schema.organisations)
         .where(eq(schema.organisations.id, 'org-1'))
 
-      // Assert - Project should remain but with null organisationId
+      // Assert - Project should be cascade deleted with Better Auth
       const projectResult = await db
         .select()
         .from(schema.projects)
         .where(eq(schema.projects.id, project.id))
         .limit(1)
-      expect(projectResult[0]).toBeDefined()
-      expect(projectResult[0].organisationId).toBeNull()
+      expect(projectResult[0]).toBeUndefined()
     })
 
     it('should not affect other organisations', async () => {
@@ -278,7 +278,7 @@ describe('organisationRepository', () => {
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
         .where(
-          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+          sql`${schema.projects.organizationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
         )
 
       // Assert
@@ -296,7 +296,7 @@ describe('organisationRepository', () => {
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
         .where(
-          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+          sql`${schema.projects.organizationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
         )
 
       // Assert - Should only count budget project
@@ -313,7 +313,7 @@ describe('organisationRepository', () => {
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
         .where(
-          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+          sql`${schema.projects.organizationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
         )
 
       // Assert
@@ -330,7 +330,7 @@ describe('organisationRepository', () => {
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
         .where(
-          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+          sql`${schema.projects.organizationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
         )
 
       // Assert
@@ -349,7 +349,7 @@ describe('organisationRepository', () => {
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
         .where(
-          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+          sql`${schema.projects.organizationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
         )
 
       // Assert
@@ -368,7 +368,7 @@ describe('organisationRepository', () => {
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
         .where(
-          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+          sql`${schema.projects.organizationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
         )
 
       // Assert - Should only sum org-1's projects
@@ -388,7 +388,7 @@ describe('organisationRepository', () => {
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
         .where(
-          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+          sql`${schema.projects.organizationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
         )
 
       // Assert - Should only sum budget projects (50 + 75 = 125)

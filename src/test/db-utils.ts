@@ -5,19 +5,29 @@ import * as schema from '@/db/schema'
 import { eq as _eq } from 'drizzle-orm'
 
 /**
+ * Generate a unique ID for test data using crypto.randomUUID()
+ */
+function generateTestId(): string {
+  return crypto.randomUUID()
+}
+
+/**
  * Creates an in-memory SQLite database for testing
  * Uses Bun's native SQLite for optimal performance
  */
 export function createTestDb() {
   const sqlite = new Database(':memory:')
 
-  // Enable foreign key constraints (required for cascade deletes)
-  sqlite.run('PRAGMA foreign_keys = ON;')
+  // FK constraints OFF during migrations (some migrations create tables before their FK targets)
+  sqlite.run('PRAGMA foreign_keys = OFF;')
 
   const db = drizzle(sqlite, { schema })
 
   // Apply migrations
   migrate(db, { migrationsFolder: './drizzle' })
+
+  // Enable foreign key constraints after migrations (required for cascade deletes)
+  sqlite.run('PRAGMA foreign_keys = ON;')
 
   return { db, sqlite }
 }
@@ -45,63 +55,81 @@ export async function cleanDatabase(db: ReturnType<typeof createTestDb>['db']) {
 
 /**
  * Factory functions for creating test data
+ *
+ * Note: Better Auth tables use Date objects for timestamps (mode: 'timestamp_ms'),
+ * while app tables use ISO strings. Factories create data for their respective schemas.
  */
 export const testFactories = {
+  // Better Auth user table (uses Date for timestamps)
   user: (overrides?: Partial<typeof schema.users.$inferInsert>) => {
-    const timestamp = new Date().toISOString()
+    const now = new Date()
     return {
-      id: Math.random().toString(36).substring(2, 15),
-      handle: 'testuser',
-      email: 'test@example.com',
+      id: generateTestId(),
+      name: 'Test User',
+      handle: `testuser-${generateTestId().substring(0, 8)}`,
+      email: `test-${generateTestId().substring(0, 8)}@example.com`,
+      emailVerified: false,
       isActive: true,
-      createdAt: timestamp,
-      updatedAt: timestamp,
+      createdAt: now,
+      updatedAt: now,
       ...overrides,
     }
   },
 
+  // Better Auth organization table (uses Date for timestamps)
   organisation: (
     overrides?: Partial<typeof schema.organisations.$inferInsert>
-  ) => ({
-    id: Math.random().toString(36).substring(2, 15),
-    name: 'Test Organisation',
-    contactName: 'John Doe',
-    contactEmail: 'john@example.com',
-    contactPhone: '123-456-7890',
-    createdAt: new Date().toISOString(),
-    ...overrides,
-  }),
+  ) => {
+    const now = new Date()
+    const uniqueId = generateTestId().substring(0, 8)
+    return {
+      id: generateTestId(),
+      name: 'Test Organisation',
+      slug: `test-org-${uniqueId}`,
+      contactName: 'John Doe',
+      contactEmail: 'john@example.com',
+      contactPhone: '123-456-7890',
+      createdAt: now,
+      ...overrides,
+    }
+  },
 
+  // App accounts table (uses ISO strings for timestamps)
   account: (
     organisationId: string,
     overrides?: Partial<typeof schema.accounts.$inferInsert>
   ) => ({
-    id: Math.random().toString(36).substring(2, 15),
+    id: generateTestId(),
     organisationId,
     name: 'Test Account',
-    email: 'account@example.com',
+    email: `account-${generateTestId().substring(0, 8)}@example.com`,
     role: 'contact' as const,
-    accessCode: Math.random().toString(36).substring(2, 10).toUpperCase(),
+    accessCode: generateTestId().substring(0, 8).toUpperCase(),
     createdAt: new Date().toISOString(),
     ...overrides,
   }),
 
+  // Better Auth team table (uses Date for timestamps)
   project: (
     organisationId: string,
     overrides?: Partial<typeof schema.projects.$inferInsert>
-  ) => ({
-    id: Math.random().toString(36).substring(2, 15),
-    organisationId,
-    name: 'Test Project',
-    description: 'A test project',
-    category: 'budget' as const,
-    budgetHours: 100,
-    createdAt: new Date().toISOString(),
-    ...overrides,
-  }),
+  ) => {
+    const now = new Date()
+    return {
+      id: generateTestId(),
+      organizationId: organisationId,
+      name: 'Test Project',
+      description: 'A test project',
+      category: 'budget' as const,
+      budgetHours: 100,
+      createdAt: now,
+      updatedAt: now,
+      ...overrides,
+    }
+  },
 
   timeEntry: (overrides?: Partial<typeof schema.timeEntries.$inferInsert>) => ({
-    id: Math.random().toString(36).substring(2, 15),
+    id: generateTestId(),
     title: 'Test Time Entry',
     hours: 2,
     date: new Date().toISOString(),
@@ -110,7 +138,7 @@ export const testFactories = {
   }),
 
   timeSheet: (overrides?: Partial<typeof schema.timeSheets.$inferInsert>) => ({
-    id: Math.random().toString(36).substring(2, 15),
+    id: generateTestId(),
     title: 'Test Time Sheet',
     description: 'A test time sheet',
     status: 'draft' as const,
@@ -121,6 +149,7 @@ export const testFactories = {
     ...overrides,
   }),
 
+  // Better Auth session table (uses Date for timestamps)
   session: (
     userId: string,
     overrides?: Partial<typeof schema.sessions.$inferInsert>
@@ -128,11 +157,12 @@ export const testFactories = {
     const now = new Date()
     const expiry = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // 7 days
     return {
-      id: Math.random().toString(36).substring(2, 15),
+      id: generateTestId(),
       userId,
-      token: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
-      expiresAt: expiry.toISOString(),
-      createdAt: now.toISOString(),
+      token: generateTestId(),
+      expiresAt: expiry,
+      createdAt: now,
+      updatedAt: now,
       ...overrides,
     }
   },
@@ -140,7 +170,7 @@ export const testFactories = {
   pii: (overrides?: Partial<typeof schema.pii.$inferInsert>) => {
     const timestamp = new Date().toISOString()
     return {
-      id: Math.random().toString(36).substring(2, 15),
+      id: generateTestId(),
       name: 'Test User',
       phone: null,
       address: null,
@@ -155,11 +185,11 @@ export const testFactories = {
     ownerId: string,
     overrides?: Partial<typeof schema.contacts.$inferInsert>
   ) => ({
-    id: Math.random().toString(36).substring(2, 15),
+    id: generateTestId(),
     ownerId,
     userId: null,
     piiId: null,
-    email: 'contact@example.com',
+    email: `contact-${generateTestId().substring(0, 8)}@example.com`,
     organisationId: null,
     createdAt: new Date().toISOString(),
     ...overrides,
@@ -173,12 +203,12 @@ export const testFactories = {
     const now = new Date()
     const expiry = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // 7 days
     return {
-      id: Math.random().toString(36).substring(2, 15),
+      id: generateTestId(),
       contactId,
       invitedByUserId,
       projectId: null,
       role: null,
-      code: Math.random().toString(36).substring(2, 14), // 12-char code
+      code: generateTestId().substring(0, 12),
       expiresAt: expiry.toISOString(),
       status: 'pending' as const,
       createdAt: now.toISOString(),
@@ -193,7 +223,7 @@ export const testFactories = {
   ) => {
     const now = new Date().toISOString()
     return {
-      id: Math.random().toString(36).substring(2, 15),
+      id: generateTestId(),
       timeEntryId,
       authorId,
       content: 'Test message content',
@@ -212,7 +242,7 @@ export const testFactories = {
   ) => {
     const now = new Date().toISOString()
     return {
-      id: Math.random().toString(36).substring(2, 15),
+      id: generateTestId(),
       projectId,
       approvalMode: 'required' as const,
       autoApproveAfterDays: 0,
@@ -230,7 +260,7 @@ export const testFactories = {
     approvedBy: string,
     overrides?: Partial<typeof schema.timeSheetApprovals.$inferInsert>
   ) => ({
-    id: Math.random().toString(36).substring(2, 15),
+    id: generateTestId(),
     timeSheetId,
     stage: 'reviewer',
     approvedBy,
@@ -238,6 +268,23 @@ export const testFactories = {
     notes: null,
     ...overrides,
   }),
+
+  // Better Auth teamMember table (uses Date for timestamps)
+  projectMember: (
+    projectId: string,
+    userId: string,
+    overrides?: Partial<typeof schema.projectMembers.$inferInsert>
+  ) => {
+    const now = new Date()
+    return {
+      id: generateTestId(),
+      teamId: projectId,
+      userId,
+      projectRole: 'expert' as const,
+      createdAt: now,
+      ...overrides,
+    }
+  },
 }
 
 /**
@@ -396,5 +443,18 @@ export const seed = {
       .values(testFactories.timeSheetApproval(timeSheetId, approvedBy, data))
       .returning()
     return approval
+  },
+
+  async projectMember(
+    db: ReturnType<typeof createTestDb>['db'],
+    projectId: string,
+    userId: string,
+    data?: Partial<typeof schema.projectMembers.$inferInsert>
+  ) {
+    const [member] = await db
+      .insert(schema.projectMembers)
+      .values(testFactories.projectMember(projectId, userId, data))
+      .returning()
+    return member
   },
 }
