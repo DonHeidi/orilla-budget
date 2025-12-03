@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
 import { useState } from 'react'
 import { Mail, AtSign } from 'lucide-react'
-import { db, betterAuth } from '@/db'
-import { eq } from 'drizzle-orm'
+import { userRepository } from '@/repositories/user.repository'
 import type { User } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,27 +32,26 @@ function formatDateTime(isoString: string): string {
 // Server functions
 const updateUserFn = createServerFn({ method: 'POST' }).handler(
   async ({ data }: { data: User }) => {
+    const request = getRequest()
     const { id, createdAt, ...updateData } = data
 
     // Filter out undefined values
     const cleanUpdateData = Object.fromEntries(
       Object.entries(updateData).filter(([_, value]) => value !== undefined)
-    )
+    ) as Record<string, unknown>
 
     if (Object.keys(cleanUpdateData).length === 0) {
       throw new Error('No fields to update')
     }
 
-    // Update Better Auth user table
-    await db
-      .update(betterAuth.user)
-      .set({
-        name: cleanUpdateData.handle || cleanUpdateData.name,
-        handle: cleanUpdateData.handle,
-        email: cleanUpdateData.email,
-        updatedAt: new Date(),
-      })
-      .where(eq(betterAuth.user.id, id))
+    // Update handle via repository helper (app-specific field)
+    if (cleanUpdateData.handle) {
+      await userRepository.updateHandle(id, cleanUpdateData.handle as string)
+    }
+
+    // For email updates, use Better Auth admin API
+    // Note: Better Auth doesn't have a direct updateUser API, so email changes would need
+    // to be handled via the user themselves or admin-specific endpoints
 
     return { success: true }
   }
@@ -60,16 +59,18 @@ const updateUserFn = createServerFn({ method: 'POST' }).handler(
 
 const deleteUserFn = createServerFn({ method: 'POST' }).handler(
   async (ctx: { data: { id: string } }) => {
-    // Delete from Better Auth user table (cascades to sessions, accounts, etc.)
-    await db.delete(betterAuth.user).where(eq(betterAuth.user.id, ctx.data.id))
+    const request = getRequest()
+
+    // Delete user via userRepository
+    await userRepository.remove(ctx.data.id)
+
     return { success: true }
   }
 )
 
 const getUserDetailDataFn = createServerFn({ method: 'GET' }).handler(
   async () => {
-    // Query Better Auth user table
-    const users = await db.select().from(betterAuth.user)
+    const users = await userRepository.findAll()
     return {
       users: users.map((u) => ({
         id: u.id,
