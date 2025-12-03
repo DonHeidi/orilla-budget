@@ -171,11 +171,13 @@ describe('userRepository', () => {
     it('should preserve all user fields', async () => {
       // Arrange
       const db = getDb()
+      const testDate = new Date('2024-11-11T10:00:00Z')
       const newUser = testFactories.user({
         id: 'user-999',
         handle: 'testuser',
         email: 'test@example.com',
-        createdAt: '2024-11-11T10:00:00Z',
+        createdAt: testDate,
+        updatedAt: testDate,
       })
 
       // Act
@@ -190,7 +192,8 @@ describe('userRepository', () => {
       expect(result[0].id).toBe('user-999')
       expect(result[0].handle).toBe('testuser')
       expect(result[0].email).toBe('test@example.com')
-      expect(result[0].createdAt).toBe('2024-11-11T10:00:00Z')
+      // Better Auth uses Date objects for timestamps
+      expect(result[0].createdAt.getTime()).toBe(testDate.getTime())
     })
   })
 
@@ -474,26 +477,33 @@ describe('userRepository', () => {
   })
 
   describe('createWithPassword', () => {
-    it('should create a user with hashed password', async () => {
+    it('should create a user with hashed password in account table', async () => {
+      // Better Auth stores passwords in the 'account' table, not the 'user' table
       const db = getDb()
       const passwordHash = await hashPassword('TestPassword123')
-      const timestamp = new Date().toISOString()
+      const now = new Date()
 
-      const userData = {
+      // Create user first
+      const userData = testFactories.user({
         id: 'test-user-id',
         handle: 'newuser',
         email: 'new@example.com',
-        passwordHash,
-        piiId: null,
-        role: null,
-        isActive: true,
-        lastLoginAt: null,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      }
-
+      })
       await db.insert(schema.users).values(userData)
 
+      // Create credential account with password (Better Auth pattern)
+      const accountData = {
+        id: 'account-test-id',
+        accountId: 'test-user-id',
+        providerId: 'credential',
+        userId: 'test-user-id',
+        password: passwordHash,
+        createdAt: now,
+        updatedAt: now,
+      }
+      await db.insert(betterAuth.account).values(accountData)
+
+      // Verify user was created
       const result = await db
         .select()
         .from(schema.users)
@@ -502,8 +512,17 @@ describe('userRepository', () => {
 
       expect(result[0]).toBeDefined()
       expect(result[0].handle).toBe('newuser')
-      expect(result[0].passwordHash).toBeDefined()
-      expect(result[0].passwordHash).not.toBe('TestPassword123')
+
+      // Verify password is stored in account table
+      const account = await db
+        .select()
+        .from(betterAuth.account)
+        .where(eq(betterAuth.account.userId, 'test-user-id'))
+        .limit(1)
+
+      expect(account[0]).toBeDefined()
+      expect(account[0].password).toBeDefined()
+      expect(account[0].password).not.toBe('TestPassword123')
     })
 
     it('should create PII record when name is provided', async () => {
@@ -523,20 +542,13 @@ describe('userRepository', () => {
 
       await db.insert(schema.pii).values(piiData)
 
-      // Then create user with that PII
-      const passwordHash = await hashPassword('TestPassword123')
-      const userData = {
+      // Then create user with that PII (Better Auth - no passwordHash on user table)
+      const userData = testFactories.user({
         id: 'user-with-pii-id',
         handle: 'userwithpii',
         email: 'withpii@example.com',
-        passwordHash,
         piiId: piiData.id,
-        role: null,
-        isActive: true,
-        lastLoginAt: null,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      }
+      })
 
       await db.insert(schema.users).values(userData)
 
@@ -559,16 +571,30 @@ describe('userRepository', () => {
 
   describe('verifyPassword', () => {
     it('should verify correct password for active user', async () => {
+      // Better Auth stores passwords in account table, not user table
       const db = getDb()
       const password = 'TestPassword123'
       const passwordHash = await hashPassword(password)
+      const now = new Date()
 
+      // Create user
       const user = testFactories.user({
+        id: 'verify-user-id',
         email: 'verify@example.com',
-        passwordHash,
         isActive: true,
       })
       await db.insert(schema.users).values(user)
+
+      // Create credential account with password
+      await db.insert(betterAuth.account).values({
+        id: 'verify-account-id',
+        accountId: 'verify-user-id',
+        providerId: 'credential',
+        userId: 'verify-user-id',
+        password: passwordHash,
+        createdAt: now,
+        updatedAt: now,
+      })
 
       // Find active user
       const found = await db
@@ -578,41 +604,58 @@ describe('userRepository', () => {
         .limit(1)
 
       expect(found[0]).toBeDefined()
-      expect(found[0].passwordHash).toBeDefined()
+
+      // Get password from account table
+      const account = await db
+        .select()
+        .from(betterAuth.account)
+        .where(eq(betterAuth.account.userId, found[0].id))
+        .limit(1)
+
+      expect(account[0]?.password).toBeDefined()
 
       // Verify password
-      const isValid = await verifyPassword(password, found[0].passwordHash!)
+      const isValid = await verifyPassword(password, account[0].password!)
       expect(isValid).toBe(true)
     })
 
     it('should reject incorrect password', async () => {
       const db = getDb()
       const passwordHash = await hashPassword('CorrectPassword123')
+      const now = new Date()
 
       const user = testFactories.user({
+        id: 'wrongpass-user-id',
         email: 'wrongpass@example.com',
-        passwordHash,
         isActive: true,
       })
       await db.insert(schema.users).values(user)
 
-      const found = await db
+      await db.insert(betterAuth.account).values({
+        id: 'wrongpass-account-id',
+        accountId: 'wrongpass-user-id',
+        providerId: 'credential',
+        userId: 'wrongpass-user-id',
+        password: passwordHash,
+        createdAt: now,
+        updatedAt: now,
+      })
+
+      const account = await db
         .select()
-        .from(schema.users)
-        .where(eq(schema.users.email, 'wrongpass@example.com'))
+        .from(betterAuth.account)
+        .where(eq(betterAuth.account.userId, 'wrongpass-user-id'))
         .limit(1)
 
-      const isValid = await verifyPassword('WrongPassword123', found[0].passwordHash!)
+      const isValid = await verifyPassword('WrongPassword123', account[0].password!)
       expect(isValid).toBe(false)
     })
 
     it('should not find inactive user when searching for active', async () => {
       const db = getDb()
-      const passwordHash = await hashPassword('TestPassword123')
 
       const user = testFactories.user({
         email: 'inactivelogin@example.com',
-        passwordHash,
         isActive: false,
       })
       await db.insert(schema.users).values(user)
@@ -627,11 +670,12 @@ describe('userRepository', () => {
       expect(found[0]).toBeUndefined()
     })
 
-    it('should handle user without password', async () => {
+    it('should handle user without credential account', async () => {
+      // Better Auth: user without credential account has no password
       const db = getDb()
       const user = testFactories.user({
+        id: 'nopassword-user-id',
         email: 'nopassword@example.com',
-        passwordHash: null,
         isActive: true,
       })
       await db.insert(schema.users).values(user)
@@ -643,7 +687,15 @@ describe('userRepository', () => {
         .limit(1)
 
       expect(found[0]).toBeDefined()
-      expect(found[0].passwordHash).toBeNull()
+
+      // No credential account = no password
+      const account = await db
+        .select()
+        .from(betterAuth.account)
+        .where(and(eq(betterAuth.account.userId, 'nopassword-user-id'), eq(betterAuth.account.providerId, 'credential')))
+        .limit(1)
+
+      expect(account[0]).toBeUndefined()
     })
   })
 
@@ -655,9 +707,10 @@ describe('userRepository', () => {
 
       const timestamp = new Date().toISOString()
 
+      // Better Auth uses Date for updatedAt (timestamp_ms mode)
       await db
         .update(schema.users)
-        .set({ lastLoginAt: timestamp, updatedAt: timestamp })
+        .set({ lastLoginAt: timestamp, updatedAt: new Date() })
         .where(eq(schema.users.id, user.id))
 
       const updated = await db
@@ -674,27 +727,38 @@ describe('userRepository', () => {
     it('should update the user password hash', async () => {
       const db = getDb()
       const originalHash = await hashPassword('OriginalPassword123')
-      const user = testFactories.user({ passwordHash: originalHash })
-      await db.insert(schema.users).values(user)
+      const now = new Date()
 
-      // Update password
+      // Better Auth: passwords are stored in the account table, not user table
+      const user = testFactories.user()
+      await db.insert(schema.users).values(user)
+      await db.insert(betterAuth.account).values({
+        id: `account-${user.id}`,
+        accountId: user.id,
+        providerId: 'credential',
+        userId: user.id,
+        password: originalHash,
+        createdAt: now,
+        updatedAt: now,
+      })
+
+      // Update password in account table
       const newHash = await hashPassword('NewPassword456')
-      const timestamp = new Date().toISOString()
 
       await db
-        .update(schema.users)
-        .set({ passwordHash: newHash, updatedAt: timestamp })
-        .where(eq(schema.users.id, user.id))
+        .update(betterAuth.account)
+        .set({ password: newHash, updatedAt: new Date() })
+        .where(eq(betterAuth.account.userId, user.id))
 
       // Verify old password no longer works
-      const updated = await db
+      const updatedAccount = await db
         .select()
-        .from(schema.users)
-        .where(eq(schema.users.id, user.id))
+        .from(betterAuth.account)
+        .where(eq(betterAuth.account.userId, user.id))
         .limit(1)
 
-      const oldPasswordValid = await verifyPassword('OriginalPassword123', updated[0].passwordHash!)
-      const newPasswordValid = await verifyPassword('NewPassword456', updated[0].passwordHash!)
+      const oldPasswordValid = await verifyPassword('OriginalPassword123', updatedAccount[0].password!)
+      const newPasswordValid = await verifyPassword('NewPassword456', updatedAccount[0].password!)
 
       expect(oldPasswordValid).toBe(false)
       expect(newPasswordValid).toBe(true)
@@ -707,11 +771,10 @@ describe('userRepository', () => {
       const user = testFactories.user({ role: null })
       await db.insert(schema.users).values(user)
 
-      const timestamp = new Date().toISOString()
-
+      // Better Auth uses Date for updatedAt (timestamp_ms mode)
       await db
         .update(schema.users)
-        .set({ role: 'admin', updatedAt: timestamp })
+        .set({ role: 'admin', updatedAt: new Date() })
         .where(eq(schema.users.id, user.id))
 
       const updated = await db
@@ -728,11 +791,10 @@ describe('userRepository', () => {
       const user = testFactories.user({ role: 'admin' })
       await db.insert(schema.users).values(user)
 
-      const timestamp = new Date().toISOString()
-
+      // Better Auth uses Date for updatedAt (timestamp_ms mode)
       await db
         .update(schema.users)
-        .set({ role: null, updatedAt: timestamp })
+        .set({ role: null, updatedAt: new Date() })
         .where(eq(schema.users.id, user.id))
 
       const updated = await db
@@ -751,11 +813,10 @@ describe('userRepository', () => {
       const user = testFactories.user({ isActive: true })
       await db.insert(schema.users).values(user)
 
-      const timestamp = new Date().toISOString()
-
+      // Better Auth uses Date for updatedAt (timestamp_ms mode)
       await db
         .update(schema.users)
-        .set({ isActive: false, updatedAt: timestamp })
+        .set({ isActive: false, updatedAt: new Date() })
         .where(eq(schema.users.id, user.id))
 
       const updated = await db
@@ -774,11 +835,10 @@ describe('userRepository', () => {
       const user = testFactories.user({ isActive: false })
       await db.insert(schema.users).values(user)
 
-      const timestamp = new Date().toISOString()
-
+      // Better Auth uses Date for updatedAt (timestamp_ms mode)
       await db
         .update(schema.users)
-        .set({ isActive: true, updatedAt: timestamp })
+        .set({ isActive: true, updatedAt: new Date() })
         .where(eq(schema.users.id, user.id))
 
       const updated = await db
@@ -790,8 +850,191 @@ describe('userRepository', () => {
       expect(updated[0].isActive).toBe(true)
     })
   })
+
+  describe('updatePiiId', () => {
+    it('should link a PII record to a user', async () => {
+      const db = getDb()
+      // Create user without PII
+      const user = testFactories.user({ piiId: null })
+      await db.insert(schema.users).values(user)
+
+      // Create PII record
+      const piiRecord = testFactories.pii({ name: 'John Doe' })
+      await db.insert(schema.pii).values(piiRecord)
+
+      // Update user's piiId
+      await db
+        .update(schema.users)
+        .set({ piiId: piiRecord.id, updatedAt: new Date() })
+        .where(eq(schema.users.id, user.id))
+
+      // Verify the link
+      const updated = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, user.id))
+        .limit(1)
+
+      expect(updated[0].piiId).toBe(piiRecord.id)
+    })
+
+    it('should unlink PII record by setting to null', async () => {
+      const db = getDb()
+      // Create PII record first
+      const piiRecord = testFactories.pii({ name: 'Jane Doe' })
+      await db.insert(schema.pii).values(piiRecord)
+
+      // Create user with PII linked
+      const user = testFactories.user({ piiId: piiRecord.id })
+      await db.insert(schema.users).values(user)
+
+      // Verify initial state
+      const initial = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, user.id))
+        .limit(1)
+      expect(initial[0].piiId).toBe(piiRecord.id)
+
+      // Unlink PII
+      await db
+        .update(schema.users)
+        .set({ piiId: null, updatedAt: new Date() })
+        .where(eq(schema.users.id, user.id))
+
+      // Verify unlinked
+      const updated = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, user.id))
+        .limit(1)
+
+      expect(updated[0].piiId).toBeNull()
+    })
+
+    it('should update updatedAt timestamp when changing piiId', async () => {
+      const db = getDb()
+      const originalDate = new Date('2024-01-01T00:00:00Z')
+      const user = testFactories.user({ piiId: null, updatedAt: originalDate })
+      await db.insert(schema.users).values(user)
+
+      const piiRecord = testFactories.pii({ name: 'Test User' })
+      await db.insert(schema.pii).values(piiRecord)
+
+      const newDate = new Date('2024-06-01T00:00:00Z')
+      await db
+        .update(schema.users)
+        .set({ piiId: piiRecord.id, updatedAt: newDate })
+        .where(eq(schema.users.id, user.id))
+
+      const updated = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, user.id))
+        .limit(1)
+
+      expect(updated[0].updatedAt.getTime()).toBe(newDate.getTime())
+    })
+  })
+
+  describe('createPiiRecord', () => {
+    it('should create a new PII record with name', async () => {
+      const db = getDb()
+      const timestamp = new Date().toISOString()
+
+      const piiData = {
+        id: 'pii-new-id',
+        name: 'New Person',
+        phone: null,
+        address: null,
+        notes: null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }
+
+      await db.insert(schema.pii).values(piiData)
+
+      const result = await db
+        .select()
+        .from(schema.pii)
+        .where(eq(schema.pii.id, 'pii-new-id'))
+        .limit(1)
+
+      expect(result[0]).toBeDefined()
+      expect(result[0].name).toBe('New Person')
+      expect(result[0].phone).toBeNull()
+      expect(result[0].address).toBeNull()
+      expect(result[0].notes).toBeNull()
+    })
+
+    it('should create PII record with all fields', async () => {
+      const db = getDb()
+      const timestamp = new Date().toISOString()
+
+      const piiData = {
+        id: 'pii-full-id',
+        name: 'Full Person',
+        phone: '+1234567890',
+        address: '123 Main St',
+        notes: 'Some notes',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }
+
+      await db.insert(schema.pii).values(piiData)
+
+      const result = await db
+        .select()
+        .from(schema.pii)
+        .where(eq(schema.pii.id, 'pii-full-id'))
+        .limit(1)
+
+      expect(result[0]).toBeDefined()
+      expect(result[0].name).toBe('Full Person')
+      expect(result[0].phone).toBe('+1234567890')
+      expect(result[0].address).toBe('123 Main St')
+      expect(result[0].notes).toBe('Some notes')
+    })
+
+    it('should allow linking created PII record to a user', async () => {
+      const db = getDb()
+      const timestamp = new Date().toISOString()
+
+      // Create PII record
+      const piiData = {
+        id: 'pii-link-id',
+        name: 'Linkable Person',
+        phone: null,
+        address: null,
+        notes: null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }
+      await db.insert(schema.pii).values(piiData)
+
+      // Create user and link PII
+      const user = testFactories.user({ piiId: 'pii-link-id' })
+      await db.insert(schema.users).values(user)
+
+      // Verify the link via join
+      const result = await db
+        .select({
+          user: schema.users,
+          pii: schema.pii,
+        })
+        .from(schema.users)
+        .leftJoin(schema.pii, eq(schema.users.piiId, schema.pii.id))
+        .where(eq(schema.users.id, user.id))
+        .limit(1)
+
+      expect(result[0].user.id).toBe(user.id)
+      expect(result[0].pii).toBeDefined()
+      expect(result[0].pii?.name).toBe('Linkable Person')
+    })
+  })
 })
 
 // Import schema and eq for direct database queries
 import * as schema from '@/db/schema'
+import * as betterAuth from '@/db/better-auth-schema'
 import { eq, and } from 'drizzle-orm'

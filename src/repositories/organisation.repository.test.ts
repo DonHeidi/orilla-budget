@@ -78,14 +78,15 @@ describe('organisationRepository patterns', () => {
 
   describe('create pattern', () => {
     it('should insert new organisation into database', async () => {
-      // Arrange
-      const newOrg: Organisation = {
+      // Arrange - Better Auth tables use Date objects for timestamps
+      const newOrg = {
         id: '123',
         name: 'New Company',
+        slug: 'new-company',
         contactName: 'Jane Doe',
         contactEmail: 'jane@example.com',
         contactPhone: '555-0100',
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
       }
 
       // Act
@@ -168,20 +169,18 @@ describe('organisationRepository patterns', () => {
       expect(deleted).toEqual([])
     })
 
-    it('should set organisationId to null on related projects when deleted', async () => {
+    it('should cascade delete related projects when organisation deleted', async () => {
       // Arrange
       const org = await seed.organisation(db)
-      const project1 = await seed.project(db, org.id, { name: 'Project 1' })
-      const project2 = await seed.project(db, org.id, { name: 'Project 2' })
+      await seed.project(db, org.id, { name: 'Project 1' })
+      await seed.project(db, org.id, { name: 'Project 2' })
 
       // Act
       await db.delete(organisations).where(eq(organisations.id, org.id))
 
-      // Assert - Projects should remain but with null organisationId
+      // Assert - Projects should be deleted due to cascade in Better Auth schema
       const remainingProjects = await db.select().from(projects)
-      expect(remainingProjects).toHaveLength(2)
-      expect(remainingProjects[0].organisationId).toBeNull()
-      expect(remainingProjects[1].organisationId).toBeNull()
+      expect(remainingProjects).toHaveLength(0)
     })
   })
 
@@ -205,12 +204,12 @@ describe('organisationRepository patterns', () => {
         budgetHours: 200, // Should not be counted
       })
 
-      // Act
+      // Act - Note: Better Auth team table uses organizationId (American spelling)
       const result = await db
         .select({ total: sum(projects.budgetHours) })
         .from(projects)
         .where(
-          sql`${projects.organisationId} = ${org.id} AND ${projects.category} = 'budget'`
+          sql`${projects.organizationId} = ${org.id} AND ${projects.category} = 'budget'`
         )
 
       // Assert
@@ -232,7 +231,7 @@ describe('organisationRepository patterns', () => {
         .select({ total: sum(projects.budgetHours) })
         .from(projects)
         .where(
-          sql`${projects.organisationId} = ${org.id} AND ${projects.category} = 'budget'`
+          sql`${projects.organizationId} = ${org.id} AND ${projects.category} = 'budget'`
         )
 
       // Assert
@@ -249,7 +248,7 @@ describe('organisationRepository patterns', () => {
         .select({ total: sum(projects.budgetHours) })
         .from(projects)
         .where(
-          sql`${projects.organisationId} = ${org.id} AND ${projects.category} = 'budget'`
+          sql`${projects.organizationId} = ${org.id} AND ${projects.category} = 'budget'`
         )
 
       // Assert
@@ -290,7 +289,8 @@ describe('organisationRepository patterns', () => {
         .where(eq(organisations.id, org.id))
         .limit(1)
 
-      expect(updated[0].createdAt).toBe(originalCreatedAt)
+      // Better Auth uses Date objects for timestamps - compare time values
+      expect(updated[0].createdAt.getTime()).toBe(originalCreatedAt.getTime())
     })
   })
 })

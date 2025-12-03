@@ -101,7 +101,7 @@ describe('projectRepository', () => {
       const results = await db
         .select()
         .from(schema.projects)
-        .where(eq(schema.projects.organisationId, 'org-1'))
+        .where(eq(schema.projects.organizationId, 'org-1'))
 
       // Assert
       expect(results).toHaveLength(2)
@@ -118,7 +118,7 @@ describe('projectRepository', () => {
       const results = await db
         .select()
         .from(schema.projects)
-        .where(eq(schema.projects.organisationId, 'org-1'))
+        .where(eq(schema.projects.organizationId, 'org-1'))
 
       // Assert
       expect(results).toEqual([])
@@ -138,11 +138,11 @@ describe('projectRepository', () => {
       const org1Results = await db
         .select()
         .from(schema.projects)
-        .where(eq(schema.projects.organisationId, 'org-1'))
+        .where(eq(schema.projects.organizationId, 'org-1'))
       const org2Results = await db
         .select()
         .from(schema.projects)
-        .where(eq(schema.projects.organisationId, 'org-2'))
+        .where(eq(schema.projects.organizationId, 'org-2'))
 
       // Assert
       expect(org1Results).toHaveLength(1)
@@ -378,7 +378,7 @@ describe('projectRepository', () => {
       expect(result[0]).toBeUndefined()
     })
 
-    it('should set organisationId to null when organisation is deleted', async () => {
+    it('should cascade delete projects when organisation is deleted', async () => {
       // Arrange
       const org = await seed.organisation(db, { id: 'org-1' })
       const project = await seed.project(db, 'org-1')
@@ -388,14 +388,13 @@ describe('projectRepository', () => {
         .delete(schema.organisations)
         .where(eq(schema.organisations.id, 'org-1'))
 
-      // Assert - Project should remain but with null organisationId
+      // Assert - Project should be cascade deleted with Better Auth schema
       const result = await db
         .select()
         .from(schema.projects)
         .where(eq(schema.projects.id, project.id))
         .limit(1)
-      expect(result[0]).toBeDefined()
-      expect(result[0].organisationId).toBeNull()
+      expect(result[0]).toBeUndefined()
     })
 
     it('should not affect other projects', async () => {
@@ -442,7 +441,7 @@ describe('projectRepository', () => {
       const results = await db
         .select()
         .from(schema.projects)
-        .where(eq(schema.projects.organisationId, 'org-1'))
+        .where(eq(schema.projects.organizationId, 'org-1'))
       expect(results).toHaveLength(3)
     })
   })
