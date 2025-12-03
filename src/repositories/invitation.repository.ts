@@ -1,4 +1,4 @@
-import { db, invitations, contacts, users, projects, pii } from '@/db'
+import { db, betterAuth, invitations, contacts, pii } from '@/db'
 import { eq, and, lt } from 'drizzle-orm'
 import type {
   Invitation,
@@ -6,7 +6,7 @@ import type {
   InvitationStatus,
   ProjectRole,
 } from '@/schemas'
-import { generateId, generateToken, now } from '@/lib/auth'
+import { generateId, now, generateToken } from '@/lib/auth'
 
 export interface InvitationWithDetails extends Invitation {
   contact: {
@@ -48,20 +48,20 @@ export const invitationRepository = {
           name: pii.name,
         },
         invitedBy: {
-          id: users.id,
-          handle: users.handle,
-          email: users.email,
+          id: betterAuth.user.id,
+          handle: betterAuth.user.handle,
+          email: betterAuth.user.email,
         },
         project: {
-          id: projects.id,
-          name: projects.name,
+          id: betterAuth.team.id,
+          name: betterAuth.team.name,
         },
       })
       .from(invitations)
       .innerJoin(contacts, eq(invitations.contactId, contacts.id))
       .leftJoin(pii, eq(contacts.piiId, pii.id))
-      .innerJoin(users, eq(invitations.invitedByUserId, users.id))
-      .leftJoin(projects, eq(invitations.projectId, projects.id))
+      .innerJoin(betterAuth.user, eq(invitations.invitedByUserId, betterAuth.user.id))
+      .leftJoin(betterAuth.team, eq(invitations.projectId, betterAuth.team.id))
       .where(eq(invitations.code, code))
       .limit(1)
 
@@ -117,20 +117,20 @@ export const invitationRepository = {
           name: pii.name,
         },
         invitedBy: {
-          id: users.id,
-          handle: users.handle,
-          email: users.email,
+          id: betterAuth.user.id,
+          handle: betterAuth.user.handle,
+          email: betterAuth.user.email,
         },
         project: {
-          id: projects.id,
-          name: projects.name,
+          id: betterAuth.team.id,
+          name: betterAuth.team.name,
         },
       })
       .from(invitations)
       .innerJoin(contacts, eq(invitations.contactId, contacts.id))
       .leftJoin(pii, eq(contacts.piiId, pii.id))
-      .innerJoin(users, eq(invitations.invitedByUserId, users.id))
-      .leftJoin(projects, eq(invitations.projectId, projects.id))
+      .innerJoin(betterAuth.user, eq(invitations.invitedByUserId, betterAuth.user.id))
+      .leftJoin(betterAuth.team, eq(invitations.projectId, betterAuth.team.id))
       .where(eq(invitations.invitedByUserId, userId))
 
     return result.map((row) => ({

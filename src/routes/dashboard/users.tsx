@@ -8,8 +8,8 @@ import { zodValidator } from '@tanstack/zod-form-adapter'
 import { z } from 'zod'
 import { contactRepository } from '@/repositories/contact.repository'
 import { invitationRepository } from '@/repositories/invitation.repository'
-import { getCurrentUser } from '@/lib/auth/helpers.server'
-import { db, betterAuth } from '@/db'
+import { userRepository } from '@/repositories/user.repository'
+import { getCurrentUser } from '@/repositories/auth.repository'
 import type { User, Contact, Invitation } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
@@ -24,8 +24,7 @@ import {
 } from '@/components/ui/sheet'
 
 const getUsersDataFn = createServerFn({ method: 'GET' }).handler(async () => {
-  // Query Better Auth user table
-  const users = await db.select().from(betterAuth.user)
+  const users = await userRepository.findAll()
 
   return {
     users: users.map((u) => ({

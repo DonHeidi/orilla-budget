@@ -5,7 +5,7 @@ import { Mail, Building2, User, UserCheck, Send } from 'lucide-react'
 import { contactRepository } from '@/repositories/contact.repository'
 import { invitationRepository } from '@/repositories/invitation.repository'
 import { projectRepository } from '@/repositories/project.repository'
-import { getCurrentUser } from '@/lib/auth/helpers.server'
+import { getCurrentUser } from '@/repositories/auth.repository'
 import { Button } from '@/components/ui/button'
 import {
   Select,

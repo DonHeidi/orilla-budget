@@ -7,11 +7,13 @@ import {
   useNavigate,
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Plus, Users, Mail, Building2 } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
+import { authRepository } from '@/repositories/auth.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { accountRepository } from '@/repositories/account.repository'
 import {
@@ -33,17 +35,44 @@ import {
 
 const parentRouteApi = getRouteApi('/dashboard/_orgs')
 
+/**
+ * Generate a slug from text
+ */
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 const createOrganisationFn = createServerFn({ method: 'POST' })
   .inputValidator(createOrganisationSchema)
   .handler(async ({ data }) => {
-    const organisation: Organisation = {
-      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    const request = getRequest()
+
+    // Create organization via Better Auth API
+    const result = await authRepository.createOrganization({
       name: data.name,
+      slug: slugify(data.name),
+    })
+
+    if (!result) {
+      throw new Error('Failed to create organization')
+    }
+
+    // Update with custom contact fields
+    await organisationRepository.updateContactFields(result.id, {
       contactName: data.contactName,
       contactEmail: data.contactEmail,
-      createdAt: new Date().toISOString(),
+    })
+
+    // Fetch the created organization
+    const createdOrg = await organisationRepository.findById(result.id)
+    if (!createdOrg) {
+      throw new Error('Failed to fetch created organization')
     }
-    const createdOrg = await organisationRepository.create(organisation)
 
     // Automatically create a contact account for this organisation
     const accessCode = Math.random().toString(36).substring(2, 10).toUpperCase()

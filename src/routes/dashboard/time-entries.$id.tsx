@@ -8,10 +8,9 @@ import { createServerFn } from '@tanstack/react-start'
 import { useState, useEffect } from 'react'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
 import { entryMessageRepository } from '@/repositories/entryMessage.repository'
+import { projectMemberRepository } from '@/repositories/projectMember.repository'
 import { hasProjectPermission } from '@/lib/permissions'
-import { getCurrentUser } from '@/lib/auth/helpers.server'
-import { db, betterAuth } from '@/db'
-import { eq, and } from 'drizzle-orm'
+import { getCurrentUser } from '@/repositories/auth.repository'
 import type { TimeEntry, EntryStatus, EntryMessage } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -164,17 +163,11 @@ const getEntryPermissionsFn = createServerFn({ method: 'GET' }).handler(
       }
     }
 
-    // Get user's role in project from Better Auth team_member table
-    const membership = await db
-      .select({ projectRole: betterAuth.teamMember.projectRole })
-      .from(betterAuth.teamMember)
-      .where(
-        and(
-          eq(betterAuth.teamMember.teamId, data.projectId),
-          eq(betterAuth.teamMember.userId, user.id)
-        )
-      )
-      .get()
+    // Get user's role in project
+    const membership = await projectMemberRepository.findByProjectAndUser(
+      data.projectId,
+      user.id
+    )
 
     if (!membership) {
       // Check system admin

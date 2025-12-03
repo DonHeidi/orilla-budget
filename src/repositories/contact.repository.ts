@@ -1,4 +1,4 @@
-import { db, contacts, users, pii, organisations } from '@/db'
+import { db, betterAuth, contacts, pii } from '@/db'
 import { eq, and } from 'drizzle-orm'
 import type { Contact, CreateContact, Pii } from '@/schemas'
 import { generateId, now } from '@/lib/auth'
@@ -25,20 +25,20 @@ export const contactRepository = {
       .select({
         contact: contacts,
         user: {
-          id: users.id,
-          handle: users.handle,
-          email: users.email,
+          id: betterAuth.user.id,
+          handle: betterAuth.user.handle,
+          email: betterAuth.user.email,
         },
         pii: pii,
         organisation: {
-          id: organisations.id,
-          name: organisations.name,
+          id: betterAuth.organization.id,
+          name: betterAuth.organization.name,
         },
       })
       .from(contacts)
-      .leftJoin(users, eq(contacts.userId, users.id))
+      .leftJoin(betterAuth.user, eq(contacts.userId, betterAuth.user.id))
       .leftJoin(pii, eq(contacts.piiId, pii.id))
-      .leftJoin(organisations, eq(contacts.organisationId, organisations.id))
+      .leftJoin(betterAuth.organization, eq(contacts.organisationId, betterAuth.organization.id))
       .where(eq(contacts.ownerId, ownerId))
 
     return result.map((row) => ({
@@ -57,20 +57,20 @@ export const contactRepository = {
       .select({
         contact: contacts,
         user: {
-          id: users.id,
-          handle: users.handle,
-          email: users.email,
+          id: betterAuth.user.id,
+          handle: betterAuth.user.handle,
+          email: betterAuth.user.email,
         },
         pii: pii,
         organisation: {
-          id: organisations.id,
-          name: organisations.name,
+          id: betterAuth.organization.id,
+          name: betterAuth.organization.name,
         },
       })
       .from(contacts)
-      .leftJoin(users, eq(contacts.userId, users.id))
+      .leftJoin(betterAuth.user, eq(contacts.userId, betterAuth.user.id))
       .leftJoin(pii, eq(contacts.piiId, pii.id))
-      .leftJoin(organisations, eq(contacts.organisationId, organisations.id))
+      .leftJoin(betterAuth.organization, eq(contacts.organisationId, betterAuth.organization.id))
       .where(eq(contacts.id, id))
       .limit(1)
 
@@ -194,20 +194,20 @@ export const contactRepository = {
       .select({
         contact: contacts,
         user: {
-          id: users.id,
-          handle: users.handle,
-          email: users.email,
+          id: betterAuth.user.id,
+          handle: betterAuth.user.handle,
+          email: betterAuth.user.email,
         },
         pii: pii,
         organisation: {
-          id: organisations.id,
-          name: organisations.name,
+          id: betterAuth.organization.id,
+          name: betterAuth.organization.name,
         },
       })
       .from(contacts)
-      .innerJoin(users, eq(contacts.userId, users.id))
+      .innerJoin(betterAuth.user, eq(contacts.userId, betterAuth.user.id))
       .leftJoin(pii, eq(contacts.piiId, pii.id))
-      .leftJoin(organisations, eq(contacts.organisationId, organisations.id))
+      .leftJoin(betterAuth.organization, eq(contacts.organisationId, betterAuth.organization.id))
       .where(eq(contacts.ownerId, ownerId))
 
     return result.map((row) => ({

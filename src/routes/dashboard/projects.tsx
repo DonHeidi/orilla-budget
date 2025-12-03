@@ -1,16 +1,18 @@
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Plus, FolderKanban } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { cn } from '@/lib/utils'
+import { authRepository } from '@/repositories/auth.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
+import { projectMemberRepository } from '@/repositories/projectMember.repository'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
-import { getCurrentUser, isAdmin } from '@/lib/auth/helpers.server'
-import { db, betterAuth } from '@/db'
+import { getCurrentUser, isAdmin } from '@/repositories/auth.repository'
 import { createProjectSchema, type Project } from '@/schemas'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
@@ -55,30 +57,36 @@ const getProjectsDataFn = createServerFn({ method: 'GET' }).handler(
 const createProjectFn = createServerFn({ method: 'POST' })
   .inputValidator(createProjectSchema)
   .handler(async ({ data }) => {
+    const request = getRequest()
     const user = await getCurrentUser()
     if (!user) throw new Error('Unauthorized')
 
-    const project: Project = {
-      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      organisationId: data.organisationId || undefined,
+    // Create team (project) via Better Auth API
+    const result = await authRepository.createTeam({
       name: data.name,
-      description: data.description || '',
-      category: data.category,
-      budgetHours:
-        data.category === 'fixed' ? null : (data.budgetHours ?? null),
-      createdAt: new Date().toISOString(),
+      organizationId: data.organisationId || '',
+    })
+
+    if (!result) {
+      throw new Error('Failed to create project')
     }
 
-    const created = await projectRepository.create(project)
-
-    // Add creator as owner using Better Auth team_member table
-    await db.insert(betterAuth.teamMember).values({
-      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      teamId: created.id,
-      userId: user.id,
-      projectRole: 'owner',
-      createdAt: new Date(),
+    // Update with custom project fields
+    await projectRepository.updateCustomFields(result.id, {
+      description: data.description || '',
+      category: data.category,
+      budgetHours: data.category === 'fixed' ? null : (data.budgetHours ?? null),
     })
+
+    // Better Auth createTeam automatically adds the creator as a member
+    // Update the project role
+    await projectMemberRepository.updateProjectRole(result.id, user.id, 'owner')
+
+    // Fetch the updated project
+    const created = await projectRepository.findById(result.id)
+    if (!created) {
+      throw new Error('Failed to fetch created project')
+    }
 
     return created
   })
