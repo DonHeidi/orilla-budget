@@ -1,45 +1,75 @@
-import { db, users, pii } from '@/db'
+/**
+ * User Repository
+ *
+ * Single entry point for all user domain operations.
+ * Encapsulates both direct DB queries and Better Auth API calls.
+ */
+
+import { db, betterAuth, pii } from '@/db'
 import { eq, and } from 'drizzle-orm'
-import type { User, CreateUser, SystemRole, Pii } from '@/schemas'
-import {
-  generateId,
-  hashPassword,
-  verifyPassword,
-  now,
-} from '@/lib/auth'
+import { authRepository } from './auth.repository'
+import { generateId } from '@/lib/auth'
+import type { SystemRole, Pii } from '@/schemas'
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+export type User = typeof betterAuth.user.$inferSelect
+export type CreateUser = typeof betterAuth.user.$inferInsert
 
 export interface UserWithPii extends User {
   pii?: Pii | null
 }
 
-export interface CreateUserWithPassword extends Omit<CreateUser, 'passwordHash'> {
+export interface CreateUserData {
+  email: string
   password: string
-  name?: string
+  name: string
+  handle?: string
+  role?: SystemRole
 }
 
+// =============================================================================
+// USER REPOSITORY
+// =============================================================================
+
 export const userRepository = {
+  // ---------------------------------------------------------------------------
+  // READ OPERATIONS
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Find all users
+   */
   async findAll(): Promise<User[]> {
-    return await db.select().from(users)
+    return await db.select().from(betterAuth.user)
   },
 
+  /**
+   * Find user by ID
+   */
   async findById(id: string): Promise<User | undefined> {
     const result = await db
       .select()
-      .from(users)
-      .where(eq(users.id, id))
+      .from(betterAuth.user)
+      .where(eq(betterAuth.user.id, id))
       .limit(1)
     return result[0]
   },
 
+  /**
+   * Find user by ID with PII data
+   */
   async findByIdWithPii(id: string): Promise<UserWithPii | undefined> {
     const result = await db
       .select({
-        user: users,
+        user: betterAuth.user,
         pii: pii,
       })
-      .from(users)
-      .leftJoin(pii, eq(users.piiId, pii.id))
-      .where(eq(users.id, id))
+      .from(betterAuth.user)
+      .leftJoin(pii, eq(betterAuth.user.piiId, pii.id))
+      .where(eq(betterAuth.user.id, id))
       .limit(1)
 
     if (!result[0]) return undefined
@@ -50,94 +80,102 @@ export const userRepository = {
     }
   },
 
+  /**
+   * Find user by email
+   */
   async findByEmail(email: string): Promise<User | undefined> {
     const result = await db
       .select()
-      .from(users)
-      .where(eq(users.email, email))
+      .from(betterAuth.user)
+      .where(eq(betterAuth.user.email, email))
       .limit(1)
     return result[0]
   },
 
+  /**
+   * Find user by handle
+   */
   async findByHandle(handle: string): Promise<User | undefined> {
     const result = await db
       .select()
-      .from(users)
-      .where(eq(users.handle, handle))
+      .from(betterAuth.user)
+      .where(eq(betterAuth.user.handle, handle))
       .limit(1)
     return result[0]
   },
 
+  /**
+   * Find active user by email
+   */
   async findActiveByEmail(email: string): Promise<User | undefined> {
     const result = await db
       .select()
-      .from(users)
-      .where(and(eq(users.email, email), eq(users.isActive, true)))
+      .from(betterAuth.user)
+      .where(and(eq(betterAuth.user.email, email), eq(betterAuth.user.isActive, true)))
       .limit(1)
     return result[0]
   },
 
+  // ---------------------------------------------------------------------------
+  // CREATE OPERATIONS
+  // ---------------------------------------------------------------------------
+
   /**
-   * Create a new user with password
-   * This handles password hashing and optional PII creation
+   * Create a user via registration (triggers email verification if enabled)
    */
-  async createWithPassword(data: CreateUserWithPassword): Promise<User> {
-    const timestamp = now()
-    const passwordHash = await hashPassword(data.password)
+  async signUp(data: { email: string; password: string; name: string }) {
+    const result = await authRepository.signUpEmail(data)
+    return result
+  },
 
-    // Create PII record if name is provided
-    let piiId: string | null = null
-    if (data.name) {
-      const piiRecord = {
-        id: generateId(),
-        name: data.name,
-        phone: null,
-        address: null,
-        notes: null,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      }
-      await db.insert(pii).values(piiRecord)
-      piiId = piiRecord.id
-    }
-
-    const user: User = {
-      id: generateId(),
-      piiId,
-      handle: data.handle,
+  /**
+   * Create a user (admin action - bypasses email verification)
+   */
+  async create(data: CreateUserData) {
+    const result = await authRepository.createUser({
       email: data.email,
-      passwordHash,
-      role: data.role ?? null,
-      isActive: data.isActive ?? true,
-      lastLoginAt: null,
-      createdAt: timestamp,
-      updatedAt: timestamp,
+      password: data.password,
+      name: data.name,
+      role: data.role,
+    })
+
+    // Set handle if provided
+    if (result?.user && data.handle) {
+      await this.updateHandle(result.user.id, data.handle)
     }
 
-    await db.insert(users).values(user)
-    return user
+    return result
+  },
+
+  // ---------------------------------------------------------------------------
+  // UPDATE OPERATIONS
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Update user fields (via Better Auth)
+   */
+  async update(userId: string, data: Record<string, unknown>) {
+    return await authRepository.updateUser(userId, data)
   },
 
   /**
-   * Legacy create method - for compatibility
+   * Update user's handle (app-specific field)
    */
-  async create(user: User): Promise<User> {
-    await db.insert(users).values(user)
-    return user
+  async updateHandle(id: string, handle: string): Promise<void> {
+    await db
+      .update(betterAuth.user)
+      .set({ handle, updatedAt: new Date() })
+      .where(eq(betterAuth.user.id, id))
   },
 
   /**
-   * Verify a user's password
+   * Update user's PII reference
    */
-  async verifyPassword(
-    email: string,
-    password: string
-  ): Promise<User | null> {
-    const user = await this.findActiveByEmail(email)
-    if (!user || !user.passwordHash) return null
-
-    const isValid = await verifyPassword(password, user.passwordHash)
-    return isValid ? user : null
+  async updatePiiId(id: string, piiId: string | null): Promise<void> {
+    await db
+      .update(betterAuth.user)
+      .set({ piiId, updatedAt: new Date() })
+      .where(eq(betterAuth.user.id, id))
   },
 
   /**
@@ -145,60 +183,73 @@ export const userRepository = {
    */
   async updateLastLogin(id: string): Promise<void> {
     await db
-      .update(users)
-      .set({ lastLoginAt: now(), updatedAt: now() })
-      .where(eq(users.id, id))
+      .update(betterAuth.user)
+      .set({ lastLoginAt: new Date().toISOString(), updatedAt: new Date() })
+      .where(eq(betterAuth.user.id, id))
   },
 
   /**
-   * Update user's password
+   * Set user password (admin action)
    */
-  async updatePassword(id: string, newPassword: string): Promise<void> {
-    const passwordHash = await hashPassword(newPassword)
-    await db
-      .update(users)
-      .set({ passwordHash, updatedAt: now() })
-      .where(eq(users.id, id))
+  async setPassword(userId: string, newPassword: string) {
+    return await authRepository.setUserPassword(userId, newPassword)
   },
 
   /**
-   * Update user's system role
+   * Set user role
    */
-  async updateRole(id: string, role: SystemRole | null): Promise<void> {
-    await db
-      .update(users)
-      .set({ role, updatedAt: now() })
-      .where(eq(users.id, id))
+  async setRole(userId: string, role: string) {
+    return await authRepository.setRole(userId, role)
+  },
+
+  // ---------------------------------------------------------------------------
+  // BAN/UNBAN OPERATIONS
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Ban a user
+   */
+  async ban(userId: string, banReason?: string, banExpiresIn?: number) {
+    return await authRepository.banUser(userId, banReason, banExpiresIn)
   },
 
   /**
-   * Deactivate a user account
+   * Unban a user
    */
-  async deactivate(id: string): Promise<void> {
-    await db
-      .update(users)
-      .set({ isActive: false, updatedAt: now() })
-      .where(eq(users.id, id))
+  async unban(userId: string) {
+    return await authRepository.unbanUser(userId)
   },
+
+  // ---------------------------------------------------------------------------
+  // DELETE OPERATIONS
+  // ---------------------------------------------------------------------------
 
   /**
-   * Activate a user account
+   * Remove a user (hard delete)
    */
-  async activate(id: string): Promise<void> {
-    await db
-      .update(users)
-      .set({ isActive: true, updatedAt: now() })
-      .where(eq(users.id, id))
+  async remove(userId: string) {
+    return await authRepository.removeUser(userId)
   },
 
-  async update(id: string, data: Partial<User>): Promise<void> {
-    await db
-      .update(users)
-      .set({ ...data, updatedAt: now() })
-      .where(eq(users.id, id))
-  },
+  // ---------------------------------------------------------------------------
+  // PII OPERATIONS
+  // ---------------------------------------------------------------------------
 
-  async delete(id: string): Promise<void> {
-    await db.delete(users).where(eq(users.id, id))
+  /**
+   * Create a PII record for a user
+   */
+  async createPiiRecord(name: string): Promise<string> {
+    const timestamp = new Date().toISOString()
+    const piiId = generateId()
+    await db.insert(pii).values({
+      id: piiId,
+      name,
+      phone: null,
+      address: null,
+      notes: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    return piiId
   },
 }

@@ -4,16 +4,18 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
 import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { CheckCircle, XCircle, UserPlus, LogIn } from 'lucide-react'
 import { invitationRepository } from '@/repositories/invitation.repository'
 import { contactRepository } from '@/repositories/contact.repository'
-import { getCurrentUser } from '@/lib/auth/helpers.server'
-import { auth } from '@/lib/better-auth'
-import { db, betterAuth } from '@/db'
-import { eq, and } from 'drizzle-orm'
+import { userRepository } from '@/repositories/user.repository'
+import { projectRepository } from '@/repositories/project.repository'
+import { projectMemberRepository } from '@/repositories/projectMember.repository'
+import { authRepository } from '@/repositories/auth.repository'
+import { getCurrentUser } from '@/repositories/auth.repository'
 import { registrationSchema } from '@/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -68,6 +70,7 @@ const getInvitationFn = createServerFn({ method: 'GET' })
 const acceptInvitationFn = createServerFn({ method: 'POST' })
   .inputValidator((data: { code: string }) => data)
   .handler(async ({ data }) => {
+    const request = getRequest()
     const user = await getCurrentUser()
     if (!user) {
       throw new Error('Not authenticated')
@@ -81,25 +84,27 @@ const acceptInvitationFn = createServerFn({ method: 'POST' })
     // Add user to project if specified
     if (invitation.projectId && invitation.role) {
       // Check if already a member
-      const existingMembership = await db
-        .select()
-        .from(betterAuth.teamMember)
-        .where(
-          and(
-            eq(betterAuth.teamMember.teamId, invitation.projectId),
-            eq(betterAuth.teamMember.userId, user.id)
-          )
-        )
-        .get()
+      const existingMembership = await projectMemberRepository.findByProjectAndUser(
+        invitation.projectId,
+        user.id
+      )
 
       if (!existingMembership) {
-        await db.insert(betterAuth.teamMember).values({
-          id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          teamId: invitation.projectId,
+        // Get the project to find its organization
+        const project = await projectRepository.findById(invitation.projectId)
+        if (!project) {
+          throw new Error('Project not found')
+        }
+
+        // Add member via Better Auth API
+        await authRepository.addMember({
           userId: user.id,
-          projectRole: invitation.role,
-          createdAt: new Date(),
+          role: invitation.role,
+          teamId: invitation.projectId,
         })
+
+        // Update project role
+        await projectMemberRepository.updateProjectRole(invitation.projectId, user.id, invitation.role)
       }
     }
 
@@ -126,38 +131,29 @@ const registerAndAcceptFn = createServerFn({ method: 'POST' })
     }) => data
   )
   .handler(async ({ data }) => {
+    const request = getRequest()
     const invitation = await invitationRepository.findValidByCode(data.code)
     if (!invitation) {
       throw new Error('Invalid or expired invitation')
     }
 
     // Check if user with email already exists
-    const existingUser = await db
-      .select()
-      .from(betterAuth.user)
-      .where(eq(betterAuth.user.email, data.email))
-      .get()
+    const existingUser = await userRepository.findByEmail(data.email)
     if (existingUser) {
       throw new Error('An account with this email already exists. Please log in instead.')
     }
 
     // Check if handle is taken
-    const existingHandle = await db
-      .select()
-      .from(betterAuth.user)
-      .where(eq(betterAuth.user.handle, data.handle))
-      .get()
+    const existingHandle = await userRepository.findByHandle(data.handle)
     if (existingHandle) {
       throw new Error('This handle is already taken')
     }
 
-    // Create user using Better Auth API
-    const signUpResult = await auth.api.signUpEmail({
-      body: {
-        email: data.email,
-        password: data.password,
-        name: data.name || data.handle,
-      },
+    // Create user via userRepository
+    const signUpResult = await userRepository.signUp({
+      email: data.email,
+      password: data.password,
+      name: data.name || data.handle,
     })
 
     if (!signUpResult.user) {
@@ -167,20 +163,25 @@ const registerAndAcceptFn = createServerFn({ method: 'POST' })
     const userId = signUpResult.user.id
 
     // Update user with handle
-    await db
-      .update(betterAuth.user)
-      .set({ handle: data.handle })
-      .where(eq(betterAuth.user.id, userId))
+    await userRepository.updateHandle(userId, data.handle)
 
     // Add user to project if specified
     if (invitation.projectId && invitation.role) {
-      await db.insert(betterAuth.teamMember).values({
-        id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        teamId: invitation.projectId,
+      // Get the project to find its organization
+      const project = await projectRepository.findById(invitation.projectId)
+      if (!project) {
+        throw new Error('Project not found')
+      }
+
+      // Add member via Better Auth API
+      await authRepository.addMember({
         userId: userId,
-        projectRole: invitation.role,
-        createdAt: new Date(),
+        role: invitation.role,
+        teamId: invitation.projectId,
       })
+
+      // Update project role
+      await projectMemberRepository.updateProjectRole(invitation.projectId, userId, invitation.role)
     }
 
     // Link contact to user
