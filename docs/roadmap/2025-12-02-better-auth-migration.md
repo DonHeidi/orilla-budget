@@ -1,8 +1,12 @@
 # Better Auth Migration
 
 **Date:** 2025-12-02
-**Status:** Planned
+**Status:** Completed
 **Category:** Security & Authentication
+**Last Updated:** 2025-12-03
+
+> **Note:** Core migration is complete. Remaining tasks (email integration, user-facing auth flows)
+> have been moved to separate roadmap documents. See [Related Documents](#related-documents).
 
 ## Overview
 
@@ -11,7 +15,7 @@ Migration from custom authentication (Argon2id sessions, manual RBAC) to Better 
 - Admin plugin for system-level roles (super_admin, admin)
 - TanStack Start integration
 - Backwards-compatible Argon2id password hashing
-- Portal access codes remain unchanged (out of scope)
+- Portal access code users converted to regular Better Auth users
 
 ---
 
@@ -54,14 +58,14 @@ Migration from custom authentication (Argon2id sessions, manual RBAC) to Better 
 | `projectMembers` | `teamMember` + custom `projectRole` field | Project-specific roles |
 | `users` | `user` | User accounts |
 | `sessions` | `session` | Better Auth handles this |
-| `accounts` (portal) | Keep as-is | Out of scope for this migration |
+| `accounts` (portal) | Convert to `user` | Portal users become regular users |
 
 ### Key Design Decisions
 
 1. **Hierarchy**: Organisations → Organizations, Projects → Teams
 2. **Sessions**: Invalidate all existing sessions (clean migration)
 3. **Passwords**: Keep Argon2id hashing for backwards compatibility
-4. **Portal**: Keep as-is (out of scope for this migration)
+4. **Portal**: Migrate to Better Auth (clients become regular users with viewer/client roles)
 5. **Permissions**: Keep existing permission logic, only change data source
 
 ### Better Auth Configuration
@@ -98,86 +102,213 @@ export const auth = betterAuth({
 ## Implementation Phases
 
 ### Phase 1: Setup & Configuration
-- [ ] Install `better-auth` package
-- [ ] Add environment variables (`BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`)
-- [ ] Create `src/lib/better-auth.ts` - Better Auth server instance
-- [ ] Create `src/lib/auth-client.ts` - Better Auth React client
-- [ ] Create `src/routes/api/auth/$.ts` - API route handler
+- [x] Install `better-auth` package
+- [x] Add environment variables (`BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`)
+- [x] Create `src/lib/auth.ts` - Better Auth server instance (consolidated)
+- [x] Create `src/lib/auth-client.ts` - Better Auth React client
+- [x] Create `src/routes/api/auth/$.ts` - API route handler
 
 ### Phase 2: Permission System Migration
-- [ ] Update `src/lib/permissions.ts` for `teamMember.projectRole` field
-- [ ] Update type imports to use Better Auth user type
-- [ ] Verify contextual permission functions work with new data model
+- [x] Update `src/lib/permissions.ts` for `teamMember.projectRole` field
+- [x] Update type imports to use Better Auth user type
+- [x] Verify contextual permission functions work with new data model
 
 ### Phase 3: Database Schema Migration
-- [ ] Generate Better Auth schema with CLI
-- [ ] Create migration script `scripts/migrate-to-better-auth.ts`
-- [ ] Migrate users (preserve IDs for FK references)
-- [ ] Migrate organisations → organization
-- [ ] Migrate projects → team
-- [ ] Migrate projectMembers → teamMember
+- [x] Generate Better Auth schema with CLI
+- [x] Create migration script `scripts/migrate-to-better-auth.ts`
+- [x] Migrate users (preserve IDs for FK references)
+- [x] Migrate organisations → organization
+- [x] Migrate projects → team
+- [x] Migrate projectMembers → teamMember
+- [x] Convert portal accounts to users
 
 ### Phase 4: Route Protection Updates
-- [ ] Update `src/routes/dashboard.tsx` to use Better Auth session
-- [ ] Update `src/routes/login.tsx` to use Better Auth client
+- [x] Update `src/routes/dashboard.tsx` to use Better Auth session
+- [x] Update `src/routes/login.tsx` to use Better Auth client
+- [x] Update `src/routes/portal.tsx` to use Better Auth session
 
 ### Phase 5: Component & Repository Updates
-- [ ] Update `src/components/auth-provider.tsx` for Better Auth hooks
-- [ ] Update `src/repositories/user.repository.ts` for Better Auth tables
-- [ ] Update `src/repositories/organisation.repository.ts` for `organization` table
-- [ ] Update `src/repositories/project.repository.ts` for `team` table
-- [ ] Update `src/repositories/projectMember.repository.ts` for `teamMember` table
+- [x] Update `src/components/auth-provider.tsx` for Better Auth hooks
+- [x] Update `src/repositories/user.repository.ts` for Better Auth tables
+- [x] Update `src/repositories/organisation.repository.ts` for `organization` table
+- [x] Update `src/repositories/project.repository.ts` for `team` table
+- [x] Update `src/repositories/projectMember.repository.ts` for `teamMember` table
 
-### Phase 6: Testing & Verification
-- [ ] User registration works
-- [ ] User login works (existing Argon2id passwords)
-- [ ] Session management works
-- [ ] Organization membership is correct
-- [ ] Role-based permissions work
-- [ ] Admin functions work
-- [ ] Route protection works
-- [ ] Logout works
-- [ ] Approval workflow permissions still work
+### Phase 6: Repository Pattern Alignment (NEW - 2025-12-03)
+- [x] Create `src/repositories/auth.repository.ts` - wraps all Better Auth API calls
+- [x] Consolidate auth files (from 7 to 4 files)
+- [x] Make `user.repository.ts` the single entry point for user domain
+- [x] Update route files to use repository pattern consistently
+- [x] Add missing unit tests for `updatePiiId()` and `createPiiRecord()`
 
-### Phase 7: Cleanup
-- [ ] Remove old auth files (`src/lib/auth.ts`, `src/lib/auth.shared.ts`, etc.)
-- [ ] Backup and drop old tables
+### Phase 7: Testing & Verification
+- [x] User registration works
+- [x] User login works (existing Argon2id passwords)
+- [x] Session management works
+- [x] Organization membership is correct
+- [x] Role-based permissions work
+- [x] Admin functions work
+- [x] Route protection works
+- [x] Logout works
+- [x] Approval workflow permissions still work
+- [x] Build passes
+- [x] All 881 tests pass
+
+### Phase 8: Cleanup
+- [x] Remove old auth files (`src/lib/auth.shared.ts`, `src/lib/auth/` directory)
+- [x] ~~Backup and drop old tables~~ (deferred - evaluate after production testing)
+
+> **Note:** Remaining tasks moved to separate documents:
+> - Password reset, email verification → [Email Integration](./2025-12-03-email-integration.md)
+> - Signup UI, settings pages → [User Auth Flows](./2025-12-03-user-auth-flows.md)
+
+---
+
+## Repository Architecture (2025-12-03)
+
+### Auth File Consolidation
+
+Reduced from 7 auth files to 4:
+
+| Before | After | Notes |
+|--------|-------|-------|
+| `src/lib/auth.ts` | `src/lib/auth.ts` | Consolidated Better Auth instance + helpers |
+| `src/lib/auth.shared.ts` | *Deleted* | Merged into `auth.ts` |
+| `src/lib/auth-client.ts` | `src/lib/auth-client.ts` | React client (unchanged) |
+| `src/lib/auth-server.ts` | `src/lib/auth-server.ts` | Server-side exports |
+| `src/lib/auth/better-auth-session.server.ts` | *Deleted* | Merged into `auth.ts` |
+| `src/lib/auth/helpers.server.ts` | *Deleted* | Merged into `auth.ts` |
+| `src/lib/auth/types.ts` | *Deleted* | Types now in `auth.ts` |
+
+### Repository Pattern
+
+```
+Routes/Server Functions
+        │
+        ▼
+┌─────────────────┐
+│ userRepository  │◄── Single entry point for user domain
+└────────┬────────┘
+         │
+    ┌────┴────┐
+    ▼         ▼
+┌────────┐ ┌──────────────┐
+│Direct  │ │authRepository│
+│DB Ops  │ │(Better Auth) │
+└────────┘ └──────────────┘
+```
+
+### auth.repository.ts
+
+Wraps all Better Auth API calls:
+
+```typescript
+export const authRepository = {
+  // Session Management
+  getSession: (headers) => auth.api.getSession({ headers }),
+  signOut: (headers) => auth.api.signOut({ headers }),
+
+  // Authentication
+  signUpEmail: (data) => auth.api.signUpEmail({ body: data }),
+
+  // User Management (Admin)
+  listUsers: (options?) => auth.api.listUsers({ query: options }),
+  createUser: (data) => auth.api.createUser({ body: data }),
+  updateUser: (userId, data) => auth.api.updateUser({ body: { userId, ...data } }),
+  setUserPassword: (userId, newPassword) => auth.api.setUserPassword({ body: { userId, newPassword } }),
+  setRole: (userId, role) => auth.api.setRole({ body: { userId, role } }),
+  banUser: (userId, banReason?, banExpiresIn?) => auth.api.banUser({ body: { userId, banReason, banExpiresIn } }),
+  unbanUser: (userId) => auth.api.unbanUser({ body: { userId } }),
+  removeUser: (userId) => auth.api.removeUser({ body: { userId } }),
+
+  // Organization & Team Management
+  createOrganization: (data) => auth.api.createOrganization({ body: data }),
+  updateOrganization: (organizationId, data) => auth.api.updateOrganization({ body: { organizationId, data } }),
+  createTeam: (data) => auth.api.createTeam({ body: data }),
+  updateTeam: (teamId, data) => auth.api.updateTeam({ body: { teamId, data } }),
+  removeTeam: (teamId) => auth.api.removeTeam({ body: { teamId } }),
+  addMember: (data) => auth.api.addMember({ body: data }),
+}
+```
+
+### user.repository.ts
+
+Single entry point for all user domain operations:
+
+| Category | Method | Implementation |
+|----------|--------|----------------|
+| **Read** | `findAll()`, `findById()`, `findByEmail()`, `findByHandle()`, `findByIdWithPii()`, `findActiveByEmail()` | Direct DB |
+| **Create** | `signUp()` | → `authRepository.signUpEmail()` |
+| **Create** | `create()` | → `authRepository.createUser()` |
+| **Update** | `update()` | → `authRepository.updateUser()` |
+| **Update** | `updateHandle()`, `updatePiiId()`, `updateLastLogin()` | Direct DB |
+| **Update** | `setPassword()` | → `authRepository.setUserPassword()` |
+| **Update** | `setRole()` | → `authRepository.setRole()` |
+| **Ban** | `ban()`, `unban()` | → `authRepository.banUser()`, `unbanUser()` |
+| **Delete** | `remove()` | → `authRepository.removeUser()` |
+| **PII** | `createPiiRecord()` | Direct DB |
 
 ---
 
 ## Files Overview
 
-### New Files to Create
+### Current Auth Files
 
 | File | Purpose |
 |------|---------|
-| `src/lib/better-auth.ts` | Better Auth server instance |
+| `src/lib/auth.ts` | Better Auth server instance, helpers, types |
 | `src/lib/auth-client.ts` | Better Auth React client |
-| `src/routes/api/auth/$.ts` | Better Auth API route handler |
-| `scripts/migrate-to-better-auth.ts` | Data migration script |
+| `src/lib/auth-server.ts` | Server-side exports |
+| `src/repositories/auth.repository.ts` | Better Auth API wrapper |
+| `src/repositories/user.repository.ts` | User domain entry point |
 
-### Files to Modify
+### Files Modified (Phase 6)
 
 | File | Changes |
 |------|---------|
-| `src/lib/permissions.ts` | Update for `teamMember.projectRole` checks |
-| `src/routes/login.tsx` | Use Better Auth signIn |
-| `src/routes/dashboard.tsx` | Use Better Auth session |
-| `src/components/auth-provider.tsx` | Use Better Auth hooks |
-| `src/db/schema.ts` | Add Better Auth table definitions |
-| `src/repositories/*.repository.ts` | Update to query new table names |
-| `.env` | Add `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` |
+| `src/routes/dashboard.tsx` | Use `authRepository` for session |
+| `src/routes/dashboard/users.$id.tsx` | Use `userRepository.remove()` |
+| `src/routes/invite.$code.tsx` | Use `userRepository.signUp()` |
+| `src/repositories/user.repository.ts` | Delegate to `authRepository` |
+| `src/repositories/user.repository.test.ts` | Added 6 new tests |
 
-### Files to Remove (after migration verified)
+### Files Deleted (Phase 6)
 
 | File | Reason |
 |------|--------|
-| `src/lib/auth.ts` | Replaced by `better-auth.ts` |
-| `src/lib/auth.shared.ts` | Cookie config handled by Better Auth |
-| `src/lib/auth/session.server.ts` | Better Auth handles sessions |
-| `src/lib/auth/types.ts` | Types inferred from Better Auth |
-| `src/server/auth.server.ts` | Better Auth handles login |
-| `src/repositories/session.repository.ts` | Better Auth handles sessions |
+| `src/lib/auth.shared.ts` | Merged into `auth.ts` |
+| `src/lib/auth/better-auth-session.server.ts` | Merged into `auth.ts` |
+| `src/lib/auth/helpers.server.ts` | Merged into `auth.ts` |
+| `src/lib/auth/types.ts` | Types now in `auth.ts` |
+
+---
+
+## Test Coverage
+
+### User Repository Tests: 40 tests
+
+| Test Suite | Count | Status |
+|------------|-------|--------|
+| `findAll` | 2 | ✅ |
+| `findById` | 2 | ✅ |
+| `findByEmail` | 3 | ✅ |
+| `findByHandle` | 2 | ✅ |
+| `findActiveByEmail` | 2 | ✅ |
+| `findByIdWithPii` | 2 | ✅ |
+| `create` | 2 | ✅ |
+| `update` | 4 | ✅ |
+| `delete` | 3 | ✅ |
+| `createWithPassword` | 2 | ✅ |
+| `verifyPassword` | 4 | ✅ |
+| `updateLastLogin` | 1 | ✅ |
+| `updatePassword` | 1 | ✅ |
+| `updateRole` | 2 | ✅ |
+| `deactivate` | 1 | ✅ |
+| `activate` | 1 | ✅ |
+| `updatePiiId` | 3 | ✅ (NEW) |
+| `createPiiRecord` | 3 | ✅ (NEW) |
+
+### Full Test Suite: 881 tests, 0 failures
 
 ---
 
@@ -191,9 +322,12 @@ Existing Argon2id hashes work directly with Better Auth's custom hash/verify fun
 
 All existing sessions will be invalidated during migration. Users will need to re-login.
 
-### Portal (Out of Scope)
+### Portal User Migration
 
-Portal access codes remain unchanged for this migration. The `accounts` table and `src/routes/portal.tsx` will continue to use the existing access code authentication system.
+Portal users (with access codes) will be converted to regular users:
+1. Migration script creates user accounts
+2. Users receive password reset emails
+3. Portal route updated to use Better Auth session
 
 ### Approval Workflow Compatibility
 
@@ -234,7 +368,20 @@ bun add better-auth
 
 ---
 
+## Related Documents
+
+- [Email Integration](./2025-12-03-email-integration.md) - Email service setup, password reset, verification
+- [User Auth Flows](./2025-12-03-user-auth-flows.md) - Signup, password reset, account management UI
+
+---
+
 ## Next Steps
 
-1. Install Better Auth: `bun add better-auth`
-2. Begin Phase 1 implementation
+1. ~~Create worktree: `git worktree add ../feature-better-auth-migration feature/better-auth-migration`~~
+2. ~~Copy database: `cp data.db ../feature-better-auth-migration/`~~
+3. ~~Install Better Auth: `bun add better-auth`~~
+4. ~~Begin Phase 1-6 implementation~~
+5. ~~Complete Phase 8: Cleanup~~
+6. **Create PR for merge to main**
+7. Continue with [Email Integration](./2025-12-03-email-integration.md)
+8. Continue with [User Auth Flows](./2025-12-03-user-auth-flows.md)
