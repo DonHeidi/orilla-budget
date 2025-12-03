@@ -1,9 +1,15 @@
+/**
+ * Auth Server Functions
+ *
+ * TanStack Start server functions for authentication.
+ * These are used by routes and components via useServerFn().
+ */
+
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
-import { auth } from '@/lib/better-auth'
-import { db, betterAuth } from '@/db'
-import { eq } from 'drizzle-orm'
-import type { AuthSession, AuthenticatedUser, ProjectMembership } from './types'
+import { authRepository } from '@/repositories/auth.repository'
+import { projectMemberRepository } from '@/repositories/projectMember.repository'
+import type { AuthSession, AuthenticatedUser, ProjectMembership } from './auth'
 
 /**
  * Get the current session from Better Auth
@@ -13,9 +19,7 @@ export const getCurrentSessionFn = createServerFn({ method: 'GET' }).handler(
   async (): Promise<AuthSession> => {
     try {
       const request = getRequest()
-      const session = await auth.api.getSession({
-        headers: request.headers,
-      })
+      const session = await authRepository.getSession(request.headers)
 
       if (!session?.user) {
         return { user: null, projectMemberships: [] }
@@ -29,25 +33,7 @@ export const getCurrentSessionFn = createServerFn({ method: 'GET' }).handler(
       }
 
       // Get project memberships (teams) for the user
-      const teamMemberships = await db
-        .select({
-          teamId: betterAuth.teamMember.teamId,
-          projectRole: betterAuth.teamMember.projectRole,
-          teamName: betterAuth.team.name,
-          teamDescription: betterAuth.team.description,
-          organizationId: betterAuth.team.organizationId,
-          organizationName: betterAuth.organization.name,
-        })
-        .from(betterAuth.teamMember)
-        .innerJoin(
-          betterAuth.team,
-          eq(betterAuth.teamMember.teamId, betterAuth.team.id)
-        )
-        .innerJoin(
-          betterAuth.organization,
-          eq(betterAuth.team.organizationId, betterAuth.organization.id)
-        )
-        .where(eq(betterAuth.teamMember.userId, user.id))
+      const teamMemberships = await projectMemberRepository.findMembershipsForAuth(user.id)
 
       const authenticatedUser: AuthenticatedUser = {
         id: user.id,
@@ -59,11 +45,11 @@ export const getCurrentSessionFn = createServerFn({ method: 'GET' }).handler(
 
       const projectMemberships: ProjectMembership[] = teamMemberships.map(
         (m) => ({
-          projectId: m.teamId,
-          projectName: m.teamName,
-          organisationId: m.organizationId,
-          organisationName: m.organizationName,
-          role: m.projectRole as
+          projectId: m.projectId,
+          projectName: m.projectName,
+          organisationId: m.organisationId,
+          organisationName: m.organisationName,
+          role: m.role as
             | 'owner'
             | 'expert'
             | 'reviewer'
@@ -89,9 +75,7 @@ export const getCurrentSessionFn = createServerFn({ method: 'GET' }).handler(
 export const logoutFn = createServerFn({ method: 'POST' }).handler(async () => {
   try {
     const request = getRequest()
-    await auth.api.signOut({
-      headers: request.headers,
-    })
+    await authRepository.signOut(request.headers)
     return { success: true }
   } catch (error) {
     console.error('Error signing out:', error)
