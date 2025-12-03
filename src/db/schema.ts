@@ -1,4 +1,16 @@
 import { sqliteTable, text, real, integer, unique } from 'drizzle-orm/sqlite-core'
+import * as betterAuth from './better-auth-schema'
+
+// Re-export Better Auth tables for backwards compatibility
+export { user, session, organization, team, teamMember } from './better-auth-schema'
+
+// Backwards-compatible aliases for old table names
+// These point to Better Auth tables to allow gradual migration of tests
+export const users = betterAuth.user
+export const sessions = betterAuth.session
+export const organisations = betterAuth.organization
+export const projects = betterAuth.team
+export const projectMembers = betterAuth.teamMember
 
 // PII table - GDPR compliant personal data storage (deletable for right-to-erasure)
 export const pii = sqliteTable('pii', {
@@ -11,46 +23,13 @@ export const pii = sqliteTable('pii', {
   updatedAt: text('updated_at').notNull(),
 })
 
-// Users table - unified identity model
-export const users = sqliteTable('users', {
-  id: text('id').primaryKey(),
-  piiId: text('pii_id').references(() => pii.id, { onDelete: 'set null' }),
-  handle: text('handle').notNull().unique(),
-  email: text('email').notNull().unique(),
-  passwordHash: text('password_hash'),
-  role: text('role', { enum: ['super_admin', 'admin'] }),
-  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-  lastLoginAt: text('last_login_at'),
-  createdAt: text('created_at').notNull(),
-  updatedAt: text('updated_at').notNull(),
-})
-
-// Sessions table - cookie-based authentication
-export const sessions = sqliteTable('sessions', {
-  id: text('id').primaryKey(),
-  userId: text('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  token: text('token').notNull().unique(),
-  expiresAt: text('expires_at').notNull(),
-  createdAt: text('created_at').notNull(),
-})
-
-export const organisations = sqliteTable('organisations', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  contactName: text('contact_name').notNull(),
-  contactEmail: text('contact_email').notNull(),
-  contactPhone: text('contact_phone'),
-  createdAt: text('created_at').notNull(),
-})
-
+// Accounts table - client portal access (linked to organizations)
 export const accounts = sqliteTable('accounts', {
   id: text('id').primaryKey(),
-  userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+  userId: text('user_id').references(() => betterAuth.user.id, { onDelete: 'set null' }),
   organisationId: text('organisation_id')
     .notNull()
-    .references(() => organisations.id, { onDelete: 'cascade' }),
+    .references(() => betterAuth.organization.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   email: text('email').notNull(),
   role: text('role', { enum: ['contact', 'project_manager', 'finance'] })
@@ -60,48 +39,15 @@ export const accounts = sqliteTable('accounts', {
   createdAt: text('created_at').notNull(),
 })
 
-export const projects = sqliteTable('projects', {
-  id: text('id').primaryKey(),
-  organisationId: text('organisation_id').references(() => organisations.id, {
-    onDelete: 'set null',
-  }),
-  name: text('name').notNull(),
-  description: text('description').notNull(),
-  category: text('category', { enum: ['budget', 'fixed'] })
-    .notNull()
-    .default('budget'),
-  budgetHours: real('budget_hours'),
-  createdAt: text('created_at').notNull(),
-})
-
-// Project members table - project-scoped access control
-export const projectMembers = sqliteTable(
-  'project_members',
-  {
-    id: text('id').primaryKey(),
-    projectId: text('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    userId: text('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    role: text('role', {
-      enum: ['owner', 'expert', 'reviewer', 'client', 'viewer'],
-    }).notNull(),
-    createdAt: text('created_at').notNull(),
-  },
-  (table) => [unique().on(table.projectId, table.userId)]
-)
-
 export const timeEntries = sqliteTable('time_entries', {
   id: text('id').primaryKey(),
-  createdByUserId: text('created_by_user_id').references(() => users.id, {
+  createdByUserId: text('created_by_user_id').references(() => betterAuth.user.id, {
     onDelete: 'set null',
   }),
-  projectId: text('project_id').references(() => projects.id, {
+  projectId: text('project_id').references(() => betterAuth.team.id, {
     onDelete: 'cascade',
   }),
-  organisationId: text('organisation_id').references(() => organisations.id, {
+  organisationId: text('organisation_id').references(() => betterAuth.organization.id, {
     onDelete: 'cascade',
   }),
   title: text('title').notNull(),
@@ -113,11 +59,11 @@ export const timeEntries = sqliteTable('time_entries', {
     .notNull()
     .default('pending'),
   statusChangedAt: text('status_changed_at'),
-  statusChangedBy: text('status_changed_by').references(() => users.id, {
+  statusChangedBy: text('status_changed_by').references(() => betterAuth.user.id, {
     onDelete: 'set null',
   }),
   lastEditedAt: text('last_edited_at'),
-  createdBy: text('created_by').references(() => users.id, {
+  createdBy: text('created_by').references(() => betterAuth.user.id, {
     onDelete: 'set null',
   }),
   // Legacy field - kept for backwards compatibility, set when status becomes 'approved'
@@ -141,10 +87,10 @@ export const timeSheets = sqliteTable('time_sheets', {
   approvedDate: text('approved_date'),
   rejectedDate: text('rejected_date'),
   rejectionReason: text('rejection_reason'),
-  organisationId: text('organisation_id').references(() => organisations.id, {
+  organisationId: text('organisation_id').references(() => betterAuth.organization.id, {
     onDelete: 'set null',
   }),
-  projectId: text('project_id').references(() => projects.id, {
+  projectId: text('project_id').references(() => betterAuth.team.id, {
     onDelete: 'set null',
   }),
   accountId: text('account_id').references(() => accounts.id, {
@@ -169,7 +115,7 @@ export const timeSheetEntries = sqliteTable('time_sheet_entries', {
     .notNull()
     .default(false),
   approvedInSheetAt: text('approved_in_sheet_at'),
-  approvedInSheetBy: text('approved_in_sheet_by').references(() => users.id, {
+  approvedInSheetBy: text('approved_in_sheet_by').references(() => betterAuth.user.id, {
     onDelete: 'set null',
   }),
   createdAt: text('created_at').notNull(),
@@ -180,11 +126,11 @@ export const contacts = sqliteTable('contacts', {
   id: text('id').primaryKey(),
   ownerId: text('owner_id')
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  userId: text('user_id').references(() => users.id, { onDelete: 'set null' }), // If contact has an account
+    .references(() => betterAuth.user.id, { onDelete: 'cascade' }),
+  userId: text('user_id').references(() => betterAuth.user.id, { onDelete: 'set null' }), // If contact has an account
   piiId: text('pii_id').references(() => pii.id, { onDelete: 'set null' }), // Only if NOT linked to user
   email: text('email').notNull(), // For invitations
-  organisationId: text('organisation_id').references(() => organisations.id, {
+  organisationId: text('organisation_id').references(() => betterAuth.organization.id, {
     onDelete: 'set null',
   }),
   createdAt: text('created_at').notNull(),
@@ -198,8 +144,8 @@ export const invitations = sqliteTable('invitations', {
     .references(() => contacts.id, { onDelete: 'cascade' }),
   invitedByUserId: text('invited_by_user_id')
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  projectId: text('project_id').references(() => projects.id, {
+    .references(() => betterAuth.user.id, { onDelete: 'cascade' }),
+  projectId: text('project_id').references(() => betterAuth.team.id, {
     onDelete: 'cascade',
   }), // Optional: invite to specific project
   role: text('role', {
@@ -221,7 +167,7 @@ export const entryMessages = sqliteTable('entry_messages', {
     .references(() => timeEntries.id, { onDelete: 'cascade' }),
   authorId: text('author_id')
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+    .references(() => betterAuth.user.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
   // Optional: link to parent message for threading
   parentMessageId: text('parent_message_id'),
@@ -240,7 +186,7 @@ export const projectApprovalSettings = sqliteTable('project_approval_settings', 
   projectId: text('project_id')
     .notNull()
     .unique()
-    .references(() => projects.id, { onDelete: 'cascade' }),
+    .references(() => betterAuth.team.id, { onDelete: 'cascade' }),
   approvalMode: text('approval_mode', {
     enum: ['required', 'optional', 'self_approve', 'multi_stage'],
   })
@@ -272,7 +218,7 @@ export const timeSheetApprovals = sqliteTable('time_sheet_approvals', {
   stage: text('stage').notNull(), // Role that approved: 'reviewer', 'client', etc.
   approvedBy: text('approved_by')
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+    .references(() => betterAuth.user.id, { onDelete: 'cascade' }),
   approvedAt: text('approved_at').notNull(),
   notes: text('notes'),
 })
