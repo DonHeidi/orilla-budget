@@ -1225,3 +1225,4 @@ Immediate action items.
 | [Better Auth Migration](docs/roadmap/2025-12-02-better-auth-migration.md) | Completed | Migrate custom auth to Better Auth framework |
 | [Email Integration](docs/roadmap/2025-12-03-email-integration.md) | Planned | GDPR-safe email service, password reset, verification |
 | [User Auth Flows](docs/roadmap/2025-12-03-user-auth-flows.md) | Planned | Signup, password reset, settings, session management |
+| [Project Ownership Model](docs/roadmap/2025-12-06-project-ownership-model.md) | Planned | Creator tracking, ownership rules, minimum owner enforcement |
