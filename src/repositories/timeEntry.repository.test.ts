@@ -87,19 +87,20 @@ describe('timeEntryRepository', () => {
     it('should retrieve all time entries for a project', async () => {
       // Arrange
       const org = await seed.organisation(db)
-      const project1 = await seed.project(db, org.id, { id: 'proj-1' })
-      const project2 = await seed.project(db, org.id, { id: 'proj-2' })
+      const project1 = await seed.project(db, org.id)
+      const project2 = await seed.project(db, org.id)
 
+      // timeEntries.projectId references team.id, so use project.teamId
       const entry1 = testFactories.timeEntry({
-        projectId: 'proj-1',
+        projectId: project1.teamId,
         title: 'Proj1 Entry 1',
       })
       const entry2 = testFactories.timeEntry({
-        projectId: 'proj-1',
+        projectId: project1.teamId,
         title: 'Proj1 Entry 2',
       })
       const entry3 = testFactories.timeEntry({
-        projectId: 'proj-2',
+        projectId: project2.teamId,
         title: 'Proj2 Entry 1',
       })
 
@@ -109,7 +110,7 @@ describe('timeEntryRepository', () => {
       const results = await db
         .select()
         .from(schema.timeEntries)
-        .where(eq(schema.timeEntries.projectId, 'proj-1'))
+        .where(eq(schema.timeEntries.projectId, project1.teamId))
 
       // Assert
       expect(results).toHaveLength(2)
@@ -121,13 +122,13 @@ describe('timeEntryRepository', () => {
     it('should return empty array when project has no time entries', async () => {
       // Arrange
       const org = await seed.organisation(db)
-      await seed.project(db, org.id, { id: 'proj-1' })
+      const project = await seed.project(db, org.id)
 
-      // Act
+      // Act - timeEntries.projectId references team.id
       const results = await db
         .select()
         .from(schema.timeEntries)
-        .where(eq(schema.timeEntries.projectId, 'proj-1'))
+        .where(eq(schema.timeEntries.projectId, project.teamId))
 
       // Assert
       expect(results).toEqual([])
@@ -188,8 +189,9 @@ describe('timeEntryRepository', () => {
       // Arrange
       const org = await seed.organisation(db)
       const project = await seed.project(db, org.id)
+      // timeEntries.projectId references team.id, so use project.teamId
       const newEntry = testFactories.timeEntry({
-        projectId: project.id,
+        projectId: project.teamId,
         title: 'New Task',
         hours: 3.5,
         date: '2024-11-11',
@@ -422,14 +424,18 @@ describe('timeEntryRepository', () => {
       expect(result[0]).toBeUndefined()
     })
 
-    it('should cascade delete when project is deleted', async () => {
+    it('should cascade delete when team is deleted', async () => {
       // Arrange
       const org = await seed.organisation(db)
-      const project = await seed.project(db, org.id, { id: 'proj-1' })
-      const entry = await seed.timeEntry(db, { projectId: 'proj-1' })
+      const project = await seed.project(db, org.id)
+      // timeEntries.projectId references team.id, so use project.teamId
+      const entry = await seed.timeEntry(db, { projectId: project.teamId })
 
-      // Act - Delete project
-      await db.delete(schema.projects).where(eq(schema.projects.id, 'proj-1'))
+      // Act - Delete project first (since project.teamId references team.id)
+      await db.delete(schema.projects).where(eq(schema.projects.id, project.id))
+      // Then delete team (triggers cascade delete of time entry)
+      const betterAuth = await import('@/db/better-auth-schema')
+      await db.delete(betterAuth.team).where(eq(betterAuth.team.id, project.teamId))
 
       // Assert - Time entry should be deleted due to cascade
       const result = await db

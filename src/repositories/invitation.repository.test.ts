@@ -64,8 +64,9 @@ describe('invitationRepository', () => {
       const org = await seed.organisation(db, { name: 'Test Org' })
       const project = await seed.project(db, org.id, { name: 'Test Project' })
 
+      // invitations.projectId references team.id, so use project.teamId
       const invitation = testFactories.invitation(contact.id, inviter.id, {
-        projectId: project.id,
+        projectId: project.teamId,
         role: 'viewer',
       })
 
@@ -77,7 +78,7 @@ describe('invitationRepository', () => {
         .where(eq(schema.invitations.contactId, contact.id))
         .limit(1)
 
-      expect(result[0].projectId).toBe(project.id)
+      expect(result[0].projectId).toBe(project.teamId)
       expect(result[0].role).toBe('viewer')
     })
 
@@ -291,9 +292,10 @@ describe('invitationRepository', () => {
       const org = await seed.organisation(db, { name: 'Test Org' })
       const project = await seed.project(db, org.id, { name: 'Test Project' })
 
+      // invitations.projectId references team.id, so use project.teamId
       const invitation = testFactories.invitation(contact.id, inviter.id, {
         status: 'pending',
-        projectId: project.id,
+        projectId: project.teamId,
       })
 
       await db.insert(schema.invitations).values(invitation)
@@ -304,14 +306,14 @@ describe('invitationRepository', () => {
         .where(
           and(
             eq(schema.invitations.contactId, contact.id),
-            eq(schema.invitations.projectId, project.id),
+            eq(schema.invitations.projectId, project.teamId),
             eq(schema.invitations.status, 'pending')
           )
         )
         .limit(1)
 
       expect(result[0]).toBeDefined()
-      expect(result[0].projectId).toBe(project.id)
+      expect(result[0].projectId).toBe(project.teamId)
     })
 
     it('should not find pending invitation for different project', async () => {
@@ -321,9 +323,10 @@ describe('invitationRepository', () => {
       const project1 = await seed.project(db, org.id, { name: 'Project 1' })
       const project2 = await seed.project(db, org.id, { name: 'Project 2' })
 
+      // invitations.projectId references team.id, so use project.teamId
       const invitation = testFactories.invitation(contact.id, inviter.id, {
         status: 'pending',
-        projectId: project1.id,
+        projectId: project1.teamId,
       })
 
       await db.insert(schema.invitations).values(invitation)
@@ -334,7 +337,7 @@ describe('invitationRepository', () => {
         .where(
           and(
             eq(schema.invitations.contactId, contact.id),
-            eq(schema.invitations.projectId, project2.id),
+            eq(schema.invitations.projectId, project2.teamId),
             eq(schema.invitations.status, 'pending')
           )
         )
@@ -484,20 +487,25 @@ describe('invitationRepository', () => {
       expect(afterDelete).toHaveLength(0)
     })
 
-    it('should delete invitations when project is deleted', async () => {
+    it('should delete invitations when team is deleted', async () => {
       const db = getDb()
       const { inviter, contact } = await createInvitationSetup(db)
       const org = await seed.organisation(db, { name: 'Test Org' })
       const project = await seed.project(db, org.id, { name: 'Test Project' })
 
+      // invitations.projectId references team.id, so use project.teamId
       const invitation = testFactories.invitation(contact.id, inviter.id, {
-        projectId: project.id,
+        projectId: project.teamId,
       })
 
       await db.insert(schema.invitations).values(invitation)
 
-      // Delete project
+      // Delete team (invitations.projectId references team.id with cascade delete)
+      // First delete the project record to avoid FK constraint
       await db.delete(schema.projects).where(eq(schema.projects.id, project.id))
+      // Then delete the team
+      const betterAuth = await import('@/db/better-auth-schema')
+      await db.delete(betterAuth.team).where(eq(betterAuth.team.id, project.teamId))
 
       // Verify invitation was cascade deleted
       const afterDelete = await db.select().from(schema.invitations)
@@ -569,21 +577,23 @@ describe('invitationRepository', () => {
       const org = await seed.organisation(db, { name: 'Test Org' })
       const project = await seed.project(db, org.id, { name: 'Invited Project' })
 
+      // invitations.projectId references team.id, so use project.teamId
       const invitation = testFactories.invitation(contact.id, inviter.id, {
         code: 'projjoin',
-        projectId: project.id,
+        projectId: project.teamId,
         role: 'expert',
       })
 
       await db.insert(schema.invitations).values(invitation)
 
+      // Join through projects.teamId since invitations.projectId references team.id
       const result = await db
         .select({
           invitation: schema.invitations,
           project: schema.projects,
         })
         .from(schema.invitations)
-        .leftJoin(schema.projects, eq(schema.invitations.projectId, schema.projects.id))
+        .leftJoin(schema.projects, eq(schema.invitations.projectId, schema.projects.teamId))
         .where(eq(schema.invitations.code, 'projjoin'))
         .limit(1)
 

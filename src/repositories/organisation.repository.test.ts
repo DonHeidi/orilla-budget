@@ -204,12 +204,12 @@ describe('organisationRepository patterns', () => {
         budgetHours: 200, // Should not be counted
       })
 
-      // Act - Note: Better Auth team table uses organizationId (American spelling)
+      // Act - Note: project table uses organisationId (British spelling)
       const result = await db
         .select({ total: sum(projects.budgetHours) })
         .from(projects)
         .where(
-          sql`${projects.organizationId} = ${org.id} AND ${projects.category} = 'budget'`
+          sql`${projects.organisationId} = ${org.id} AND ${projects.category} = 'budget'`
         )
 
       // Assert
@@ -231,7 +231,7 @@ describe('organisationRepository patterns', () => {
         .select({ total: sum(projects.budgetHours) })
         .from(projects)
         .where(
-          sql`${projects.organizationId} = ${org.id} AND ${projects.category} = 'budget'`
+          sql`${projects.organisationId} = ${org.id} AND ${projects.category} = 'budget'`
         )
 
       // Assert
@@ -248,7 +248,7 @@ describe('organisationRepository patterns', () => {
         .select({ total: sum(projects.budgetHours) })
         .from(projects)
         .where(
-          sql`${projects.organizationId} = ${org.id} AND ${projects.category} = 'budget'`
+          sql`${projects.organisationId} = ${org.id} AND ${projects.category} = 'budget'`
         )
 
       // Assert

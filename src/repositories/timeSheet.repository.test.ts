@@ -225,18 +225,19 @@ describe('timeSheetRepository', () => {
     it('should retrieve all time sheets for a project', async () => {
       // Arrange
       const org = await seed.organisation(db)
-      const project1 = await seed.project(db, org.id, { id: 'proj-1' })
-      const project2 = await seed.project(db, org.id, { id: 'proj-2' })
+      const project1 = await seed.project(db, org.id)
+      const project2 = await seed.project(db, org.id)
 
-      await seed.timeSheet(db, { projectId: 'proj-1', organisationId: org.id })
-      await seed.timeSheet(db, { projectId: 'proj-1', organisationId: org.id })
-      await seed.timeSheet(db, { projectId: 'proj-2', organisationId: org.id })
+      // timeSheets.projectId references team.id, so use project.teamId
+      await seed.timeSheet(db, { projectId: project1.teamId, organisationId: org.id })
+      await seed.timeSheet(db, { projectId: project1.teamId, organisationId: org.id })
+      await seed.timeSheet(db, { projectId: project2.teamId, organisationId: org.id })
 
       // Act
       const results = await db
         .select()
         .from(schema.timeSheets)
-        .where(eq(schema.timeSheets.projectId, 'proj-1'))
+        .where(eq(schema.timeSheets.projectId, project1.teamId))
 
       // Assert
       expect(results).toHaveLength(2)
@@ -517,12 +518,12 @@ describe('timeSheetRepository', () => {
       // Arrange
       const org = await seed.organisation(db)
       const project = await seed.project(db, org.id, {
-        id: 'proj-1',
         name: 'Test Project',
       })
+      // timeSheets.projectId references team.id, so use project.teamId
       const sheet = await seed.timeSheet(db, {
         id: 'sheet-1',
-        projectId: 'proj-1',
+        projectId: project.teamId,
         organisationId: org.id,
       })
 
@@ -530,7 +531,7 @@ describe('timeSheetRepository', () => {
       const projResult = await db
         .select()
         .from(schema.projects)
-        .where(eq(schema.projects.id, 'proj-1'))
+        .where(eq(schema.projects.id, project.id))
         .limit(1)
 
       // Assert
@@ -778,15 +779,16 @@ describe('timeSheetRepository', () => {
     it('should filter by project', async () => {
       // Arrange
       const org = await seed.organisation(db)
-      const project1 = await seed.project(db, org.id, { id: 'proj-1' })
-      const entry1 = await seed.timeEntry(db, { projectId: 'proj-1' })
+      const project1 = await seed.project(db, org.id)
+      // timeEntries.projectId references team.id, so use project.teamId
+      const entry1 = await seed.timeEntry(db, { projectId: project1.teamId })
       const entry2 = await seed.timeEntry(db, { projectId: undefined })
 
       // Act
       const results = await db
         .select()
         .from(schema.timeEntries)
-        .where(eq(schema.timeEntries.projectId, 'proj-1'))
+        .where(eq(schema.timeEntries.projectId, project1.teamId))
 
       // Assert
       expect(results).toHaveLength(1)

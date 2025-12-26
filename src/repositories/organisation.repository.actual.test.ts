@@ -278,7 +278,7 @@ describe('organisationRepository', () => {
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
         .where(
-          sql`${schema.projects.organizationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
         )
 
       // Assert
@@ -296,7 +296,7 @@ describe('organisationRepository', () => {
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
         .where(
-          sql`${schema.projects.organizationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
         )
 
       // Assert - Should only count budget project
@@ -313,7 +313,7 @@ describe('organisationRepository', () => {
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
         .where(
-          sql`${schema.projects.organizationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
         )
 
       // Assert
@@ -330,7 +330,7 @@ describe('organisationRepository', () => {
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
         .where(
-          sql`${schema.projects.organizationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
         )
 
       // Assert
@@ -349,7 +349,7 @@ describe('organisationRepository', () => {
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
         .where(
-          sql`${schema.projects.organizationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
         )
 
       // Assert
@@ -368,7 +368,7 @@ describe('organisationRepository', () => {
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
         .where(
-          sql`${schema.projects.organizationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
         )
 
       // Assert - Should only sum org-1's projects
@@ -388,7 +388,7 @@ describe('organisationRepository', () => {
         .select({ total: sum(schema.projects.budgetHours) })
         .from(schema.projects)
         .where(
-          sql`${schema.projects.organizationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
+          sql`${schema.projects.organisationId} = 'org-1' AND ${schema.projects.category} = 'budget'`
         )
 
       // Assert - Should only sum budget projects (50 + 75 = 125)
