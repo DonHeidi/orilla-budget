@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/bun-sqlite'
 import { Database } from 'bun:sqlite'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import * as schema from '@/db/schema'
+import * as betterAuth from '@/db/better-auth-schema'
 import { eq as _eq } from 'drizzle-orm'
 
 /**
@@ -45,7 +46,8 @@ export async function cleanDatabase(db: ReturnType<typeof createTestDb>['db']) {
   await db.delete(schema.timeEntries)
   await db.delete(schema.projectApprovalSettings)
   await db.delete(schema.projectMembers)
-  await db.delete(schema.projects)
+  await db.delete(schema.projects) // project table
+  await db.delete(betterAuth.team) // Better Auth team table
   await db.delete(schema.accounts)
   await db.delete(schema.organisations)
   await db.delete(schema.sessions)
@@ -109,15 +111,36 @@ export const testFactories = {
     ...overrides,
   }),
 
-  // Better Auth team table (uses Date for timestamps)
-  project: (
+  // Better Auth team table (authorization layer)
+  team: (
     organisationId: string,
-    overrides?: Partial<typeof schema.projects.$inferInsert>
+    overrides?: Partial<typeof betterAuth.team.$inferInsert>
   ) => {
     const now = new Date()
     return {
       id: generateTestId(),
       organizationId: organisationId,
+      name: 'Test Project',
+      description: 'A test project',
+      category: 'budget' as const,
+      budgetHours: 100,
+      createdAt: now,
+      updatedAt: now,
+      ...overrides,
+    }
+  },
+
+  // Project table (business data layer)
+  project: (
+    teamId: string,
+    organisationId: string,
+    overrides?: Partial<typeof schema.projects.$inferInsert>
+  ) => {
+    const now = new Date().toISOString()
+    return {
+      id: generateTestId(),
+      teamId,
+      organisationId,
       name: 'Test Project',
       description: 'A test project',
       category: 'budget' as const,
@@ -325,16 +348,50 @@ export const seed = {
     return account
   },
 
+  /**
+   * Creates both a team (auth layer) and project (business layer) record
+   * Returns the project record with teamId for use in tests
+   */
   async project(
     db: ReturnType<typeof createTestDb>['db'],
     organisationId: string,
-    data?: Partial<typeof schema.projects.$inferInsert>
+    data?: Partial<typeof schema.projects.$inferInsert> & { name?: string }
   ) {
-    const [project] = await db
-      .insert(schema.projects)
-      .values(testFactories.project(organisationId, data))
-      .returning()
+    // First create the team (Better Auth table)
+    const teamData = testFactories.team(organisationId, {
+      name: data?.name || 'Test Project',
+      description: data?.description || 'A test project',
+      category: data?.category || 'budget',
+      budgetHours: data?.budgetHours ?? 100,
+    })
+    const [team] = await db.insert(betterAuth.team).values(teamData).returning()
+
+    // Then create the project (business data table)
+    const projectData = testFactories.project(team.id, organisationId, {
+      name: data?.name || team.name,
+      description: data?.description || team.description || '',
+      category: data?.category || (team.category as 'budget' | 'fixed') || 'budget',
+      budgetHours: data?.budgetHours ?? team.budgetHours,
+      ...data,
+    })
+    const [project] = await db.insert(schema.projects).values(projectData).returning()
+
     return project
+  },
+
+  /**
+   * Creates just a team record (for tests that need raw team access)
+   */
+  async team(
+    db: ReturnType<typeof createTestDb>['db'],
+    organisationId: string,
+    data?: Partial<typeof betterAuth.team.$inferInsert>
+  ) {
+    const [team] = await db
+      .insert(betterAuth.team)
+      .values(testFactories.team(organisationId, data))
+      .returning()
+    return team
   },
 
   async timeEntry(

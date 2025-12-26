@@ -378,12 +378,14 @@ describe('projectSchema', () => {
     it('should accept valid budget project with budgetHours', () => {
       const validProject = {
         id: 'proj-1',
+        teamId: 'team-1',
         organisationId: 'org-1',
         name: 'Website Redesign',
         description: 'Redesign company website',
         category: 'budget' as const,
         budgetHours: 100,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       }
 
       const result = projectSchema.safeParse(validProject)
@@ -393,12 +395,14 @@ describe('projectSchema', () => {
     it('should accept valid fixed project without budgetHours', () => {
       const validProject = {
         id: 'proj-1',
+        teamId: 'team-1',
         organisationId: 'org-1',
         name: 'Website Redesign',
         description: 'Redesign company website',
         category: 'fixed' as const,
         budgetHours: null,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       }
 
       const result = projectSchema.safeParse(validProject)
@@ -408,10 +412,12 @@ describe('projectSchema', () => {
     it('should default category to budget', () => {
       const result = projectSchema.safeParse({
         id: 'proj-1',
+        teamId: 'team-1',
         organisationId: 'org-1',
         name: 'Website Redesign',
         budgetHours: 100,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
 
       expect(result.success).toBe(true)
@@ -426,11 +432,13 @@ describe('projectSchema', () => {
     it('should reject budget project without budgetHours', () => {
       const result = projectSchema.safeParse({
         id: 'proj-1',
+        teamId: 'team-1',
         organisationId: 'org-1',
         name: 'Website Redesign',
         category: 'budget',
         budgetHours: null,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
 
       expect(result.success).toBe(false)
@@ -445,10 +453,12 @@ describe('projectSchema', () => {
     it('should reject budget project with undefined budgetHours', () => {
       const result = projectSchema.safeParse({
         id: 'proj-1',
+        teamId: 'team-1',
         organisationId: 'org-1',
         name: 'Website Redesign',
         category: 'budget',
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
 
       expect(result.success).toBe(false)
@@ -462,11 +472,13 @@ describe('projectSchema', () => {
     it('should reject fixed project with budgetHours', () => {
       const result = projectSchema.safeParse({
         id: 'proj-1',
+        teamId: 'team-1',
         organisationId: 'org-1',
         name: 'Website Redesign',
         category: 'fixed',
         budgetHours: 100,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
 
       expect(result.success).toBe(false)
@@ -481,11 +493,13 @@ describe('projectSchema', () => {
     it('should reject negative budgetHours', () => {
       const result = projectSchema.safeParse({
         id: 'proj-1',
+        teamId: 'team-1',
         organisationId: 'org-1',
         name: 'Website Redesign',
         category: 'budget',
         budgetHours: -10,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
 
       expect(result.success).toBe(false)
@@ -499,11 +513,13 @@ describe('projectSchema', () => {
     it('should reject zero budgetHours', () => {
       const result = projectSchema.safeParse({
         id: 'proj-1',
+        teamId: 'team-1',
         organisationId: 'org-1',
         name: 'Website Redesign',
         category: 'budget',
         budgetHours: 0,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
 
       expect(result.success).toBe(false)
@@ -519,11 +535,13 @@ describe('projectSchema', () => {
     it('should reject empty project name', () => {
       const result = projectSchema.safeParse({
         id: 'proj-1',
+        teamId: 'team-1',
         organisationId: 'org-1',
         name: '',
         category: 'budget',
         budgetHours: 100,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
 
       expect(result.success).toBe(false)
@@ -535,11 +553,13 @@ describe('projectSchema', () => {
     it('should reject invalid category', () => {
       const result = projectSchema.safeParse({
         id: 'proj-1',
+        teamId: 'team-1',
         organisationId: 'org-1',
         name: 'Website Redesign',
         category: 'invalid',
         budgetHours: 100,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
 
       expect(result.success).toBe(false)

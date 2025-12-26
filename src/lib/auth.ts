@@ -14,6 +14,8 @@ import { admin } from 'better-auth/plugins'
 import { organization } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { db } from '@/db'
+import { project } from '@/db/schema'
+import { teamMember } from '@/db/better-auth-schema'
 import type { SystemPermission, ProjectPermission } from './permissions'
 
 // =============================================================================
@@ -73,7 +75,8 @@ export const auth = betterAuth({
         },
         team: {
           additionalFields: {
-            // Preserve existing project fields
+            // Preserve existing project fields (for backwards compatibility)
+            // Business data is now stored in the project table
             description: {
               type: 'string',
               required: false,
@@ -101,6 +104,36 @@ export const auth = betterAuth({
               input: true,
             },
           },
+        },
+      },
+      organizationHooks: {
+        // After team creation, create corresponding project record and assign owner
+        afterCreateTeam: async ({ team, user, organization }) => {
+          const now = new Date().toISOString()
+
+          // Create project record with business data
+          await db.insert(project).values({
+            id: crypto.randomUUID(),
+            teamId: team.id,
+            createdBy: user.id,
+            organisationId: organization.id,
+            name: team.name,
+            description: (team as { description?: string }).description ?? '',
+            category:
+              ((team as { category?: string }).category as 'budget' | 'fixed') ?? 'budget',
+            budgetHours: (team as { budgetHours?: number }).budgetHours ?? null,
+            createdAt: now,
+            updatedAt: now,
+          })
+
+          // Add creator as owner in teamMember table
+          await db.insert(teamMember).values({
+            id: crypto.randomUUID(),
+            teamId: team.id,
+            userId: user.id,
+            projectRole: 'owner',
+            createdAt: new Date(),
+          })
         },
       },
     }),

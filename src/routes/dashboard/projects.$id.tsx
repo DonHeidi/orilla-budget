@@ -5,7 +5,6 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { getRequest } from '@tanstack/react-start/server'
 import { useState } from 'react'
 import { FolderKanban, Building2, Clock, Settings2, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -44,9 +43,8 @@ function formatDateTime(isoString: string): string {
 
 // Server function for updates only
 const updateProjectFn = createServerFn({ method: 'POST' }).handler(
-  async ({ data }: { data: Project }) => {
-    const request = getRequest()
-    const { id, createdAt, organizationId, ...updateData } = data
+  async ({ data }: { data: Partial<Project> & { id: string } }) => {
+    const { id, createdAt, teamId, createdBy, organisationId, updatedAt, ...updateData } = data
 
     // Filter out undefined values
     const cleanUpdateData = Object.fromEntries(
@@ -57,22 +55,26 @@ const updateProjectFn = createServerFn({ method: 'POST' }).handler(
       throw new Error('No fields to update')
     }
 
-    // Use Better Auth API for name updates
+    // Get the project to find its team ID for Better Auth updates
+    const project = await projectRepository.findById(id)
+    if (!project) {
+      throw new Error('Project not found')
+    }
+
+    // Use Better Auth API for name updates (syncs the team name)
     if (cleanUpdateData.name) {
-      await authRepository.updateTeam(id, {
+      await authRepository.updateTeam(project.teamId, {
         name: cleanUpdateData.name as string,
       })
     }
 
-    // Update custom fields via repository helper
-    const customFields: Record<string, unknown> = {}
-    if ('description' in cleanUpdateData) customFields.description = cleanUpdateData.description
-    if ('category' in cleanUpdateData) customFields.category = cleanUpdateData.category
-    if ('budgetHours' in cleanUpdateData) customFields.budgetHours = cleanUpdateData.budgetHours
-
-    if (Object.keys(customFields).length > 0) {
-      await projectRepository.updateCustomFields(id, customFields as { description?: string | null; category?: string | null; budgetHours?: number | null })
-    }
+    // Update project business data via repository
+    await projectRepository.update(id, cleanUpdateData as {
+      name?: string
+      description?: string
+      category?: 'budget' | 'fixed'
+      budgetHours?: number | null
+    })
 
     return await projectRepository.findById(id)
   }
@@ -80,17 +82,17 @@ const updateProjectFn = createServerFn({ method: 'POST' }).handler(
 
 const deleteProjectFn = createServerFn({ method: 'POST' }).handler(
   async (ctx: { data: { id: string } }) => {
-    const request = getRequest()
     console.log('Deleting project with id:', ctx.data.id)
 
-    // Get the project to find its organization
+    // Get the project to find its team ID
     const project = await projectRepository.findById(ctx.data.id)
     if (!project) {
       throw new Error('Project not found')
     }
 
-    // Delete via Better Auth API
-    await authRepository.removeTeam(ctx.data.id)
+    // Delete via Better Auth API (using team ID)
+    // This will cascade delete the project record due to FK constraint
+    await authRepository.removeTeam(project.teamId)
 
     console.log('Project deleted successfully')
     return { success: true }
@@ -180,8 +182,9 @@ function ProjectDetailPage() {
   const organisation = organisations.find(
     (o: any) => o.id === project.organisationId
   )
+  // Time entries reference team IDs (project.teamId), not project IDs
   const projectTimeEntries = timeEntries.filter(
-    (t: any) => t.projectId === project.id
+    (t: any) => t.projectId === project.teamId
   )
   const totalHours = projectTimeEntries.reduce(
     (sum: number, t: any) => sum + t.hours,
@@ -243,8 +246,9 @@ function ProjectDetailPage() {
     if (!showApprovalSettings && !approvalSettings) {
       setLoadingSettings(true)
       try {
+        // Approval settings use team ID as project ID
         const settings = await getApprovalSettingsFn({
-          data: { projectId: project.id },
+          data: { projectId: project.teamId },
         })
         setApprovalSettings(settings)
       } catch (error) {
@@ -259,8 +263,9 @@ function ProjectDetailPage() {
   const handleSaveApprovalSettings = async (
     updates: UpdateProjectApprovalSettings
   ) => {
+    // Approval settings use team ID as project ID
     await updateApprovalSettingsFn({
-      data: { projectId: project.id, settings: updates },
+      data: { projectId: project.teamId, settings: updates },
     })
     // Update local state
     if (approvalSettings) {
