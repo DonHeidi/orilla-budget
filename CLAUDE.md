@@ -97,6 +97,6 @@ bun run dev
 | [Dashboard Improvements](docs/roadmap/2025-11-22-dashboard-improvements.md) | In Progress | Bug fixes, UI/UX |
 | [User Management Enhancements](docs/roadmap/2025-11-28-user-management-enhancements.md) | Planned | 2FA, OAuth, audit logging |
 | [Focus Timer & Mindfulness](docs/roadmap/2025-11-25-focus-timer-mindfulness.md) | Planned | Focus timer feature |
-| [Email Integration](docs/roadmap/2025-12-03-email-integration.md) | Planned | Password reset, verification |
-| [User Auth Flows](docs/roadmap/2025-12-03-user-auth-flows.md) | Planned | Signup, session management |
-| [Project Ownership Model](docs/roadmap/2025-12-06-project-ownership-model.md) | Planned | Creator tracking, ownership |
+| [Email Integration](docs/roadmap/2025-12-03-email-integration.md) | Planned | GDPR-safe email service, password reset, verification |
+| [User Auth Flows](docs/roadmap/2025-12-03-user-auth-flows.md) | Planned | Signup, password reset, settings, session management |
+| [Project Ownership Model](docs/roadmap/2025-12-06-project-ownership-model.md) | Completed | Creator tracking, ownership rules, minimum owner enforcement |
