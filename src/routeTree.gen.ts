@@ -25,6 +25,8 @@ import { Route as DashboardUsersIdRouteImport } from './routes/dashboard/users.$
 import { Route as DashboardTimeSheetsIdRouteImport } from './routes/dashboard/time-sheets.$id'
 import { Route as DashboardTimeEntriesIdRouteImport } from './routes/dashboard/time-entries.$id'
 import { Route as DashboardProjectsIdRouteImport } from './routes/dashboard/projects.$id'
+import { Route as DashboardContactsTeamsRouteImport } from './routes/dashboard/contacts.teams'
+import { Route as DashboardContactsListRouteImport } from './routes/dashboard/contacts.list'
 import { Route as DashboardContactsIdRouteImport } from './routes/dashboard/contacts.$id'
 import { Route as DashboardOrgsOrganisationsRouteImport } from './routes/dashboard/_orgs.organisations'
 import { Route as DashboardOrgsAccountsRouteImport } from './routes/dashboard/_orgs.accounts'
@@ -111,6 +113,16 @@ const DashboardProjectsIdRoute = DashboardProjectsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => DashboardProjectsRoute,
 } as any)
+const DashboardContactsTeamsRoute = DashboardContactsTeamsRouteImport.update({
+  id: '/teams',
+  path: '/teams',
+  getParentRoute: () => DashboardContactsRoute,
+} as any)
+const DashboardContactsListRoute = DashboardContactsListRouteImport.update({
+  id: '/list',
+  path: '/list',
+  getParentRoute: () => DashboardContactsRoute,
+} as any)
 const DashboardContactsIdRoute = DashboardContactsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -160,6 +172,8 @@ export interface FileRoutesByFullPath {
   '/dashboard/accounts': typeof DashboardOrgsAccountsRouteWithChildren
   '/dashboard/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
   '/dashboard/contacts/$id': typeof DashboardContactsIdRoute
+  '/dashboard/contacts/list': typeof DashboardContactsListRoute
+  '/dashboard/contacts/teams': typeof DashboardContactsTeamsRoute
   '/dashboard/projects/$id': typeof DashboardProjectsIdRoute
   '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
   '/dashboard/time-sheets/$id': typeof DashboardTimeSheetsIdRoute
@@ -182,6 +196,8 @@ export interface FileRoutesByTo {
   '/dashboard/accounts': typeof DashboardOrgsAccountsRouteWithChildren
   '/dashboard/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
   '/dashboard/contacts/$id': typeof DashboardContactsIdRoute
+  '/dashboard/contacts/list': typeof DashboardContactsListRoute
+  '/dashboard/contacts/teams': typeof DashboardContactsTeamsRoute
   '/dashboard/projects/$id': typeof DashboardProjectsIdRoute
   '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
   '/dashboard/time-sheets/$id': typeof DashboardTimeSheetsIdRoute
@@ -207,6 +223,8 @@ export interface FileRoutesById {
   '/dashboard/_orgs/accounts': typeof DashboardOrgsAccountsRouteWithChildren
   '/dashboard/_orgs/organisations': typeof DashboardOrgsOrganisationsRouteWithChildren
   '/dashboard/contacts/$id': typeof DashboardContactsIdRoute
+  '/dashboard/contacts/list': typeof DashboardContactsListRoute
+  '/dashboard/contacts/teams': typeof DashboardContactsTeamsRoute
   '/dashboard/projects/$id': typeof DashboardProjectsIdRoute
   '/dashboard/time-entries/$id': typeof DashboardTimeEntriesIdRoute
   '/dashboard/time-sheets/$id': typeof DashboardTimeSheetsIdRoute
@@ -232,6 +250,8 @@ export interface FileRouteTypes {
     | '/dashboard/accounts'
     | '/dashboard/organisations'
     | '/dashboard/contacts/$id'
+    | '/dashboard/contacts/list'
+    | '/dashboard/contacts/teams'
     | '/dashboard/projects/$id'
     | '/dashboard/time-entries/$id'
     | '/dashboard/time-sheets/$id'
@@ -254,6 +274,8 @@ export interface FileRouteTypes {
     | '/dashboard/accounts'
     | '/dashboard/organisations'
     | '/dashboard/contacts/$id'
+    | '/dashboard/contacts/list'
+    | '/dashboard/contacts/teams'
     | '/dashboard/projects/$id'
     | '/dashboard/time-entries/$id'
     | '/dashboard/time-sheets/$id'
@@ -278,6 +300,8 @@ export interface FileRouteTypes {
     | '/dashboard/_orgs/accounts'
     | '/dashboard/_orgs/organisations'
     | '/dashboard/contacts/$id'
+    | '/dashboard/contacts/list'
+    | '/dashboard/contacts/teams'
     | '/dashboard/projects/$id'
     | '/dashboard/time-entries/$id'
     | '/dashboard/time-sheets/$id'
@@ -409,6 +433,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardProjectsIdRouteImport
       parentRoute: typeof DashboardProjectsRoute
     }
+    '/dashboard/contacts/teams': {
+      id: '/dashboard/contacts/teams'
+      path: '/teams'
+      fullPath: '/dashboard/contacts/teams'
+      preLoaderRoute: typeof DashboardContactsTeamsRouteImport
+      parentRoute: typeof DashboardContactsRoute
+    }
+    '/dashboard/contacts/list': {
+      id: '/dashboard/contacts/list'
+      path: '/list'
+      fullPath: '/dashboard/contacts/list'
+      preLoaderRoute: typeof DashboardContactsListRouteImport
+      parentRoute: typeof DashboardContactsRoute
+    }
     '/dashboard/contacts/$id': {
       id: '/dashboard/contacts/$id'
       path: '/$id'
@@ -497,10 +535,14 @@ const DashboardOrgsRouteWithChildren = DashboardOrgsRoute._addFileChildren(
 
 interface DashboardContactsRouteChildren {
   DashboardContactsIdRoute: typeof DashboardContactsIdRoute
+  DashboardContactsListRoute: typeof DashboardContactsListRoute
+  DashboardContactsTeamsRoute: typeof DashboardContactsTeamsRoute
 }
 
 const DashboardContactsRouteChildren: DashboardContactsRouteChildren = {
   DashboardContactsIdRoute: DashboardContactsIdRoute,
+  DashboardContactsListRoute: DashboardContactsListRoute,
+  DashboardContactsTeamsRoute: DashboardContactsTeamsRoute,
 }
 
 const DashboardContactsRouteWithChildren =
