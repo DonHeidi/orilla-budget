@@ -11,6 +11,7 @@ import {
   entryMessages,
   projectApprovalSettings,
   timeSheetApprovals,
+  project,
 } from '../src/db/schema'
 import {
   user as baUser,
@@ -63,6 +64,9 @@ async function clearDatabase() {
   await db.delete(invitations)
   await db.delete(contacts)
   await db.delete(accounts) // Client portal accounts (not Better Auth accounts)
+
+  // Project table (business data linked to teams)
+  await db.delete(project)
 
   // Better Auth tables
   await db.delete(baTeamMember)
@@ -377,19 +381,34 @@ async function seedDatabase() {
       },
     ]
 
-    for (const project of testProjects) {
+    for (const proj of testProjects) {
+      // Create team (authorization layer)
       await db.insert(baTeam).values({
-        id: project.id,
-        name: project.name,
-        organizationId: project.organizationId,
-        description: project.description,
-        category: project.category,
-        budgetHours: project.budgetHours,
+        id: proj.id,
+        name: proj.name,
+        organizationId: proj.organizationId,
+        description: proj.description,
+        category: proj.category,
+        budgetHours: proj.budgetHours,
         createdAt: timestamp,
         updatedAt: timestamp,
       })
+
+      // Create project record (business data layer)
+      await db.insert(project).values({
+        id: `project-${proj.id}`, // Separate ID from team ID
+        teamId: proj.id, // Links to the team
+        createdBy: null, // Will be set by first owner below
+        organisationId: proj.organizationId,
+        name: proj.name,
+        description: proj.description || '',
+        category: proj.category,
+        budgetHours: proj.budgetHours,
+        createdAt: now(),
+        updatedAt: now(),
+      })
     }
-    console.log(`✓ Created ${testProjects.length} projects`)
+    console.log(`✓ Created ${testProjects.length} projects (teams + project records)`)
 
     // ========================================
     // PROJECT MEMBERS (Better Auth TeamMembers + Organization Members)

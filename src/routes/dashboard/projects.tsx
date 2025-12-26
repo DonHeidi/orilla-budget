@@ -1,6 +1,5 @@
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { getRequest } from '@tanstack/react-start/server'
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Plus, FolderKanban } from 'lucide-react'
@@ -10,7 +9,6 @@ import { cn } from '@/lib/utils'
 import { authRepository } from '@/repositories/auth.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
-import { projectMemberRepository } from '@/repositories/projectMember.repository'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
 import { getCurrentUser, isAdmin } from '@/repositories/auth.repository'
 import { createProjectSchema, type Project } from '@/schemas'
@@ -35,7 +33,9 @@ const getProjectsDataFn = createServerFn({ method: 'GET' }).handler(
     if (isAdmin(user)) {
       const organisations = await organisationRepository.findAll()
       const projects = await projectRepository.findAll()
-      const timeEntries = await timeEntryRepository.findAll()
+      // Time entries reference team IDs (project.teamId), not project IDs
+      const teamIds = projects.map((p) => p.teamId)
+      const timeEntries = await timeEntryRepository.findByProjectIds(teamIds)
       return { organisations, projects, timeEntries }
     }
 
@@ -46,9 +46,9 @@ const getProjectsDataFn = createServerFn({ method: 'GET' }).handler(
     ] as string[]
     const organisations = await organisationRepository.findByIds(orgIds)
 
-    // Time entries for display (from user's projects)
-    const projectIds = projects.map((p) => p.id)
-    const timeEntries = await timeEntryRepository.findByProjectIds(projectIds)
+    // Time entries reference team IDs (project.teamId), not project IDs
+    const teamIds = projects.map((p) => p.teamId)
+    const timeEntries = await timeEntryRepository.findByProjectIds(teamIds)
 
     return { organisations, projects, timeEntries }
   }
@@ -57,38 +57,44 @@ const getProjectsDataFn = createServerFn({ method: 'GET' }).handler(
 const createProjectFn = createServerFn({ method: 'POST' })
   .inputValidator(createProjectSchema)
   .handler(async ({ data }) => {
-    const request = getRequest()
     const user = await getCurrentUser()
     if (!user) throw new Error('Unauthorized')
 
-    // Create team (project) via Better Auth API
-    const result = await authRepository.createTeam({
+    // Create team via Better Auth API
+    // The afterCreateTeam hook automatically:
+    // 1. Creates a project record with business data
+    // 2. Adds the creator as owner
+    const team = await authRepository.createTeam({
       name: data.name,
       organizationId: data.organisationId || '',
-    })
-
-    if (!result) {
-      throw new Error('Failed to create project')
-    }
-
-    // Update with custom project fields
-    await projectRepository.updateCustomFields(result.id, {
+      // Pass business data through team creation for the hook
       description: data.description || '',
-      category: data.category,
+      category: data.category || 'budget',
       budgetHours: data.category === 'fixed' ? null : (data.budgetHours ?? null),
     })
 
-    // Better Auth createTeam automatically adds the creator as a member
-    // Update the project role
-    await projectMemberRepository.updateProjectRole(result.id, user.id, 'owner')
+    if (!team) {
+      throw new Error('Failed to create project')
+    }
 
-    // Fetch the updated project
-    const created = await projectRepository.findById(result.id)
+    // Find the project created by the hook
+    const created = await projectRepository.findByTeamId(team.id)
     if (!created) {
       throw new Error('Failed to fetch created project')
     }
 
-    return created
+    // Update project with any additional business data not passed through team creation
+    if (data.description || data.budgetHours || data.category) {
+      await projectRepository.update(created.id, {
+        description: data.description || '',
+        category: data.category || 'budget',
+        budgetHours: data.category === 'fixed' ? null : (data.budgetHours ?? null),
+      })
+    }
+
+    // Fetch the updated project
+    const updated = await projectRepository.findById(created.id)
+    return updated || created
   })
 
 export const Route = createFileRoute('/dashboard/projects')({
@@ -116,8 +122,9 @@ function ProjectsPage() {
       const organisation = data.organisations.find(
         (o: any) => o.id === project.organisationId
       )
+      // Time entries reference team IDs (project.teamId), not project IDs
       const projectTimeEntries = data.timeEntries.filter(
-        (t: any) => t.projectId === project.id
+        (t: any) => t.projectId === project.teamId
       )
       const totalHours = projectTimeEntries.reduce(
         (sum: number, t: any) => sum + t.hours,

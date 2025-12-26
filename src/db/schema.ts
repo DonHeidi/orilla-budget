@@ -9,8 +9,40 @@ export { user, session, organization, team, teamMember } from './better-auth-sch
 export const users = betterAuth.user
 export const sessions = betterAuth.session
 export const organisations = betterAuth.organization
-export const projects = betterAuth.team
 export const projectMembers = betterAuth.teamMember
+
+// Project table - business data layer for teams
+// 1:1 relationship with Better Auth team table
+export const project = sqliteTable('project', {
+  id: text('id').primaryKey(),
+
+  // Link to Better Auth team (1:1 relationship)
+  teamId: text('team_id')
+    .notNull()
+    .unique()
+    .references(() => betterAuth.team.id, { onDelete: 'cascade' }),
+
+  // Creator tracking (immutable audit trail)
+  createdBy: text('created_by').references(() => betterAuth.user.id, { onDelete: 'set null' }),
+
+  // Denormalized from team for easier queries
+  organisationId: text('organisation_id').references(() => betterAuth.organization.id, {
+    onDelete: 'cascade',
+  }),
+
+  // Business data (moved from team additionalFields)
+  name: text('name').notNull(),
+  description: text('description').default(''),
+  category: text('category', { enum: ['budget', 'fixed'] }).default('budget'),
+  budgetHours: real('budget_hours'),
+
+  // Timestamps
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+})
+
+// Backwards-compatible alias
+export const projects = project
 
 // PII table - GDPR compliant personal data storage (deletable for right-to-erasure)
 export const pii = sqliteTable('pii', {

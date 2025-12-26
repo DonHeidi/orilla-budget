@@ -163,20 +163,35 @@ export const createAccountSchema = accountSchema.omit({
   createdAt: true,
 })
 
+// Project category enum
+export const projectCategorySchema = z.enum(['budget', 'fixed'])
+export type ProjectCategory = z.infer<typeof projectCategorySchema>
+
 // Project Schema
+// Projects have a 1:1 relationship with Better Auth teams:
+// - `team` table: Authorization layer (managed by Better Auth)
+// - `project` table: Business data layer (this schema)
 export const projectSchema = z
   .object({
     id: z.string(),
-    organisationId: z.string().optional(),
+    // Link to Better Auth team (1:1 relationship)
+    teamId: z.string(),
+    // Creator tracking (immutable audit trail)
+    createdBy: z.string().nullable().optional(),
+    // Denormalized from team for easier queries
+    organisationId: z.string().nullable().optional(),
+    // Business data
     name: z.string().min(1, 'Project name is required'),
     description: z.string().optional().default(''),
-    category: z.enum(['budget', 'fixed']).default('budget'),
+    category: projectCategorySchema.default('budget'),
     budgetHours: z
       .number()
       .positive('Budget must be a positive number')
       .nullable()
       .optional(),
+    // Timestamps
     createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
   })
   .superRefine((data, ctx) => {
     // Budget (T&M) projects must have budgetHours
@@ -199,7 +214,17 @@ export const projectSchema = z
 
 export const createProjectSchema = projectSchema.omit({
   id: true,
+  teamId: true, // Set by Better Auth hook
+  createdBy: true, // Set by Better Auth hook
   createdAt: true,
+  updatedAt: true,
+})
+
+export const updateProjectSchema = z.object({
+  name: z.string().min(1, 'Project name is required').optional(),
+  description: z.string().optional(),
+  category: projectCategorySchema.optional(),
+  budgetHours: z.number().positive('Budget must be a positive number').nullable().optional(),
 })
 
 // Entry status schema - for individual entry approval workflow
@@ -343,6 +368,7 @@ export type Account = z.infer<typeof accountSchema>
 export type CreateAccount = z.infer<typeof createAccountSchema>
 export type Project = z.infer<typeof projectSchema>
 export type CreateProject = z.infer<typeof createProjectSchema>
+export type UpdateProject = z.infer<typeof updateProjectSchema>
 export type TimeEntry = z.infer<typeof timeEntrySchema>
 export type CreateTimeEntry = z.infer<typeof createTimeEntrySchema>
 export type QuickTimeEntry = z.infer<typeof quickTimeEntrySchema>
