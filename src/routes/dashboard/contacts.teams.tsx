@@ -1,15 +1,27 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { type ColumnDef } from '@tanstack/react-table'
-import { Building2, Users, FolderKanban } from 'lucide-react'
+import { Building2, FolderKanban, User } from 'lucide-react'
 import { db } from '@/db'
 import { project } from '@/db/schema'
 import * as betterAuth from '@/db/better-auth-schema'
-import { eq, inArray, count } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { getCurrentUser } from '@/repositories/auth.repository'
-import { DataTable } from '@/components/DataTable'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
-interface TeamWithDetails {
+interface TeamMember {
+  userId: string
+  name: string | null
+  email: string
+  role: string
+}
+
+interface TeamWithMembers {
   id: string
   teamId: string
   name: string
@@ -17,12 +29,20 @@ interface TeamWithDetails {
   budgetHours: number | null
   organisationId: string | null
   organisationName: string | null
-  role: string
-  memberCount: number
+  members: TeamMember[]
 }
 
 interface TeamsData {
-  teams: TeamWithDetails[]
+  teams: TeamWithMembers[]
+}
+
+const roleColors: Record<string, string> = {
+  owner: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+  expert: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  reviewer:
+    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+  client: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  viewer: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
 }
 
 const getTeamsDataFn = createServerFn({ method: 'GET' }).handler(
@@ -32,11 +52,10 @@ const getTeamsDataFn = createServerFn({ method: 'GET' }).handler(
       return { teams: [] }
     }
 
-    // Get user's team memberships with their role
+    // Get user's team memberships
     const memberships = await db
       .select({
         teamId: betterAuth.teamMember.teamId,
-        role: betterAuth.teamMember.projectRole,
       })
       .from(betterAuth.teamMember)
       .where(eq(betterAuth.teamMember.userId, user.id))
@@ -46,7 +65,6 @@ const getTeamsDataFn = createServerFn({ method: 'GET' }).handler(
     }
 
     const teamIds = memberships.map((m) => m.teamId)
-    const roleMap = new Map(memberships.map((m) => [m.teamId, m.role]))
 
     // Get projects with organisation details
     const projects = await db
@@ -66,20 +84,37 @@ const getTeamsDataFn = createServerFn({ method: 'GET' }).handler(
       )
       .where(inArray(project.teamId, teamIds))
 
-    // Get member counts for each team
-    const memberCounts = await db
+    // Get all members for these teams with their user details
+    const allMembers = await db
       .select({
         teamId: betterAuth.teamMember.teamId,
-        count: count(),
+        userId: betterAuth.teamMember.userId,
+        role: betterAuth.teamMember.projectRole,
+        userName: betterAuth.user.name,
+        userEmail: betterAuth.user.email,
       })
       .from(betterAuth.teamMember)
+      .innerJoin(
+        betterAuth.user,
+        eq(betterAuth.teamMember.userId, betterAuth.user.id)
+      )
       .where(inArray(betterAuth.teamMember.teamId, teamIds))
-      .groupBy(betterAuth.teamMember.teamId)
 
-    const countMap = new Map(memberCounts.map((m) => [m.teamId, m.count]))
+    // Group members by team
+    const membersByTeam = new Map<string, TeamMember[]>()
+    for (const member of allMembers) {
+      const teamMembers = membersByTeam.get(member.teamId) || []
+      teamMembers.push({
+        userId: member.userId,
+        name: member.userName,
+        email: member.userEmail,
+        role: member.role,
+      })
+      membersByTeam.set(member.teamId, teamMembers)
+    }
 
     // Combine all data
-    const teams: TeamWithDetails[] = projects.map((p) => ({
+    const teams: TeamWithMembers[] = projects.map((p) => ({
       id: p.id,
       teamId: p.teamId,
       name: p.name,
@@ -87,8 +122,7 @@ const getTeamsDataFn = createServerFn({ method: 'GET' }).handler(
       budgetHours: p.budgetHours,
       organisationId: p.organisationId,
       organisationName: p.organisationName,
-      role: roleMap.get(p.teamId) || 'viewer',
-      memberCount: countMap.get(p.teamId) || 0,
+      members: membersByTeam.get(p.teamId) || [],
     }))
 
     return { teams }
@@ -104,93 +138,69 @@ function TeamsPage() {
   const data = Route.useLoaderData()
   const navigate = useNavigate()
 
-  const columns: ColumnDef<TeamWithDetails>[] = [
-    {
-      accessorKey: 'name',
-      header: 'Project',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <FolderKanban className="h-4 w-4 text-gray-500" />
-          <span className="font-medium">{row.original.name}</span>
-        </div>
-      ),
-    },
-    {
-      id: 'organisation',
-      header: 'Organisation',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          {row.original.organisationName ? (
-            <>
-              <Building2 className="h-4 w-4 text-gray-500" />
-              <span>{row.original.organisationName}</span>
-            </>
-          ) : (
-            <span className="text-gray-400">-</span>
-          )}
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'role',
-      header: 'Your Role',
-      cell: ({ row }) => {
-        const role = row.original.role
-        const roleColors: Record<string, string> = {
-          owner: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-          expert: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-          reviewer: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-          client: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-          viewer: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-        }
-        return (
-          <span className={`px-2 py-1 rounded-full text-xs capitalize ${roleColors[role] || roleColors.viewer}`}>
-            {role}
-          </span>
-        )
-      },
-    },
-    {
-      id: 'members',
-      header: 'Members',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-gray-500" />
-          <span>{row.original.memberCount}</span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'category',
-      header: 'Type',
-      cell: ({ row }) => (
-        <span className="text-gray-600 dark:text-gray-400 capitalize">
-          {row.original.category || '-'}
-        </span>
-      ),
-    },
-  ]
+  if (data.teams.length === 0) {
+    return (
+      <div className="text-center py-12 text-gray-500">
+        <FolderKanban className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p>You are not a member of any teams yet.</p>
+      </div>
+    )
+  }
 
   return (
-    <>
-      {data.teams.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <FolderKanban className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>You are not a member of any teams yet.</p>
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={data.teams}
-          getRowId={(row) => row.id}
-          onRowClick={(row) => {
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {data.teams.map((team) => (
+        <Card
+          key={team.id}
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() =>
             navigate({
               to: '/dashboard/projects/$id',
-              params: { id: row.original.teamId },
+              params: { id: team.teamId },
             })
-          }}
-        />
-      )}
-    </>
+          }
+        >
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <FolderKanban className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">{team.name}</CardTitle>
+            </div>
+            {team.organisationName && (
+              <CardDescription className="flex items-center gap-1.5">
+                <Building2 className="h-3.5 w-3.5" />
+                {team.organisationName}
+              </CardDescription>
+            )}
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground font-medium">
+                Members ({team.members.length})
+              </p>
+              <div className="space-y-1.5">
+                {team.members.map((member) => (
+                  <div
+                    key={member.userId}
+                    className="flex items-center justify-between text-sm"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="truncate">
+                        {member.name || member.email}
+                      </span>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs capitalize shrink-0 ${roleColors[member.role] || roleColors.viewer}`}
+                    >
+                      {member.role}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   )
 }

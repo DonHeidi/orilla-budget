@@ -403,7 +403,7 @@ function Dashboard() {
                       <SidebarMenuButton asChild>
                         <Link to="/dashboard/contacts">
                           <Contact className="mr-2 h-4 w-4" />
-                          <span>Contacts</span>
+                          <span>Teams & Contacts</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
