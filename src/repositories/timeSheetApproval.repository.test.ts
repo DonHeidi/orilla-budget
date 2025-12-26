@@ -24,9 +24,10 @@ describe('timeSheetApprovalRepository patterns', () => {
     testUser = await seed.user(db, { handle: 'approver', email: 'approver@test.com' })
     testOrg = await seed.organisation(db, { name: 'Test Org' })
     testProject = await seed.project(db, testOrg.id, { name: 'Test Project' })
+    // timeSheets.projectId references team.id, so use testProject.teamId
     testSheet = await seed.timeSheet(db, {
       title: 'Test Sheet',
-      projectId: testProject.id,
+      projectId: testProject.teamId,
       status: 'submitted',
     })
   })
@@ -138,7 +139,8 @@ describe('timeSheetApprovalRepository patterns', () => {
 
   describe('getNextRequiredStage pattern', () => {
     it('should return null when project has no multi-stage approval', async () => {
-      await seed.projectApprovalSettings(db, testProject.id, {
+      // projectApprovalSettings.projectId references team.id
+      await seed.projectApprovalSettings(db, testProject.teamId, {
         approvalMode: 'required',
         approvalStages: null,
       })
@@ -146,7 +148,7 @@ describe('timeSheetApprovalRepository patterns', () => {
       const settings = await db
         .select()
         .from(projectApprovalSettings)
-        .where(eq(projectApprovalSettings.projectId, testProject.id))
+        .where(eq(projectApprovalSettings.projectId, testProject.teamId))
         .limit(1)
 
       expect(settings[0].approvalStages).toBeNull()
@@ -154,7 +156,8 @@ describe('timeSheetApprovalRepository patterns', () => {
 
     it('should return first stage when no approvals exist', async () => {
       const stages = ['reviewer', 'client']
-      await seed.projectApprovalSettings(db, testProject.id, {
+      // projectApprovalSettings.projectId references team.id
+      await seed.projectApprovalSettings(db, testProject.teamId, {
         approvalMode: 'multi_stage',
         approvalStages: JSON.stringify(stages),
       })
@@ -162,7 +165,7 @@ describe('timeSheetApprovalRepository patterns', () => {
       const settings = await db
         .select()
         .from(projectApprovalSettings)
-        .where(eq(projectApprovalSettings.projectId, testProject.id))
+        .where(eq(projectApprovalSettings.projectId, testProject.teamId))
         .limit(1)
 
       const parsedStages = JSON.parse(settings[0].approvalStages!) as string[]
@@ -187,7 +190,7 @@ describe('timeSheetApprovalRepository patterns', () => {
 
     it('should return next uncompleted stage', async () => {
       const stages = ['expert', 'reviewer', 'client']
-      await seed.projectApprovalSettings(db, testProject.id, {
+      await seed.projectApprovalSettings(db, testProject.teamId, {
         approvalMode: 'multi_stage',
         approvalStages: JSON.stringify(stages),
       })
@@ -217,7 +220,7 @@ describe('timeSheetApprovalRepository patterns', () => {
 
     it('should return null when all stages complete', async () => {
       const stages = ['reviewer', 'client']
-      await seed.projectApprovalSettings(db, testProject.id, {
+      await seed.projectApprovalSettings(db, testProject.teamId, {
         approvalMode: 'multi_stage',
         approvalStages: JSON.stringify(stages),
       })
@@ -249,7 +252,7 @@ describe('timeSheetApprovalRepository patterns', () => {
   describe('isFullyApproved pattern', () => {
     it('should return true when all required stages are approved', async () => {
       const stages = ['reviewer']
-      await seed.projectApprovalSettings(db, testProject.id, {
+      await seed.projectApprovalSettings(db, testProject.teamId, {
         approvalMode: 'multi_stage',
         approvalStages: JSON.stringify(stages),
       })
@@ -269,7 +272,7 @@ describe('timeSheetApprovalRepository patterns', () => {
 
     it('should return false when some stages are pending', async () => {
       const stages = ['reviewer', 'client']
-      await seed.projectApprovalSettings(db, testProject.id, {
+      await seed.projectApprovalSettings(db, testProject.teamId, {
         approvalMode: 'multi_stage',
         approvalStages: JSON.stringify(stages),
       })
@@ -288,7 +291,7 @@ describe('timeSheetApprovalRepository patterns', () => {
     })
 
     it('should return true when no multi-stage approval configured', async () => {
-      await seed.projectApprovalSettings(db, testProject.id, {
+      await seed.projectApprovalSettings(db, testProject.teamId, {
         approvalMode: 'required',
         approvalStages: null,
       })
@@ -296,7 +299,7 @@ describe('timeSheetApprovalRepository patterns', () => {
       const settings = await db
         .select()
         .from(projectApprovalSettings)
-        .where(eq(projectApprovalSettings.projectId, testProject.id))
+        .where(eq(projectApprovalSettings.projectId, testProject.teamId))
         .limit(1)
 
       // No stages configured = considered complete for multi-stage purposes
@@ -307,7 +310,7 @@ describe('timeSheetApprovalRepository patterns', () => {
   describe('getApprovalStatus pattern', () => {
     it('should return complete status summary', async () => {
       const stages = ['expert', 'reviewer', 'client']
-      await seed.projectApprovalSettings(db, testProject.id, {
+      await seed.projectApprovalSettings(db, testProject.teamId, {
         approvalMode: 'multi_stage',
         approvalStages: JSON.stringify(stages),
       })
@@ -317,7 +320,7 @@ describe('timeSheetApprovalRepository patterns', () => {
       const settings = await db
         .select()
         .from(projectApprovalSettings)
-        .where(eq(projectApprovalSettings.projectId, testProject.id))
+        .where(eq(projectApprovalSettings.projectId, testProject.teamId))
         .limit(1)
 
       const parsedStages = JSON.parse(settings[0].approvalStages!) as string[]
@@ -423,7 +426,7 @@ describe('timeSheetApprovalRepository patterns', () => {
   describe('multi-stage workflow', () => {
     it('should track sequential stage completion', async () => {
       const stages = ['expert', 'reviewer', 'client']
-      await seed.projectApprovalSettings(db, testProject.id, {
+      await seed.projectApprovalSettings(db, testProject.teamId, {
         approvalMode: 'multi_stage',
         approvalStages: JSON.stringify(stages),
       })
