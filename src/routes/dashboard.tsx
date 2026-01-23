@@ -20,6 +20,7 @@ import {
   Contact,
 } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
+import { zodValidator } from '@tanstack/zod-form-adapter'
 import { cn } from '@/lib/utils'
 import { authRepository } from '@/repositories/auth.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
@@ -194,14 +195,19 @@ const createProjectFn = createServerFn({ method: 'POST' })
 const createTimeEntryFn = createServerFn({ method: 'POST' })
   .inputValidator(quickTimeEntrySchema)
   .handler(async ({ data }) => {
+    const session = await getCurrentSessionFn()
+    if (!session.user) throw new Error('Unauthorized')
+
     const timeEntry: TimeEntry = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      createdByUserId: session.user.id,
       projectId: data.projectId,
       organisationId: data.organisationId,
       title: data.title,
       description: data.description || '',
       hours: data.hours,
       date: data.date,
+      billed: false,
       createdAt: new Date().toISOString(),
     }
     return await timeEntryRepository.create(timeEntry)
@@ -657,7 +663,9 @@ function QuickTimeEntryDialog({
   onOpenChange?: (open: boolean) => void
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const createTimeEntry = useServerFn(createTimeEntryFn)
+  const router = useRouter()
 
   const form = useForm({
     defaultValues: {
@@ -668,20 +676,37 @@ function QuickTimeEntryDialog({
       organisationId: '',
       projectId: '',
     },
+    validators: {
+      onSubmit: ({ value }) => {
+        if (!value.title.trim()) {
+          return { fields: { title: 'Title is required' } }
+        }
+        const hours = timeToHours(value.time)
+        if (hours <= 0) {
+          return { fields: { time: 'Time must be greater than 0' } }
+        }
+        return undefined
+      },
+    },
     onSubmit: async ({ value }) => {
-      const hours = timeToHours(value.time)
-      await createTimeEntry({
-        data: {
-          title: value.title,
-          hours: hours,
-          date: value.date,
-          description: value.description,
-          organisationId: value.organisationId,
-          projectId: value.projectId,
-        },
-      })
-      onOpenChange?.(false)
-      window.location.reload()
+      setError(null)
+      try {
+        const hours = timeToHours(value.time)
+        await createTimeEntry({
+          data: {
+            title: value.title,
+            hours: hours,
+            date: value.date,
+            description: value.description,
+            organisationId: value.organisationId,
+            projectId: value.projectId,
+          },
+        })
+        onOpenChange?.(false)
+        router.invalidate()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to create time entry')
+      }
     },
   })
 
@@ -703,6 +728,12 @@ function QuickTimeEntryDialog({
           }}
           className="space-y-4"
         >
+          {error && (
+            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+              {error}
+            </div>
+          )}
+
           <form.Field name="title">
             {(field) => (
               <div className="space-y-2">
@@ -927,11 +958,17 @@ function QuickTimeEntryDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => onOpenChange?.(false)}
             >
               Cancel
             </Button>
-            <Button type="submit">Save Entry</Button>
+            <form.Subscribe selector={(state) => [state.isSubmitting]}>
+              {([isSubmitting]) => (
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving...' : 'Save Entry'}
+                </Button>
+              )}
+            </form.Subscribe>
           </div>
         </form>
       </DialogContent>
@@ -948,7 +985,9 @@ function QuickTimeEntrySheet({
 }) {
   const [open, setOpen] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const createTimeEntry = useServerFn(createTimeEntryFn)
+  const router = useRouter()
 
   const form = useForm({
     defaultValues: {
@@ -959,20 +998,37 @@ function QuickTimeEntrySheet({
       organisationId: '',
       projectId: '',
     },
+    validators: {
+      onSubmit: ({ value }) => {
+        if (!value.title.trim()) {
+          return { fields: { title: 'Title is required' } }
+        }
+        const hours = timeToHours(value.time)
+        if (hours <= 0) {
+          return { fields: { time: 'Time must be greater than 0' } }
+        }
+        return undefined
+      },
+    },
     onSubmit: async ({ value }) => {
-      const hours = timeToHours(value.time)
-      await createTimeEntry({
-        data: {
-          title: value.title,
-          hours: hours,
-          date: value.date,
-          description: value.description,
-          organisationId: value.organisationId,
-          projectId: value.projectId,
-        },
-      })
-      setOpen(false)
-      window.location.reload()
+      setError(null)
+      try {
+        const hours = timeToHours(value.time)
+        await createTimeEntry({
+          data: {
+            title: value.title,
+            hours: hours,
+            date: value.date,
+            description: value.description,
+            organisationId: value.organisationId,
+            projectId: value.projectId,
+          },
+        })
+        setOpen(false)
+        router.invalidate()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to create time entry')
+      }
     },
   })
 
@@ -998,6 +1054,12 @@ function QuickTimeEntrySheet({
           }}
           className="space-y-6 py-6 px-1"
         >
+          {error && (
+            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+              {error}
+            </div>
+          )}
+
           <form.Field name="title">
             {(field) => (
               <div className="space-y-2">
@@ -1190,7 +1252,13 @@ function QuickTimeEntrySheet({
             >
               Cancel
             </Button>
-            <Button type="submit">Save Entry</Button>
+            <form.Subscribe selector={(state) => [state.isSubmitting]}>
+              {([isSubmitting]) => (
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving...' : 'Save Entry'}
+                </Button>
+              )}
+            </form.Subscribe>
           </div>
         </form>
       </SheetContent>
