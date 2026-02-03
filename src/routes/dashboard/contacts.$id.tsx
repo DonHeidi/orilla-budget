@@ -1,12 +1,23 @@
 import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
-import { Mail, Building2, User, UserCheck, Send } from 'lucide-react'
+import { Mail, Building2, User, UserCheck, Send, Trash2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { contactRepository } from '@/repositories/contact.repository'
 import { invitationRepository } from '@/repositories/invitation.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { getCurrentUser } from '@/repositories/auth.repository'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -14,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 import {
   Sheet,
   SheetContent,
@@ -137,19 +149,20 @@ function ContactDetailPage() {
           }
         }}
       >
-        <SheetContent className="w-full sm:max-w-[600px]">
-          <SheetHeader>
+        <SheetContent className="w-full sm:max-w-[540px] p-0">
+          <SheetHeader className="px-6 py-5 border-b border-border/40">
             <SheetTitle>Error</SheetTitle>
             <SheetDescription>Contact not found</SheetDescription>
           </SheetHeader>
-          <div className="py-6">
-            <p className="text-gray-500">
+          <div className="px-6 py-6">
+            <p className="text-muted-foreground">
               The requested contact could not be found.
             </p>
           </div>
-          <div className="flex gap-3 justify-end pt-6 border-t">
+          <div className="flex gap-3 justify-end px-6 py-4 border-t border-border/40 bg-muted/30">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => navigate({ to: '/dashboard/contacts' })}
             >
               Back to Contacts
@@ -198,217 +211,235 @@ function ContactDetailPage() {
       : contact.pii?.name || contact.email
 
   return (
-    <Sheet
-      open={true}
-      onOpenChange={(open) => {
-        if (!open) {
-          navigate({ to: '/dashboard/contacts' })
-        }
-      }}
-    >
-      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
-        <SheetHeader className="space-y-3 pb-6 border-b">
-          <SheetTitle>Contact Details</SheetTitle>
-          <SheetDescription>
-            View and manage contact information
-          </SheetDescription>
-        </SheetHeader>
-
-        <div className="space-y-6 py-6">
-          {/* Contact Info */}
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-500">Email</label>
-              <p className="text-base mt-1 flex items-center gap-2">
-                <Mail className="h-4 w-4 text-gray-500" />
-                {contact.email}
-              </p>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-500">Name</label>
-              <p className="text-base mt-1 flex items-center gap-2">
+    <>
+      <Sheet
+        open={true}
+        onOpenChange={(open) => {
+          if (!open) {
+            navigate({ to: '/dashboard/contacts' })
+          }
+        }}
+      >
+        <SheetContent className="w-full sm:max-w-[540px] overflow-y-auto p-0">
+          {/* Header */}
+          <SheetHeader className="px-6 py-5 border-b border-border/40">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-muted">
                 {contact.userId ? (
-                  <UserCheck className="h-4 w-4 text-green-500" />
+                  <UserCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 ) : (
-                  <User className="h-4 w-4 text-gray-400" />
+                  <User className="h-5 w-5 text-muted-foreground" />
                 )}
-                {displayName}
-              </p>
-            </div>
-
-            {contact.organisation && (
-              <div>
-                <label className="text-sm font-medium text-gray-500">
-                  Organisation
-                </label>
-                <p className="text-base mt-1 flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-gray-500" />
-                  {contact.organisation.name}
-                </p>
               </div>
-            )}
-
-            <div>
-              <label className="text-sm font-medium text-gray-500">Status</label>
-              <p className="text-base mt-1">
-                <span
-                  className={`px-2 py-1 rounded-full text-xs ${
-                    contact.userId
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-                  }`}
-                >
-                  {contact.userId ? 'Has Account' : 'No Account'}
-                </span>
-              </p>
+              <div className="flex-1 min-w-0">
+                <SheetTitle className="font-display text-lg tracking-wide">
+                  {displayName}
+                </SheetTitle>
+                <SheetDescription className="mt-1">
+                  {contact.email}
+                </SheetDescription>
+              </div>
+              <Badge variant={contact.userId ? 'default' : 'secondary'}>
+                {contact.userId ? 'Has Account' : 'No Account'}
+              </Badge>
             </div>
-          </div>
+          </SheetHeader>
 
-          {/* Invitations Section */}
-          <div className="border-t pt-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Invitations</h3>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowInviteForm(!showInviteForm)}
-              >
-                <Send className="mr-2 h-4 w-4" />
-                Send Invitation
-              </Button>
-            </div>
+          <div className="px-6 py-6 space-y-6">
+            {/* Details Section */}
+            <div className="space-y-4">
+              <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+                Details
+              </h3>
 
-            {showInviteForm && (
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4 space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Project</label>
-                  <Select value={inviteProject} onValueChange={setInviteProject}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select project (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {data.projects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Role</label>
-                  <Select
-                    value={inviteRole}
-                    onValueChange={(v) => setInviteRole(v as ProjectRole)}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="owner">Owner</SelectItem>
-                      <SelectItem value="expert">Expert</SelectItem>
-                      <SelectItem value="reviewer">Reviewer</SelectItem>
-                      <SelectItem value="client">Client</SelectItem>
-                      <SelectItem value="viewer">Viewer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowInviteForm(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button size="sm" onClick={handleInvite} disabled={isInviting}>
-                    {isInviting ? 'Sending...' : 'Send'}
-                  </Button>
+              {/* Email */}
+              <div className="flex items-start gap-3 px-3 py-3 -mx-3">
+                <Mail className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Email
+                  </p>
+                  <p className="text-sm mt-1">{contact.email}</p>
                 </div>
               </div>
-            )}
 
-            {data.invitations.length > 0 ? (
-              <div className="space-y-2">
-                {data.invitations.map((invitation) => (
-                  <div
-                    key={invitation.id}
-                    className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium">
-                        {invitation.project?.name || 'General Invitation'}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Role: {invitation.role || 'Not specified'} •{' '}
-                        <span
-                          className={`${
-                            invitation.status === 'pending'
-                              ? 'text-yellow-600'
-                              : invitation.status === 'accepted'
-                                ? 'text-green-600'
-                                : 'text-red-600'
-                          }`}
-                        >
-                          {invitation.status}
-                        </span>
-                      </p>
-                    </div>
-                    <code className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">
-                      {invitation.code}
-                    </code>
+              {/* Organisation */}
+              {contact.organisation && (
+                <div className="flex items-start gap-3 px-3 py-3 -mx-3">
+                  <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Organisation
+                    </p>
+                    <p className="text-sm mt-1">{contact.organisation.name}</p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm">
-                No invitations sent to this contact yet.
-              </p>
-            )}
-          </div>
-        </div>
+                </div>
+              )}
+            </div>
 
-        <div className="flex gap-3 justify-between pt-6 border-t">
-          <Button
-            variant="destructive"
-            onClick={() => setShowDeleteConfirm(true)}
-          >
-            Delete Contact
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate({ to: '/dashboard/contacts' })}
-          >
-            Close
-          </Button>
-        </div>
+            <Separator />
 
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md">
-              <h3 className="text-lg font-semibold mb-2">Delete Contact</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Are you sure you want to delete "{displayName}"? This will also
-                delete all pending invitations for this contact.
-              </p>
-              <div className="flex gap-3 justify-end">
+            {/* Invitations Section */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+                  Invitations
+                </h3>
                 <Button
+                  size="sm"
                   variant="outline"
-                  onClick={() => setShowDeleteConfirm(false)}
+                  onClick={() => setShowInviteForm(!showInviteForm)}
                 >
-                  Cancel
-                </Button>
-                <Button variant="destructive" onClick={handleDelete}>
-                  Delete
+                  <Send className="mr-2 h-4 w-4" />
+                  Send Invitation
                 </Button>
               </div>
+
+              {showInviteForm && (
+                <Card className="bg-muted/30 border-border/40">
+                  <CardContent className="p-4 space-y-4">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Project
+                      </label>
+                      <Select value={inviteProject} onValueChange={setInviteProject}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select project (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {data.projects.map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Role
+                      </label>
+                      <Select
+                        value={inviteRole}
+                        onValueChange={(v) => setInviteRole(v as ProjectRole)}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="owner">Owner</SelectItem>
+                          <SelectItem value="expert">Expert</SelectItem>
+                          <SelectItem value="reviewer">Reviewer</SelectItem>
+                          <SelectItem value="client">Client</SelectItem>
+                          <SelectItem value="viewer">Viewer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowInviteForm(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button size="sm" onClick={handleInvite} disabled={isInviting}>
+                        {isInviting ? 'Sending...' : 'Send'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {data.invitations.length > 0 ? (
+                <div className="space-y-2">
+                  {data.invitations.map((invitation) => (
+                    <Card
+                      key={invitation.id}
+                      className="bg-muted/30 border-border/40"
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-medium text-sm">
+                              {invitation.project?.name || 'General Invitation'}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Role: {invitation.role || 'Not specified'} •{' '}
+                              <span
+                                className={cn(
+                                  invitation.status === 'pending' &&
+                                    'text-amber-600 dark:text-amber-400',
+                                  invitation.status === 'accepted' &&
+                                    'text-emerald-600 dark:text-emerald-400',
+                                  invitation.status === 'rejected' &&
+                                    'text-red-600 dark:text-red-400'
+                                )}
+                              >
+                                {invitation.status}
+                              </span>
+                            </p>
+                          </div>
+                          <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                            {invitation.code}
+                          </code>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  No invitations sent to this contact yet.
+                </p>
+              )}
             </div>
           </div>
-        )}
-      </SheetContent>
-    </Sheet>
+
+          {/* Footer */}
+          <div className="flex gap-3 justify-between px-6 py-4 border-t border-border/40 bg-muted/30">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate({ to: '/dashboard/contacts' })}
+            >
+              Close
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete Contact</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{displayName}"? This will also
+              delete all pending invitations for this contact.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete Contact
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

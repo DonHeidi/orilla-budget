@@ -562,11 +562,20 @@ function AddTimeSheetDialog({
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] h-[85vh] flex flex-col p-0">
-        <DialogHeader className="space-y-3 px-6 pt-6">
-          <DialogTitle>Create Time Sheet</DialogTitle>
-          <DialogDescription>
-            Create a new time sheet to organize time entries for approval
-          </DialogDescription>
+        <DialogHeader className="px-6 py-5 border-b border-border/40">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-muted">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="font-display text-lg tracking-wide">
+                Create Time Sheet
+              </DialogTitle>
+              <DialogDescription className="mt-1">
+                Create a new time sheet to organize time entries for approval
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         <ScrollArea className="flex-1">
@@ -579,197 +588,225 @@ function AddTimeSheetDialog({
               }}
               className="space-y-6"
             >
-              <form.Field
-                name="title"
-                validators={{
-                  onChange: ({ value }) =>
-                    !value ? 'Title is required' : undefined,
-                }}
-              >
-                {(field) => (
-                  <div className="space-y-2">
-                    <label htmlFor={field.name} className="text-sm font-medium">
-                      Title *
-                    </label>
-                    <Input
-                      id={field.name}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      placeholder="e.g., Week 1 - Feature Development"
-                    />
-                    {field.state.meta.errors &&
-                      field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">
-                          {field.state.meta.errors[0]}
-                        </p>
-                      )}
-                  </div>
-                )}
-              </form.Field>
+              {/* Sheet Details */}
+              <div className="space-y-4">
+                <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+                  Sheet Details
+                </h3>
 
-              <form.Field name="description">
-                {(field) => (
-                  <div className="space-y-2">
-                    <label htmlFor={field.name} className="text-sm font-medium">
-                      Description
-                    </label>
-                    <textarea
-                      id={field.name}
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                      placeholder="Optional notes about this time sheet"
-                      rows={3}
-                    />
-                  </div>
-                )}
-              </form.Field>
-
-              <div className="grid grid-cols-2 gap-4">
-                <form.Field name="startDate">
+                <form.Field
+                  name="title"
+                  validators={{
+                    onChange: ({ value }) =>
+                      !value ? 'Title is required' : undefined,
+                  }}
+                >
                   {(field) => (
                     <div className="space-y-2">
-                      <label
-                        htmlFor={field.name}
-                        className="text-sm font-medium"
-                      >
-                        Start Date
+                      <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Title *
                       </label>
                       <Input
                         id={field.name}
-                        type="date"
                         value={field.state.value}
+                        onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
+                        placeholder="e.g., Week 1 - Feature Development"
+                        className="h-10"
                       />
+                      {field.state.meta.errors &&
+                        field.state.meta.errors.length > 0 && (
+                          <p className="text-sm text-destructive">
+                            {field.state.meta.errors[0]}
+                          </p>
+                        )}
                     </div>
                   )}
                 </form.Field>
 
-                <form.Field name="endDate">
+                <form.Field name="description">
                   {(field) => (
                     <div className="space-y-2">
-                      <label
-                        htmlFor={field.name}
-                        className="text-sm font-medium"
-                      >
-                        End Date
+                      <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Description
                       </label>
-                      <Input
+                      <textarea
                         id={field.name}
-                        type="date"
                         value={field.state.value}
                         onChange={(e) => field.handleChange(e.target.value)}
+                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                        placeholder="Optional notes about this time sheet"
+                        rows={3}
                       />
                     </div>
                   )}
                 </form.Field>
               </div>
 
-              <form.Field
-                name="organisationId"
-                validators={{
-                  onChange: ({ value }) =>
-                    !value ? 'Organisation is required' : undefined,
-                }}
-              >
-                {(field) => (
-                  <div className="space-y-2">
-                    <label htmlFor={field.name} className="text-sm font-medium">
-                      Organisation *
-                    </label>
-                    <select
-                      id={field.name}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        field.handleChange(value)
-                        // Clear account if it doesn't belong to the new org
-                        if (selectedAccountId) {
-                          const account = accounts.find((a: any) => a.id === selectedAccountId)
-                          if (account?.organisationId !== value) {
-                            form.setFieldValue('accountId', '')
-                            setSelectedAccountId('')
-                          }
-                        }
-                        setSelectedOrgId(value)
-                        setSelectedEntryIds(new Set())
-                      }}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                    >
-                      <option value="">Select organisation...</option>
-                      {organisations.map((org: any) => (
-                        <option key={org.id} value={org.id}>
-                          {org.name}
-                        </option>
-                      ))}
-                    </select>
-                    {field.state.meta.errors &&
-                      field.state.meta.errors.length > 0 && (
-                        <p className="text-sm text-red-500">
-                          {field.state.meta.errors[0]}
-                        </p>
-                      )}
-                  </div>
-                )}
-              </form.Field>
+              {/* Date Range */}
+              <div className="space-y-4">
+                <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+                  Date Range
+                </h3>
 
-              <form.Field name="accountId">
-                {(field) => {
-                  const selectedOrg = form.getFieldValue('organisationId')
-                  const availableAccounts = selectedOrg
-                    ? accounts.filter(
-                        (a: any) => a.organisationId === selectedOrg
-                      )
-                    : accounts
+                <div className="grid grid-cols-2 gap-4">
+                  <form.Field name="startDate">
+                    {(field) => (
+                      <div className="space-y-2">
+                        <label
+                          htmlFor={field.name}
+                          className="text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                        >
+                          Start Date
+                        </label>
+                        <Input
+                          id={field.name}
+                          type="date"
+                          value={field.state.value}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          className="h-10"
+                        />
+                      </div>
+                    )}
+                  </form.Field>
 
-                  return (
+                  <form.Field name="endDate">
+                    {(field) => (
+                      <div className="space-y-2">
+                        <label
+                          htmlFor={field.name}
+                          className="text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                        >
+                          End Date
+                        </label>
+                        <Input
+                          id={field.name}
+                          type="date"
+                          value={field.state.value}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          className="h-10"
+                        />
+                      </div>
+                    )}
+                  </form.Field>
+                </div>
+              </div>
+
+              {/* Assignment */}
+              <div className="space-y-4">
+                <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+                  Assignment
+                </h3>
+
+                <form.Field
+                  name="organisationId"
+                  validators={{
+                    onChange: ({ value }) =>
+                      !value ? 'Organisation is required' : undefined,
+                  }}
+                >
+                  {(field) => (
                     <div className="space-y-2">
-                      <label
-                        htmlFor={field.name}
-                        className="text-sm font-medium"
-                      >
-                        Account (optional)
+                      <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Organisation *
                       </label>
                       <select
                         id={field.name}
                         value={field.state.value}
+                        onBlur={field.handleBlur}
                         onChange={(e) => {
                           const value = e.target.value
                           field.handleChange(value)
-                          setSelectedAccountId(value)
-                          // Bidirectional: auto-fill organisation from account
-                          if (value) {
-                            const account = accounts.find((a: any) => a.id === value)
-                            if (account && account.organisationId !== selectedOrg) {
-                              form.setFieldValue('organisationId', account.organisationId)
-                              setSelectedOrgId(account.organisationId)
-                              setSelectedEntryIds(new Set())
+                          // Clear account if it doesn't belong to the new org
+                          if (selectedAccountId) {
+                            const account = accounts.find((a: any) => a.id === selectedAccountId)
+                            if (account?.organisationId !== value) {
+                              form.setFieldValue('accountId', '')
+                              setSelectedAccountId('')
                             }
                           }
+                          setSelectedOrgId(value)
+                          setSelectedEntryIds(new Set())
                         }}
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                       >
-                        <option value="">None</option>
-                        {availableAccounts.map((acc: any) => (
-                          <option key={acc.id} value={acc.id}>
-                            {acc.name} ({acc.email})
+                        <option value="">Select organisation...</option>
+                        {organisations.map((org: any) => (
+                          <option key={org.id} value={org.id}>
+                            {org.name}
                           </option>
                         ))}
                       </select>
+                      {field.state.meta.errors &&
+                        field.state.meta.errors.length > 0 && (
+                          <p className="text-sm text-destructive">
+                            {field.state.meta.errors[0]}
+                          </p>
+                        )}
                     </div>
-                  )
-                }}
-              </form.Field>
+                  )}
+                </form.Field>
+
+                <form.Field name="accountId">
+                  {(field) => {
+                    const selectedOrg = form.getFieldValue('organisationId')
+                    const availableAccounts = selectedOrg
+                      ? accounts.filter(
+                          (a: any) => a.organisationId === selectedOrg
+                        )
+                      : accounts
+
+                    return (
+                      <div className="space-y-2">
+                        <label
+                          htmlFor={field.name}
+                          className="text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                        >
+                          Account
+                        </label>
+                        <select
+                          id={field.name}
+                          value={field.state.value}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            field.handleChange(value)
+                            setSelectedAccountId(value)
+                            // Bidirectional: auto-fill organisation from account
+                            if (value) {
+                              const account = accounts.find((a: any) => a.id === value)
+                              if (account && account.organisationId !== selectedOrg) {
+                                form.setFieldValue('organisationId', account.organisationId)
+                                setSelectedOrgId(account.organisationId)
+                                setSelectedEntryIds(new Set())
+                              }
+                            }
+                          }}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                        >
+                          <option value="">None</option>
+                          {availableAccounts.map((acc: any) => (
+                            <option key={acc.id} value={acc.id}>
+                              {acc.name} ({acc.email})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )
+                  }}
+                </form.Field>
+              </div>
 
               {/* Time Entry Selection */}
               {selectedOrgId && (
-                <div className="space-y-3 pt-4 border-t">
+                <div className="space-y-4">
+                  <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+                    Time Entries
+                  </h3>
+
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">
-                      Select Time Entries ({availableEntries.length} available)
-                    </label>
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Select Entries ({availableEntries.length} available)
+                    </span>
                     {availableEntries.length > 0 && (
                       <Button
                         type="button"
@@ -864,16 +901,17 @@ function AddTimeSheetDialog({
           </div>
         </ScrollArea>
 
-        <DialogFooter className="px-6 pb-6">
+        <div className="flex gap-3 justify-end px-6 py-4 border-t border-border/40 bg-muted/30">
           <Button
             type="button"
             variant="outline"
+            size="sm"
             onClick={() => setOpen(false)}
           >
             Cancel
           </Button>
-          <Button onClick={() => form.handleSubmit()}>Create Time Sheet</Button>
-        </DialogFooter>
+          <Button size="sm" onClick={() => form.handleSubmit()}>Create Time Sheet</Button>
+        </div>
       </DialogContent>
     </Dialog>
   )

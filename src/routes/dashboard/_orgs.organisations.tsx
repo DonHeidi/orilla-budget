@@ -25,13 +25,13 @@ import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 
 const parentRouteApi = getRouteApi('/dashboard/_orgs')
 
@@ -293,7 +293,7 @@ function OrganisationsPage() {
       </div>
 
       <div className="flex justify-end mb-4">
-        <AddOrganisationSheet />
+        <AddOrganisationDialog />
       </div>
 
       <DataTable
@@ -313,7 +313,7 @@ function OrganisationsPage() {
   )
 }
 
-function AddOrganisationSheet() {
+function AddOrganisationDialog() {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
 
@@ -347,26 +347,36 @@ function AddOrganisationSheet() {
   }
 
   return (
-    <Sheet
+    <Dialog
       open={open}
       onOpenChange={(open) => {
         if (!open) handleClose()
         else setOpen(open)
       }}
     >
-      <SheetTrigger asChild>
+      <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
           Add Organisation
         </Button>
-      </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
-        <SheetHeader className="space-y-3 pb-6 border-b">
-          <SheetTitle>Add Organisation</SheetTitle>
-          <SheetDescription>
-            Create a new organisation to manage accounts and budgets
-          </SheetDescription>
-        </SheetHeader>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px] p-0">
+        {/* Header */}
+        <DialogHeader className="px-6 py-5 border-b border-border/40">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-muted">
+              <Building2 className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="font-display text-lg tracking-wide">
+                Add Organisation
+              </DialogTitle>
+              <DialogDescription className="mt-1">
+                Create a new organisation to manage accounts and budgets
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
 
         <form
           onSubmit={(e) => {
@@ -374,104 +384,124 @@ function AddOrganisationSheet() {
             e.stopPropagation()
             form.handleSubmit()
           }}
-          className="space-y-6 py-6 px-1"
+          className="px-6 py-6 space-y-6"
         >
-          <form.Field name="name">
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Organisation Name *
-                </label>
-                <Input
-                  id={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="e.g., Google Inc."
-                />
-                {field.state.meta.errors &&
-                  field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors
-                        .map((err) =>
-                          typeof err === 'string'
-                            ? err
-                            : err.message || JSON.stringify(err)
-                        )
-                        .join(', ')}
-                    </p>
-                  )}
-              </div>
-            )}
-          </form.Field>
+          {/* Organisation Details */}
+          <div className="space-y-4">
+            <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+              Organisation Details
+            </h3>
 
-          <form.Field name="contactName">
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Contact Name *
-                </label>
-                <Input
-                  id={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="e.g., Sundar Pichai"
-                />
-                {field.state.meta.errors &&
-                  field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors
-                        .map((err) =>
-                          typeof err === 'string'
-                            ? err
-                            : err.message || JSON.stringify(err)
-                        )
-                        .join(', ')}
-                    </p>
-                  )}
-              </div>
-            )}
-          </form.Field>
+            <form.Field name="name">
+              {(field) => (
+                <div className="space-y-2">
+                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Organisation Name *
+                  </label>
+                  <Input
+                    id={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="e.g., Google Inc."
+                    className="h-10"
+                  />
+                  {field.state.meta.errors &&
+                    field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors
+                          .map((err) =>
+                            typeof err === 'string'
+                              ? err
+                              : err.message || JSON.stringify(err)
+                          )
+                          .join(', ')}
+                      </p>
+                    )}
+                </div>
+              )}
+            </form.Field>
+          </div>
 
-          <form.Field name="contactEmail">
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Contact Email *
-                </label>
-                <Input
-                  id={field.name}
-                  type="email"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="e.g., sundar@google.com"
-                />
-                {field.state.meta.errors &&
-                  field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors
-                        .map((err) =>
-                          typeof err === 'string'
-                            ? err
-                            : err.message || JSON.stringify(err)
-                        )
-                        .join(', ')}
-                    </p>
-                  )}
-              </div>
-            )}
-          </form.Field>
+          {/* Contact Information */}
+          <div className="space-y-4">
+            <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+              Contact Information
+            </h3>
 
-          <div className="flex gap-3 justify-end pt-6 border-t">
-            <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
-            <Button type="submit">Create Organisation</Button>
+            <form.Field name="contactName">
+              {(field) => (
+                <div className="space-y-2">
+                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Contact Name *
+                  </label>
+                  <Input
+                    id={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="e.g., Sundar Pichai"
+                    className="h-10"
+                  />
+                  {field.state.meta.errors &&
+                    field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors
+                          .map((err) =>
+                            typeof err === 'string'
+                              ? err
+                              : err.message || JSON.stringify(err)
+                          )
+                          .join(', ')}
+                      </p>
+                    )}
+                </div>
+              )}
+            </form.Field>
+
+            <form.Field name="contactEmail">
+              {(field) => (
+                <div className="space-y-2">
+                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Contact Email *
+                  </label>
+                  <Input
+                    id={field.name}
+                    type="email"
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="e.g., sundar@google.com"
+                    className="h-10"
+                  />
+                  {field.state.meta.errors &&
+                    field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors
+                          .map((err) =>
+                            typeof err === 'string'
+                              ? err
+                              : err.message || JSON.stringify(err)
+                          )
+                          .join(', ')}
+                      </p>
+                    )}
+                </div>
+              )}
+            </form.Field>
           </div>
         </form>
-      </SheetContent>
-    </Sheet>
+
+        {/* Footer */}
+        <div className="flex gap-3 justify-end px-6 py-4 border-t border-border/40 bg-muted/30">
+          <Button type="button" variant="outline" size="sm" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button type="submit" size="sm" onClick={() => form.handleSubmit()}>
+            Create Organisation
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

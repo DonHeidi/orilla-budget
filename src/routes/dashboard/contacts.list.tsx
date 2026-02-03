@@ -20,13 +20,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import type { ContactWithDetails } from '@/repositories/contact.repository'
 
 interface ContactsData {
@@ -150,7 +150,7 @@ function ContactsListPage() {
   return (
     <>
       <div className="flex justify-end mb-4">
-        <AddContactSheet organisations={data.organisations} />
+        <AddContactDialog organisations={data.organisations} />
       </div>
 
       <DataTable
@@ -170,7 +170,7 @@ function ContactsListPage() {
   )
 }
 
-function AddContactSheet({
+function AddContactDialog({
   organisations,
 }: {
   organisations: { id: string; name: string }[]
@@ -208,27 +208,36 @@ function AddContactSheet({
   }
 
   return (
-    <Sheet
+    <Dialog
       open={open}
       onOpenChange={(open) => {
         if (!open) handleClose()
         else setOpen(open)
       }}
     >
-      <SheetTrigger asChild>
+      <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
           Add Contact
         </Button>
-      </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
-        <SheetHeader className="space-y-3 pb-6 border-b">
-          <SheetTitle>Add Contact</SheetTitle>
-          <SheetDescription>
-            Add a new contact to your address book. You can invite them to
-            projects later.
-          </SheetDescription>
-        </SheetHeader>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px] p-0">
+        {/* Header */}
+        <DialogHeader className="px-6 py-5 border-b border-border/40">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-muted">
+              <User className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="font-display text-lg tracking-wide">
+                Add Contact
+              </DialogTitle>
+              <DialogDescription className="mt-1">
+                Add a new contact to your address book
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
 
         <form
           onSubmit={(e) => {
@@ -236,102 +245,112 @@ function AddContactSheet({
             e.stopPropagation()
             form.handleSubmit()
           }}
-          className="space-y-6 py-6 px-1"
+          className="px-6 py-6 space-y-6"
         >
-          <form.Field
-            name="email"
-            validators={{
-              onChange: createContactSchema.shape.email,
-            }}
-          >
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Email *
-                </label>
-                <Input
-                  id={field.name}
-                  type="email"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="e.g., contact@example.com"
-                />
-                {field.state.meta.isTouched &&
-                  field.state.meta.errors &&
-                  field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors
-                        .map((err) =>
-                          typeof err === 'string'
-                            ? err
-                            : err.message || JSON.stringify(err)
-                        )
-                        .join(', ')}
-                    </p>
-                  )}
-              </div>
-            )}
-          </form.Field>
+          {/* Contact Details */}
+          <div className="space-y-4">
+            <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+              Contact Details
+            </h3>
 
-          <form.Field name="name">
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Name
-                </label>
-                <Input
-                  id={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="e.g., John Doe"
-                />
-              </div>
-            )}
-          </form.Field>
-
-          <form.Field name="organisationId">
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Organisation
-                </label>
-                <Select
-                  value={field.state.value}
-                  onValueChange={field.handleChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select organisation (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {organisations.map((org) => (
-                      <SelectItem key={org.id} value={org.id}>
-                        {org.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </form.Field>
-
-          <div className="flex gap-3 justify-end pt-6 border-t">
-            <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
-            <form.Subscribe
-              selector={(state) => [state.canSubmit, state.isSubmitting]}
+            <form.Field
+              name="email"
+              validators={{
+                onChange: createContactSchema.shape.email,
+              }}
             >
-              {([canSubmit, isSubmitting]) => (
-                <Button type="submit" disabled={!canSubmit || isSubmitting}>
-                  {isSubmitting ? 'Adding...' : 'Add Contact'}
-                </Button>
+              {(field) => (
+                <div className="space-y-2">
+                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Email *
+                  </label>
+                  <Input
+                    id={field.name}
+                    type="email"
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="e.g., contact@example.com"
+                    className="h-10"
+                  />
+                  {field.state.meta.isTouched &&
+                    field.state.meta.errors &&
+                    field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors
+                          .map((err) =>
+                            typeof err === 'string'
+                              ? err
+                              : err.message || JSON.stringify(err)
+                          )
+                          .join(', ')}
+                      </p>
+                    )}
+                </div>
               )}
-            </form.Subscribe>
+            </form.Field>
+
+            <form.Field name="name">
+              {(field) => (
+                <div className="space-y-2">
+                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Name
+                  </label>
+                  <Input
+                    id={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="e.g., John Doe"
+                    className="h-10"
+                  />
+                </div>
+              )}
+            </form.Field>
+
+            <form.Field name="organisationId">
+              {(field) => (
+                <div className="space-y-2">
+                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Organisation
+                  </label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={field.handleChange}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Select organisation (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {organisations.map((org) => (
+                        <SelectItem key={org.id} value={org.id}>
+                          {org.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </form.Field>
           </div>
         </form>
-      </SheetContent>
-    </Sheet>
+
+        {/* Footer */}
+        <div className="flex gap-3 justify-end px-6 py-4 border-t border-border/40 bg-muted/30">
+          <Button type="button" variant="outline" size="sm" onClick={handleClose}>
+            Cancel
+          </Button>
+          <form.Subscribe
+            selector={(state) => [state.canSubmit, state.isSubmitting]}
+          >
+            {([canSubmit, isSubmitting]) => (
+              <Button type="submit" size="sm" disabled={!canSubmit || isSubmitting} onClick={() => form.handleSubmit()}>
+                {isSubmitting ? 'Adding...' : 'Add Contact'}
+              </Button>
+            )}
+          </form.Subscribe>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

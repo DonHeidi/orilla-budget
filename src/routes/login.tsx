@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
+import { LogIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -45,35 +46,42 @@ function LoginPage() {
   })
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
-          <CardDescription>
-            Enter your credentials to access your account
-          </CardDescription>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md shadow-card">
+        <CardHeader className="space-y-4 pb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <LogIn className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="font-display text-2xl tracking-wide">Sign in</CardTitle>
+              <CardDescription className="mt-1">
+                Enter your credentials to access your account
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+          {error && (
+            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg border border-destructive/20">
+              {error}
+            </div>
+          )}
+
           <form
             onSubmit={(e) => {
               e.preventDefault()
               e.stopPropagation()
               form.handleSubmit()
             }}
-            className="space-y-4"
+            className="space-y-5"
           >
-            {error && (
-              <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-                {error}
-              </div>
-            )}
-
             <form.Field name="email">
               {(field) => (
                 <div className="space-y-2">
                   <label
                     htmlFor={field.name}
-                    className="text-sm font-medium leading-none"
+                    className="text-xs font-medium text-muted-foreground uppercase tracking-wider"
                   >
                     Email
                   </label>
@@ -85,6 +93,7 @@ function LoginPage() {
                     onChange={(e) => field.handleChange(e.target.value)}
                     onBlur={field.handleBlur}
                     autoComplete="email"
+                    className="h-11"
                   />
                 </div>
               )}
@@ -95,7 +104,7 @@ function LoginPage() {
                 <div className="space-y-2">
                   <label
                     htmlFor={field.name}
-                    className="text-sm font-medium leading-none"
+                    className="text-xs font-medium text-muted-foreground uppercase tracking-wider"
                   >
                     Password
                   </label>
@@ -107,6 +116,7 @@ function LoginPage() {
                     onChange={(e) => field.handleChange(e.target.value)}
                     onBlur={field.handleBlur}
                     autoComplete="current-password"
+                    className="h-11"
                   />
                 </div>
               )}
@@ -116,7 +126,7 @@ function LoginPage() {
               selector={(state) => [state.isSubmitting]}
             >
               {([isSubmitting]) => (
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button type="submit" className="w-full h-11 font-medium" disabled={isSubmitting}>
                   {isSubmitting ? 'Signing in...' : 'Sign in'}
                 </Button>
               )}

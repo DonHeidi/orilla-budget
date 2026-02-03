@@ -16,13 +16,13 @@ import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 
 const getProjectsDataFn = createServerFn({ method: 'GET' }).handler(
   async () => {
@@ -277,7 +277,7 @@ function ProjectsPage() {
       </div>
 
       <div className="flex justify-end mb-4">
-        <AddProjectSheet organisations={data.organisations} />
+        <AddProjectDialog organisations={data.organisations} />
       </div>
 
       <DataTable
@@ -297,7 +297,7 @@ function ProjectsPage() {
   )
 }
 
-function AddProjectSheet({ organisations }: { organisations: any[] }) {
+function AddProjectDialog({ organisations }: { organisations: any[] }) {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
 
@@ -335,26 +335,36 @@ function AddProjectSheet({ organisations }: { organisations: any[] }) {
   }
 
   return (
-    <Sheet
+    <Dialog
       open={open}
       onOpenChange={(open) => {
         if (!open) handleClose()
         else setOpen(open)
       }}
     >
-      <SheetTrigger asChild>
+      <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
           Add Project
         </Button>
-      </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
-        <SheetHeader className="space-y-3 pb-6 border-b">
-          <SheetTitle>Add Project</SheetTitle>
-          <SheetDescription>
-            Create a new project to track time and budget
-          </SheetDescription>
-        </SheetHeader>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col p-0">
+        {/* Header */}
+        <DialogHeader className="px-6 py-5 border-b border-border/40">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-muted">
+              <FolderKanban className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="font-display text-lg tracking-wide">
+                Add Project
+              </DialogTitle>
+              <DialogDescription className="mt-1">
+                Create a new project to track time and budget
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
 
         <form
           onSubmit={(e) => {
@@ -362,199 +372,216 @@ function AddProjectSheet({ organisations }: { organisations: any[] }) {
             e.stopPropagation()
             form.handleSubmit()
           }}
-          className="space-y-6 py-6 px-1"
+          className="px-6 py-6 space-y-6 overflow-y-auto flex-1"
         >
-          <form.Field name="organisationId">
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Organisation
-                </label>
-                <select
-                  id={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                >
-                  <option value="">Personal (no organisation)</option>
-                  {organisations.map((org: any) => (
-                    <option key={org.id} value={org.id}>
-                      {org.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </form.Field>
+          {/* Project Details */}
+          <div className="space-y-4">
+            <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+              Project Details
+            </h3>
 
-          <form.Field
-            name="name"
-            validators={{
-              onChange: createProjectSchema.shape.name,
-            }}
-          >
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Project Name *
-                </label>
-                <Input
-                  id={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="e.g., Website Redesign"
-                />
-                {field.state.meta.isTouched &&
-                  field.state.meta.errors &&
-                  field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors
-                        .map((err) =>
-                          typeof err === 'string'
-                            ? err
-                            : err.message || JSON.stringify(err)
-                        )
-                        .join(', ')}
-                    </p>
-                  )}
-              </div>
-            )}
-          </form.Field>
-
-          <form.Field name="description">
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Description
-                </label>
-                <textarea
-                  id={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                  placeholder="Describe the project..."
-                  rows={3}
-                />
-                {field.state.meta.isTouched &&
-                  field.state.meta.errors &&
-                  field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors
-                        .map((err) =>
-                          typeof err === 'string'
-                            ? err
-                            : err.message || JSON.stringify(err)
-                        )
-                        .join(', ')}
-                    </p>
-                  )}
-              </div>
-            )}
-          </form.Field>
-
-          <form.Field name="category">
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Category *
-                </label>
-                <select
-                  id={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) =>
-                    field.handleChange(e.target.value as 'budget' | 'fixed')
-                  }
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                >
-                  <option value="budget">Budget (Time & Materials)</option>
-                  <option value="fixed">Fixed Price</option>
-                </select>
-                {field.state.meta.isTouched &&
-                  field.state.meta.errors &&
-                  field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors
-                        .map((err) =>
-                          typeof err === 'string'
-                            ? err
-                            : err.message || JSON.stringify(err)
-                        )
-                        .join(', ')}
-                    </p>
-                  )}
-              </div>
-            )}
-          </form.Field>
-
-          <form.Subscribe selector={(state) => state.values.category}>
-            {(category) =>
-              category === 'budget' && (
-                <form.Field
-                  name="budgetHours"
-                  validators={{
-                    onChange: createProjectSchema.shape.budgetHours,
-                  }}
-                >
-                  {(field) => (
-                    <div className="space-y-2">
-                      <label
-                        htmlFor={field.name}
-                        className="text-sm font-medium"
-                      >
-                        Budget (hours) *
-                      </label>
-                      <Input
-                        id={field.name}
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        value={field.state.value || 0}
-                        onBlur={field.handleBlur}
-                        onChange={(e) =>
-                          field.handleChange(parseFloat(e.target.value) || 0)
-                        }
-                        placeholder="e.g., 40"
-                      />
-                      {field.state.meta.isTouched &&
-                        field.state.meta.errors &&
-                        field.state.meta.errors.length > 0 && (
-                          <p className="text-sm text-red-500">
-                            {field.state.meta.errors
-                              .map((err) =>
-                                typeof err === 'string'
-                                  ? err
-                                  : err.message || JSON.stringify(err)
-                              )
-                              .join(', ')}
-                          </p>
-                        )}
-                    </div>
-                  )}
-                </form.Field>
-              )
-            }
-          </form.Subscribe>
-
-          <div className="flex gap-3 justify-end pt-6 border-t">
-            <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
-            <form.Subscribe
-              selector={(state) => [state.canSubmit, state.isSubmitting]}
+            <form.Field
+              name="name"
+              validators={{
+                onChange: createProjectSchema.shape.name,
+              }}
             >
-              {([canSubmit, isSubmitting]) => (
-                <Button type="submit" disabled={!canSubmit || isSubmitting}>
-                  {isSubmitting ? 'Creating...' : 'Create Project'}
-                </Button>
+              {(field) => (
+                <div className="space-y-2">
+                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Project Name *
+                  </label>
+                  <Input
+                    id={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="e.g., Website Redesign"
+                    className="h-10"
+                  />
+                  {field.state.meta.isTouched &&
+                    field.state.meta.errors &&
+                    field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors
+                          .map((err) =>
+                            typeof err === 'string'
+                              ? err
+                              : err.message || JSON.stringify(err)
+                          )
+                          .join(', ')}
+                      </p>
+                    )}
+                </div>
               )}
+            </form.Field>
+
+            <form.Field name="description">
+              {(field) => (
+                <div className="space-y-2">
+                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Description
+                  </label>
+                  <textarea
+                    id={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                    placeholder="Describe the project..."
+                    rows={3}
+                  />
+                  {field.state.meta.isTouched &&
+                    field.state.meta.errors &&
+                    field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors
+                          .map((err) =>
+                            typeof err === 'string'
+                              ? err
+                              : err.message || JSON.stringify(err)
+                          )
+                          .join(', ')}
+                      </p>
+                    )}
+                </div>
+              )}
+            </form.Field>
+
+            <form.Field name="organisationId">
+              {(field) => (
+                <div className="space-y-2">
+                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Organisation
+                  </label>
+                  <select
+                    id={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <option value="">Personal (no organisation)</option>
+                    {organisations.map((org: any) => (
+                      <option key={org.id} value={org.id}>
+                        {org.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </form.Field>
+          </div>
+
+          {/* Budget Settings */}
+          <div className="space-y-4">
+            <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+              Budget Settings
+            </h3>
+
+            <form.Field name="category">
+              {(field) => (
+                <div className="space-y-2">
+                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Category *
+                  </label>
+                  <select
+                    id={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) =>
+                      field.handleChange(e.target.value as 'budget' | 'fixed')
+                    }
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <option value="budget">Budget (Time & Materials)</option>
+                    <option value="fixed">Fixed Price</option>
+                  </select>
+                  {field.state.meta.isTouched &&
+                    field.state.meta.errors &&
+                    field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors
+                          .map((err) =>
+                            typeof err === 'string'
+                              ? err
+                              : err.message || JSON.stringify(err)
+                          )
+                          .join(', ')}
+                      </p>
+                    )}
+                </div>
+              )}
+            </form.Field>
+
+            <form.Subscribe selector={(state) => state.values.category}>
+              {(category) =>
+                category === 'budget' && (
+                  <form.Field
+                    name="budgetHours"
+                    validators={{
+                      onChange: createProjectSchema.shape.budgetHours,
+                    }}
+                  >
+                    {(field) => (
+                      <div className="space-y-2">
+                        <label
+                          htmlFor={field.name}
+                          className="text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                        >
+                          Budget (hours) *
+                        </label>
+                        <Input
+                          id={field.name}
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          value={field.state.value || 0}
+                          onBlur={field.handleBlur}
+                          onChange={(e) =>
+                            field.handleChange(parseFloat(e.target.value) || 0)
+                          }
+                          placeholder="e.g., 40"
+                          className="h-10"
+                        />
+                        {field.state.meta.isTouched &&
+                          field.state.meta.errors &&
+                          field.state.meta.errors.length > 0 && (
+                            <p className="text-sm text-destructive">
+                              {field.state.meta.errors
+                                .map((err) =>
+                                  typeof err === 'string'
+                                    ? err
+                                    : err.message || JSON.stringify(err)
+                                )
+                                .join(', ')}
+                            </p>
+                          )}
+                      </div>
+                    )}
+                  </form.Field>
+                )
+              }
             </form.Subscribe>
           </div>
         </form>
-      </SheetContent>
-    </Sheet>
+
+        {/* Footer */}
+        <div className="flex gap-3 justify-end px-6 py-4 border-t border-border/40 bg-muted/30">
+          <Button type="button" variant="outline" size="sm" onClick={handleClose}>
+            Cancel
+          </Button>
+          <form.Subscribe
+            selector={(state) => [state.canSubmit, state.isSubmitting]}
+          >
+            {([canSubmit, isSubmitting]) => (
+              <Button type="submit" size="sm" disabled={!canSubmit || isSubmitting} onClick={() => form.handleSubmit()}>
+                {isSubmitting ? 'Creating...' : 'Create Project'}
+              </Button>
+            )}
+          </form.Subscribe>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

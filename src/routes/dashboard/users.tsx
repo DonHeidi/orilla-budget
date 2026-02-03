@@ -15,13 +15,13 @@ import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 
 const getUsersDataFn = createServerFn({ method: 'GET' }).handler(async () => {
   const users = await userRepository.findAll()
@@ -111,7 +111,7 @@ function UsersPage() {
       </div>
 
       <div className="flex justify-end mb-4">
-        <AddUserSheet />
+        <AddUserDialog />
       </div>
 
       <DataTable
@@ -133,7 +133,7 @@ interface InvitationResult {
   invitation: Invitation
 }
 
-function AddUserSheet() {
+function AddUserDialog() {
   const [open, setOpen] = useState(false)
   const [invitationResult, setInvitationResult] = useState<InvitationResult | null>(null)
   const [copied, setCopied] = useState(false)
@@ -187,31 +187,41 @@ function AddUserSheet() {
   }
 
   return (
-    <Sheet
+    <Dialog
       open={open}
       onOpenChange={(isOpen) => {
         if (!isOpen) handleClose()
         else setOpen(isOpen)
       }}
     >
-      <SheetTrigger asChild>
+      <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
           Invite User
         </Button>
-      </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
-        <SheetHeader className="space-y-3 pb-6 border-b">
-          <SheetTitle>Invite User</SheetTitle>
-          <SheetDescription>
-            Send an invitation to a new user to join the platform
-          </SheetDescription>
-        </SheetHeader>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px] p-0">
+        {/* Header */}
+        <DialogHeader className="px-6 py-5 border-b border-border/40">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-muted">
+              <Users className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="font-display text-lg tracking-wide">
+                Invite User
+              </DialogTitle>
+              <DialogDescription className="mt-1">
+                Send an invitation to a new user to join the platform
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
 
         {invitationResult ? (
-          <div className="space-y-6 py-6">
+          <div className="px-6 py-6 space-y-6">
             <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg border border-green-200 dark:border-green-800">
-              <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
+              <h3 className="font-display text-base tracking-wide text-green-800 dark:text-green-200 mb-2">
                 Invitation Created!
               </h3>
               <p className="text-sm text-green-700 dark:text-green-300 mb-4">
@@ -239,10 +249,6 @@ function AddUserSheet() {
                 This invitation expires in 7 days.
               </p>
             </div>
-
-            <div className="flex justify-end pt-6 border-t">
-              <Button onClick={handleDone}>Done</Button>
-            </div>
           </div>
         ) : (
           <form
@@ -251,84 +257,100 @@ function AddUserSheet() {
               e.stopPropagation()
               form.handleSubmit()
             }}
-            className="space-y-6 py-6 px-1"
+            className="px-6 py-6 space-y-6"
           >
             {error && (
-              <div className="bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 p-3 rounded-lg border border-red-200 dark:border-red-800 text-sm">
+              <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg border border-destructive/20">
                 {error}
               </div>
             )}
 
-            <form.Field
-              name="email"
-              validators={{
-                onChange: inviteUserSchema.shape.email,
-              }}
-            >
-              {(field) => (
-                <div className="space-y-2">
-                  <label htmlFor={field.name} className="text-sm font-medium">
-                    Email *
-                  </label>
-                  <Input
-                    id={field.name}
-                    type="email"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="e.g., john@example.com"
-                  />
-                  {field.state.meta.isTouched &&
-                    field.state.meta.errors &&
-                    field.state.meta.errors.length > 0 && (
-                      <p className="text-sm text-red-500">
-                        {field.state.meta.errors
-                          .map((err) =>
-                            typeof err === 'string'
-                              ? err
-                              : err.message || JSON.stringify(err)
-                          )
-                          .join(', ')}
-                      </p>
-                    )}
-                </div>
-              )}
-            </form.Field>
+            {/* User Details */}
+            <div className="space-y-4">
+              <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+                User Details
+              </h3>
 
-            <form.Field name="name">
-              {(field) => (
-                <div className="space-y-2">
-                  <label htmlFor={field.name} className="text-sm font-medium">
-                    Name <span className="text-gray-400">(optional)</span>
-                  </label>
-                  <Input
-                    id={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="e.g., John Doe"
-                  />
-                </div>
-              )}
-            </form.Field>
+              <form.Field
+                name="email"
+                validators={{
+                  onChange: inviteUserSchema.shape.email,
+                }}
+              >
+                {(field) => (
+                  <div className="space-y-2">
+                    <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Email *
+                    </label>
+                    <Input
+                      id={field.name}
+                      type="email"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="e.g., john@example.com"
+                      className="h-10"
+                    />
+                    {field.state.meta.isTouched &&
+                      field.state.meta.errors &&
+                      field.state.meta.errors.length > 0 && (
+                        <p className="text-sm text-destructive">
+                          {field.state.meta.errors
+                            .map((err) =>
+                              typeof err === 'string'
+                                ? err
+                                : err.message || JSON.stringify(err)
+                            )
+                            .join(', ')}
+                        </p>
+                      )}
+                  </div>
+                )}
+              </form.Field>
 
-            <div className="flex gap-3 justify-end pt-6 border-t">
-              <Button type="button" variant="outline" onClick={handleClose}>
+              <form.Field name="name">
+                {(field) => (
+                  <div className="space-y-2">
+                    <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Name
+                    </label>
+                    <Input
+                      id={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="e.g., John Doe"
+                      className="h-10"
+                    />
+                  </div>
+                )}
+              </form.Field>
+            </div>
+          </form>
+        )}
+
+        {/* Footer */}
+        <div className="flex gap-3 justify-end px-6 py-4 border-t border-border/40 bg-muted/30">
+          {invitationResult ? (
+            <Button size="sm" onClick={handleDone}>Done</Button>
+          ) : (
+            <>
+              <Button type="button" variant="outline" size="sm" onClick={handleClose}>
                 Cancel
               </Button>
               <form.Subscribe
                 selector={(state) => [state.canSubmit, state.isSubmitting]}
               >
                 {([canSubmit, isSubmitting]) => (
-                  <Button type="submit" disabled={!canSubmit || isSubmitting}>
+                  <Button type="submit" size="sm" disabled={!canSubmit || isSubmitting} onClick={() => form.handleSubmit()}>
                     {isSubmitting ? 'Creating...' : 'Send Invitation'}
                   </Button>
                 )}
               </form.Subscribe>
-            </div>
-          </form>
-        )}
-      </SheetContent>
-    </Sheet>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
