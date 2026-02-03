@@ -9,8 +9,16 @@ import { useState, useRef, useEffect } from 'react'
 import { Users, Mail, Building2, Key, UserCog } from 'lucide-react'
 import { accountRepository } from '@/repositories/account.repository'
 import type { Account } from '@/schemas'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Sheet,
   SheetContent,
@@ -92,19 +100,20 @@ function AccountDetailPage() {
           }
         }}
       >
-        <SheetContent className="w-full sm:max-w-[600px]">
-          <SheetHeader>
+        <SheetContent className="w-full sm:max-w-[540px] p-0">
+          <SheetHeader className="px-6 py-5 border-b border-border/40">
             <SheetTitle>Error</SheetTitle>
             <SheetDescription>Account not found</SheetDescription>
           </SheetHeader>
-          <div className="py-6">
-            <p className="text-gray-500">
+          <div className="px-6 py-6">
+            <p className="text-muted-foreground">
               The requested account could not be found.
             </p>
           </div>
-          <div className="flex gap-3 justify-end pt-6 border-t">
+          <div className="flex gap-3 justify-end px-6 py-4 border-t border-border/40 bg-muted/30">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => navigate({ to: '/dashboard/accounts' })}
             >
               Back to List
@@ -158,6 +167,17 @@ function AccountDetailPage() {
     setEditedValues((prev) => ({ ...prev, [fieldName]: value }))
   }
 
+  const getRoleLabel = (role: string | null | undefined) => {
+    switch (role) {
+      case 'project_manager':
+        return 'Project Manager'
+      case 'finance':
+        return 'Finance/Controller'
+      default:
+        return 'Contact'
+    }
+  }
+
   return (
     <Sheet
       open={true}
@@ -167,137 +187,184 @@ function AccountDetailPage() {
         }
       }}
     >
-      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
-        <SheetHeader className="space-y-3 pb-6 border-b">
-          <SheetTitle>Account Details</SheetTitle>
-          <SheetDescription>
-            View and edit detailed information about this account
-          </SheetDescription>
+      <SheetContent className="w-full sm:max-w-[540px] overflow-y-auto p-0">
+        {/* Header */}
+        <SheetHeader className="px-6 py-5 border-b border-border/40">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-muted">
+              <Users className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <SheetTitle className="font-display text-lg tracking-wide">
+                {currentValues.name}
+              </SheetTitle>
+              <SheetDescription className="mt-1">
+                {currentValues.email}
+              </SheetDescription>
+            </div>
+            <Badge variant="secondary">
+              {getRoleLabel(currentValues.role)}
+            </Badge>
+          </div>
         </SheetHeader>
 
-        <div className="space-y-6 py-6">
+        <div className="px-6 py-6 space-y-6">
+          {/* Details Section */}
           <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                <Users className="inline-block h-4 w-4 mr-1" />
-                Account Name
-              </label>
-              {editingField === 'name' ? (
-                <Input
-                  autoFocus
-                  value={currentValues.name}
-                  onChange={(e) => handleFieldChange('name', e.target.value)}
-                  onBlur={handleFieldBlur}
-                  className="mt-1"
-                />
-              ) : (
-                <p
-                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
-                  onClick={() => handleFieldClick('name')}
-                >
-                  {currentValues.name}
-                </p>
-              )}
-            </div>
+            <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+              Details
+            </h3>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                <Mail className="inline-block h-4 w-4 mr-1" />
-                Email
-              </label>
-              {editingField === 'email' ? (
-                <Input
-                  autoFocus
-                  type="email"
-                  value={currentValues.email}
-                  onChange={(e) => handleFieldChange('email', e.target.value)}
-                  onBlur={handleFieldBlur}
-                  className="mt-1"
-                />
-              ) : (
-                <p
-                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
-                  onClick={() => handleFieldClick('email')}
-                >
-                  {currentValues.email}
-                </p>
-              )}
-            </div>
+            {/* Name */}
+            <button
+              type="button"
+              onClick={() => handleFieldClick('name')}
+              className="w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors hover:bg-muted/50"
+            >
+              <div className="flex items-start gap-3">
+                <Users className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Account Name
+                  </p>
+                  {editingField === 'name' ? (
+                    <Input
+                      autoFocus
+                      value={currentValues.name}
+                      onChange={(e) => handleFieldChange('name', e.target.value)}
+                      onBlur={handleFieldBlur}
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-1 h-9"
+                    />
+                  ) : (
+                    <p className="text-sm font-medium mt-1">{currentValues.name}</p>
+                  )}
+                </div>
+              </div>
+            </button>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                <UserCog className="inline-block h-4 w-4 mr-1" />
-                Role
-              </label>
-              {editingField === 'role' ? (
-                <select
-                  ref={roleSelectRef}
-                  autoFocus
-                  value={currentValues.role || 'contact'}
-                  onChange={(e) => handleFieldChange('role', e.target.value)}
-                  onBlur={handleFieldBlur}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
-                >
-                  <option value="contact">Contact</option>
-                  <option value="project_manager">Project Manager</option>
-                  <option value="finance">Finance/Controller</option>
-                </select>
-              ) : (
-                <p
-                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
-                  onClick={() => handleFieldClick('role')}
-                >
-                  {currentValues.role === 'contact' && 'Contact'}
-                  {currentValues.role === 'project_manager' &&
-                    'Project Manager'}
-                  {currentValues.role === 'finance' && 'Finance/Controller'}
-                </p>
-              )}
-            </div>
+            {/* Email */}
+            <button
+              type="button"
+              onClick={() => handleFieldClick('email')}
+              className="w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors hover:bg-muted/50"
+            >
+              <div className="flex items-start gap-3">
+                <Mail className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Email
+                  </p>
+                  {editingField === 'email' ? (
+                    <Input
+                      autoFocus
+                      type="email"
+                      value={currentValues.email}
+                      onChange={(e) => handleFieldChange('email', e.target.value)}
+                      onBlur={handleFieldBlur}
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-1 h-9"
+                    />
+                  ) : (
+                    <p className="text-sm mt-1">{currentValues.email}</p>
+                  )}
+                </div>
+              </div>
+            </button>
 
-            <div className="pt-4 border-t">
-              <label className="text-sm font-medium text-gray-500 mb-3 block">
-                <Building2 className="inline-block h-4 w-4 mr-1" />
-                Organisation
-              </label>
-              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
-                <p className="font-medium">{organisation?.name || 'Unknown'}</p>
-                <div className="text-sm text-gray-500 mt-1 space-y-1">
-                  <p>Contact: {organisation?.contactName}</p>
-                  <p>{organisation?.contactEmail}</p>
+            {/* Role */}
+            <button
+              type="button"
+              onClick={() => handleFieldClick('role')}
+              className="w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors hover:bg-muted/50"
+            >
+              <div className="flex items-start gap-3">
+                <UserCog className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Role
+                  </p>
+                  {editingField === 'role' ? (
+                    <Select
+                      value={currentValues.role || 'contact'}
+                      onValueChange={(value) => {
+                        handleFieldChange('role', value)
+                        handleFieldBlur({} as React.FocusEvent)
+                      }}
+                    >
+                      <SelectTrigger
+                        className="mt-1 h-9"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="contact">Contact</SelectItem>
+                        <SelectItem value="project_manager">Project Manager</SelectItem>
+                        <SelectItem value="finance">Finance/Controller</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm mt-1">{getRoleLabel(currentValues.role)}</p>
+                  )}
+                </div>
+              </div>
+            </button>
+
+            {/* Organisation */}
+            <div className="px-3 py-3 -mx-3">
+              <div className="flex items-start gap-3">
+                <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Organisation
+                  </p>
+                  <div className="mt-2 bg-muted/30 rounded-lg p-3">
+                    <p className="font-medium text-sm">{organisation?.name || 'Unknown'}</p>
+                    <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                      <p>Contact: {organisation?.contactName}</p>
+                      <p>{organisation?.contactEmail}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="pt-4 border-t">
-              <label className="text-sm font-medium text-gray-500 mb-3 block">
-                <Key className="inline-block h-4 w-4 mr-1" />
-                Access Code
-              </label>
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
-                  This code is used to access the client portal:
-                </p>
-                <code className="text-2xl font-mono font-bold block bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 rounded p-3 text-center">
-                  {account.accessCode}
-                </code>
+            {/* Access Code */}
+            <div className="px-3 py-3 -mx-3">
+              <div className="flex items-start gap-3">
+                <Key className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Access Code
+                  </p>
+                  <div className="mt-2 bg-primary/5 border border-primary/20 rounded-lg p-4">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      This code is used to access the client portal:
+                    </p>
+                    <code className="text-xl font-mono font-bold block bg-background border border-border rounded p-3 text-center">
+                      {account.accessCode}
+                    </code>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="pt-4 border-t">
-              <label className="text-sm font-medium text-gray-500">
+            {/* Created */}
+            <div className="px-3 py-3 -mx-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Created
-              </label>
-              <p className="text-base mt-1">
-                {formatDateTime(account.createdAt)}
               </p>
+              <p className="text-sm mt-1">{formatDateTime(account.createdAt)}</p>
             </div>
           </div>
         </div>
 
-        <div className="flex gap-3 justify-end pt-6 border-t">
+        {/* Footer */}
+        <div className="flex gap-3 justify-end px-6 py-4 border-t border-border/40 bg-muted/30">
           <Button
             variant="outline"
+            size="sm"
             onClick={() => navigate({ to: '/dashboard/accounts' })}
           >
             Close

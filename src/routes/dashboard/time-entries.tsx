@@ -19,13 +19,13 @@ import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox'
 import { useLocale } from '@/hooks/use-locale'
 import {
@@ -483,7 +483,7 @@ function TimeEntriesPage() {
       <div className="container mx-auto p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Time Entries</h1>
-        <QuickTimeEntrySheet
+        <QuickTimeEntryDialog
           organisations={data.organisations}
           projects={data.projects}
         />
@@ -551,7 +551,7 @@ function TimeEntriesPage() {
   )
 }
 
-function QuickTimeEntrySheet({
+function QuickTimeEntryDialog({
   organisations,
   projects,
 }: {
@@ -588,18 +588,30 @@ function QuickTimeEntrySheet({
   })
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
           Quick Entry
         </Button>
-      </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
-        <SheetHeader className="space-y-3 pb-6 border-b">
-          <SheetTitle>Add Time Entry</SheetTitle>
-          <SheetDescription>Log your time with full details</SheetDescription>
-        </SheetHeader>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col p-0">
+        {/* Header */}
+        <DialogHeader className="px-6 py-5 border-b border-border/40">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-muted">
+              <Plus className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="font-display text-lg tracking-wide">
+                Add Time Entry
+              </DialogTitle>
+              <DialogDescription className="mt-1">
+                Log your time with full details
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
 
         <form
           onSubmit={(e) => {
@@ -607,101 +619,31 @@ function QuickTimeEntrySheet({
             e.stopPropagation()
             form.handleSubmit()
           }}
-          className="space-y-6 py-6 px-1"
+          className="px-6 py-6 space-y-6 overflow-y-auto flex-1"
         >
-          <form.Field name="title">
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Title *
-                </label>
-                <Input
-                  id={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="What did you work on?"
-                />
-                {field.state.meta.errors &&
-                  field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">
-                      {field.state.meta.errors
-                        .map((err) =>
-                          typeof err === 'string'
-                            ? err
-                            : err.message || JSON.stringify(err)
-                        )
-                        .join(', ')}
-                    </p>
-                  )}
-              </div>
-            )}
-          </form.Field>
+          {/* Entry Details */}
+          <div className="space-y-4">
+            <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+              Entry Details
+            </h3>
 
-          <form.Field name="description">
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Description
-                </label>
-                <Input
-                  id={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="Additional details (optional)"
-                />
-              </div>
-            )}
-          </form.Field>
-
-          <div className="grid grid-cols-2 gap-4">
-            <form.Field name="time">
+            <form.Field name="title">
               {(field) => (
                 <div className="space-y-2">
-                  <label htmlFor={field.name} className="text-sm font-medium">
-                    Time (h:mm) *
+                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Title *
                   </label>
-                  <div className="flex gap-2 items-center">
-                    <Input
-                      id="hours"
-                      type="number"
-                      min="0"
-                      max="99"
-                      value={parseInt(field.state.value.split(':')[0]) || 0}
-                      onChange={(e) => {
-                        const hours = e.target.value || '0'
-                        const minutes = field.state.value.split(':')[1] || '00'
-                        field.handleChange(
-                          `${hours.padStart(2, '0')}:${minutes}`
-                        )
-                      }}
-                      className="w-20"
-                      placeholder="1"
-                    />
-                    <span className="text-sm">h</span>
-                    <Input
-                      id="minutes"
-                      type="number"
-                      min="0"
-                      max="59"
-                      step="15"
-                      value={parseInt(field.state.value.split(':')[1]) || 0}
-                      onChange={(e) => {
-                        const hours = field.state.value.split(':')[0] || '00'
-                        const minutes = e.target.value || '0'
-                        field.handleChange(
-                          `${hours}:${minutes.padStart(2, '0')}`
-                        )
-                      }}
-                      className="w-20"
-                      placeholder="00"
-                    />
-                    <span className="text-sm">min</span>
-                  </div>
+                  <Input
+                    id={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="What did you work on?"
+                    className="h-10"
+                  />
                   {field.state.meta.errors &&
                     field.state.meta.errors.length > 0 && (
-                      <p className="text-sm text-red-500">
+                      <p className="text-sm text-destructive">
                         {field.state.meta.errors
                           .map((err) =>
                             typeof err === 'string'
@@ -715,96 +657,195 @@ function QuickTimeEntrySheet({
               )}
             </form.Field>
 
-            <form.Field name="date">
+            <form.Field name="description">
               {(field) => (
                 <div className="space-y-2">
-                  <label htmlFor={field.name} className="text-sm font-medium">
-                    Date *
+                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Description
                   </label>
-                  <Input
+                  <textarea
                     id={field.name}
-                    type="date"
                     value={field.state.value}
+                    onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="Additional details (optional)"
+                    rows={2}
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                   />
                 </div>
               )}
             </form.Field>
           </div>
 
-          <form.Field name="organisationId">
-            {(field) => (
-              <div className="space-y-2">
-                <label htmlFor={field.name} className="text-sm font-medium">
-                  Organisation
-                </label>
-                <select
-                  id={field.name}
-                  value={field.state.value}
-                  onChange={(e) => {
-                    field.handleChange(e.target.value)
-                    form.setFieldValue('projectId', '')
-                  }}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                >
-                  <option value="">Select organisation (optional)</option>
-                  {organisations.map((org: any) => (
-                    <option key={org.id} value={org.id}>
-                      {org.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </form.Field>
+          {/* Time & Date */}
+          <div className="space-y-4">
+            <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+              Time & Date
+            </h3>
 
-          <form.Field name="projectId">
-            {(field) => {
-              const selectedOrg = form.getFieldValue('organisationId')
-              const availableProjects = selectedOrg
-                ? projects.filter((p: any) => p.organisationId === selectedOrg)
-                : []
+            <div className="grid grid-cols-2 gap-4">
+              <form.Field name="time">
+                {(field) => (
+                  <div className="space-y-2">
+                    <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Duration *
+                    </label>
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        id="hours"
+                        type="number"
+                        min="0"
+                        max="99"
+                        value={parseInt(field.state.value.split(':')[0]) || 0}
+                        onChange={(e) => {
+                          const hours = e.target.value || '0'
+                          const minutes = field.state.value.split(':')[1] || '00'
+                          field.handleChange(
+                            `${hours.padStart(2, '0')}:${minutes}`
+                          )
+                        }}
+                        className="w-16 h-10 text-center"
+                        placeholder="1"
+                      />
+                      <span className="text-sm text-muted-foreground">h</span>
+                      <Input
+                        id="minutes"
+                        type="number"
+                        min="0"
+                        max="59"
+                        step="15"
+                        value={parseInt(field.state.value.split(':')[1]) || 0}
+                        onChange={(e) => {
+                          const hours = field.state.value.split(':')[0] || '00'
+                          const minutes = e.target.value || '0'
+                          field.handleChange(
+                            `${hours}:${minutes.padStart(2, '0')}`
+                          )
+                        }}
+                        className="w-16 h-10 text-center"
+                        placeholder="00"
+                      />
+                      <span className="text-sm text-muted-foreground">min</span>
+                    </div>
+                    {field.state.meta.errors &&
+                      field.state.meta.errors.length > 0 && (
+                        <p className="text-sm text-destructive">
+                          {field.state.meta.errors
+                            .map((err) =>
+                              typeof err === 'string'
+                                ? err
+                                : err.message || JSON.stringify(err)
+                            )
+                            .join(', ')}
+                        </p>
+                      )}
+                  </div>
+                )}
+              </form.Field>
 
-              return (
+              <form.Field name="date">
+                {(field) => (
+                  <div className="space-y-2">
+                    <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Date *
+                    </label>
+                    <Input
+                      id={field.name}
+                      type="date"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+                )}
+              </form.Field>
+            </div>
+          </div>
+
+          {/* Assignment */}
+          <div className="space-y-4">
+            <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+              Assignment
+            </h3>
+
+            <form.Field name="organisationId">
+              {(field) => (
                 <div className="space-y-2">
-                  <label htmlFor={field.name} className="text-sm font-medium">
-                    Project
+                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Organisation
                   </label>
                   <select
                     id={field.name}
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    disabled={!selectedOrg}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                    onChange={(e) => {
+                      field.handleChange(e.target.value)
+                      form.setFieldValue('projectId', '')
+                    }}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
-                    <option value="">
-                      {selectedOrg
-                        ? 'Select project (optional)'
-                        : 'Select organisation first'}
-                    </option>
-                    {availableProjects.map((proj: any) => (
-                      <option key={proj.id} value={proj.id}>
-                        {proj.name}
+                    <option value="">Select organisation (optional)</option>
+                    {organisations.map((org: any) => (
+                      <option key={org.id} value={org.id}>
+                        {org.name}
                       </option>
                     ))}
                   </select>
                 </div>
-              )
-            }}
-          </form.Field>
+              )}
+            </form.Field>
 
-          <div className="flex gap-3 justify-end pt-6 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit">Save Entry</Button>
+            <form.Field name="projectId">
+              {(field) => {
+                const selectedOrg = form.getFieldValue('organisationId')
+                const availableProjects = selectedOrg
+                  ? projects.filter((p: any) => p.organisationId === selectedOrg)
+                  : []
+
+                return (
+                  <div className="space-y-2">
+                    <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Project
+                    </label>
+                    <select
+                      id={field.name}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      disabled={!selectedOrg}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">
+                        {selectedOrg
+                          ? 'Select project (optional)'
+                          : 'Select organisation first'}
+                      </option>
+                      {availableProjects.map((proj: any) => (
+                        <option key={proj.id} value={proj.id}>
+                          {proj.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )
+              }}
+            </form.Field>
           </div>
         </form>
-      </SheetContent>
-    </Sheet>
+
+        {/* Footer */}
+        <div className="flex gap-3 justify-end px-6 py-4 border-t border-border/40 bg-muted/30">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" size="sm" onClick={() => form.handleSubmit()}>
+            Save Entry
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

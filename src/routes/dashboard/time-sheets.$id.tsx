@@ -2,7 +2,7 @@ import { createFileRoute, useRouter, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState, useEffect } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Trash2, Plus, X, ExternalLink, Check, MessageCircleQuestion, RotateCcw } from 'lucide-react'
+import { FileText, Trash2, Plus, X, ExternalLink, Check, MessageCircleQuestion, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { timeSheetRepository } from '@/repositories/timeSheet.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
@@ -41,9 +41,12 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Card, CardContent } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -427,15 +430,19 @@ function TimeSheetDetailPage() {
   if (data.accessDenied || !data.sheetData) {
     return (
       <Sheet open={true} onOpenChange={() => router.navigate({ to: '/dashboard/time-sheets' })}>
-        <SheetContent className="w-full sm:max-w-[800px] overflow-y-auto">
-          <SheetHeader className="space-y-3 pb-6 border-b">
+        <SheetContent className="w-full sm:max-w-[700px] p-0">
+          <SheetHeader className="px-6 py-5 border-b border-border/40">
             <SheetTitle>Access Denied</SheetTitle>
             <SheetDescription>
               {data.accessDeniedReason || 'Time sheet not found'}
             </SheetDescription>
           </SheetHeader>
-          <div className="py-6">
-            <Button onClick={() => router.navigate({ to: '/dashboard/time-sheets' })}>
+          <div className="px-6 py-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.navigate({ to: '/dashboard/time-sheets' })}
+            >
               Go Back to Time Sheets
             </Button>
           </div>
@@ -730,80 +737,79 @@ function TimeSheetDetailPage() {
       open={true}
       onOpenChange={() => router.navigate({ to: '/dashboard/time-sheets' })}
     >
-      <SheetContent className="w-full sm:max-w-[700px] overflow-y-auto">
-        <SheetHeader className="space-y-3 pb-6 border-b">
-          <SheetTitle>Time Sheet Details</SheetTitle>
-          <SheetDescription>
-            View and manage time sheet information and entries
-          </SheetDescription>
+      <SheetContent className="w-full sm:max-w-[700px] overflow-y-auto p-0">
+        {/* Header */}
+        <SheetHeader className="px-6 py-5 border-b border-border/40">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-muted">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <SheetTitle className="font-display text-lg tracking-wide">
+                {currentValues.title}
+              </SheetTitle>
+              <SheetDescription className="mt-1">
+                {entries.length} {entries.length === 1 ? 'entry' : 'entries'} • {totalHours.toFixed(2)}h total
+              </SheetDescription>
+            </div>
+            <StatusBadge status={timeSheet.status} />
+          </div>
         </SheetHeader>
 
-        <div className="space-y-6 py-6">
-          {/* Header with Status and Actions */}
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <StatusBadge status={timeSheet.status} />
-            </div>
-            <div className="flex gap-2">
-              {isDraft && (
-                <>
-                  <Button onClick={handleSubmit} size="sm">
-                    Submit for Approval
-                  </Button>
-                  <Button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    variant="destructive"
-                    size="sm"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </>
+        <div className="px-6 py-6 space-y-6">
+          {/* Actions Bar */}
+          <div className="flex gap-2 justify-end">
+            {isDraft && (
+              <>
+                <Button onClick={handleSubmit} size="sm">
+                  Submit for Approval
+                </Button>
+              </>
+            )}
+            {timeSheet.status === 'submitted' && currentUser && (
+              <>
+                <Button
+                  onClick={handleApprove}
+                  size="sm"
+                  variant="default"
+                  disabled={!canApprove}
+                  title={approvalBlockReason}
+                >
+                  Approve
+                </Button>
+                <Button
+                  onClick={() => setShowRejectDialog(true)}
+                  size="sm"
+                  variant="destructive"
+                  disabled={!canReject}
+                  title={!canReject ? rejectPermission?.reason : undefined}
+                >
+                  Reject
+                </Button>
+                <Button
+                  onClick={handleRevertToDraft}
+                  size="sm"
+                  variant="outline"
+                  disabled={!canRevert}
+                  title={!canRevert ? revertPermission?.reason : undefined}
+                >
+                  Revert to Draft
+                </Button>
+              </>
+            )}
+            {(timeSheet.status === 'rejected' ||
+              timeSheet.status === 'approved') &&
+              currentUser && (
+                <Button
+                  onClick={handleRevertToDraft}
+                  size="sm"
+                  variant="outline"
+                  disabled={!canRevert}
+                  title={!canRevert ? revertPermission?.reason : undefined}
+                >
+                  Revert to Draft
+                </Button>
               )}
-              {timeSheet.status === 'submitted' && currentUser && (
-                <>
-                  <Button
-                    onClick={handleApprove}
-                    size="sm"
-                    variant="default"
-                    disabled={!canApprove}
-                    title={approvalBlockReason}
-                  >
-                    Approve
-                  </Button>
-                  <Button
-                    onClick={() => setShowRejectDialog(true)}
-                    size="sm"
-                    variant="destructive"
-                    disabled={!canReject}
-                    title={!canReject ? rejectPermission?.reason : undefined}
-                  >
-                    Reject
-                  </Button>
-                  <Button
-                    onClick={handleRevertToDraft}
-                    size="sm"
-                    variant="outline"
-                    disabled={!canRevert}
-                    title={!canRevert ? revertPermission?.reason : undefined}
-                  >
-                    Revert to Draft
-                  </Button>
-                </>
-              )}
-              {(timeSheet.status === 'rejected' ||
-                timeSheet.status === 'approved') &&
-                currentUser && (
-                  <Button
-                    onClick={handleRevertToDraft}
-                    size="sm"
-                    variant="outline"
-                    disabled={!canRevert}
-                    title={!canRevert ? revertPermission?.reason : undefined}
-                  >
-                    Revert to Draft
-                  </Button>
-                )}
-            </div>
           </div>
 
           {/* Approval Summary - show for submitted sheets */}
@@ -819,138 +825,145 @@ function TimeSheetDetailPage() {
             </div>
           )}
 
-          {/* Editable Fields */}
+          {/* Details Section */}
           <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-500">Title</label>
+            <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+              Details
+            </h3>
+
+            {/* Title */}
+            <button
+              type="button"
+              onClick={() => handleFieldClick('title')}
+              className={cn(
+                'w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors',
+                isDraft && 'hover:bg-muted/50'
+              )}
+              disabled={!isDraft}
+            >
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Title
+              </p>
               {editingField === 'title' && isDraft ? (
                 <Input
                   autoFocus
                   value={currentValues.title}
                   onChange={(e) => handleFieldChange('title', e.target.value)}
                   onBlur={handleFieldBlur}
-                  className="mt-1"
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-1 h-9"
                 />
               ) : (
-                <p
-                  className={cn(
-                    'text-base mt-1 px-2 py-1 -mx-2 rounded',
-                    isDraft &&
-                      'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
-                  )}
-                  onClick={() => handleFieldClick('title')}
-                >
-                  {currentValues.title}
-                </p>
+                <p className="text-sm font-medium mt-1">{currentValues.title}</p>
               )}
-            </div>
+            </button>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+            {/* Description */}
+            <button
+              type="button"
+              onClick={() => handleFieldClick('description')}
+              className={cn(
+                'w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors',
+                isDraft && 'hover:bg-muted/50'
+              )}
+              disabled={!isDraft}
+            >
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Description
-              </label>
+              </p>
               {editingField === 'description' && isDraft ? (
                 <textarea
                   autoFocus
                   value={currentValues.description}
-                  onChange={(e) =>
-                    handleFieldChange('description', e.target.value)
-                  }
+                  onChange={(e) => handleFieldChange('description', e.target.value)}
                   onBlur={handleFieldBlur}
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 mt-1"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 mt-1"
                   rows={3}
                 />
               ) : (
-                <p
-                  className={cn(
-                    'text-base mt-1 px-2 py-1 -mx-2 rounded min-h-[1.5rem]',
-                    isDraft &&
-                      'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
-                  )}
-                  onClick={() => handleFieldClick('description')}
-                >
-                  {currentValues.description || 'Click to add description...'}
+                <p className="text-sm mt-1 text-muted-foreground">
+                  {currentValues.description || (isDraft ? 'Click to add description...' : 'No description')}
                 </p>
               )}
-            </div>
+            </button>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-500">
+            {/* Date Range */}
+            <div className="grid grid-cols-2 gap-4 px-3 py-3 -mx-3">
+              <button
+                type="button"
+                onClick={() => handleFieldClick('startDate')}
+                className={cn(
+                  'text-left rounded-lg p-2 -m-2 transition-colors',
+                  isDraft && 'hover:bg-muted/50'
+                )}
+                disabled={!isDraft}
+              >
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Start Date
-                </label>
+                </p>
                 {editingField === 'startDate' && isDraft ? (
                   <Input
                     autoFocus
                     type="date"
                     value={currentValues.startDate || ''}
-                    onChange={(e) =>
-                      handleFieldChange(
-                        'startDate',
-                        e.target.value || undefined
-                      )
-                    }
+                    onChange={(e) => handleFieldChange('startDate', e.target.value || undefined)}
                     onBlur={handleFieldBlur}
-                    className="mt-1"
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-1 h-9"
                   />
                 ) : (
-                  <p
-                    className={cn(
-                      'text-base mt-1 px-2 py-1 -mx-2 rounded',
-                      isDraft &&
-                        'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
-                    )}
-                    onClick={() => handleFieldClick('startDate')}
-                  >
-                    {currentValues.startDate || 'Not set'}
-                  </p>
+                  <p className="text-sm mt-1">{currentValues.startDate || 'Not set'}</p>
                 )}
-              </div>
+              </button>
 
-              <div>
-                <label className="text-sm font-medium text-gray-500">
+              <button
+                type="button"
+                onClick={() => handleFieldClick('endDate')}
+                className={cn(
+                  'text-left rounded-lg p-2 -m-2 transition-colors',
+                  isDraft && 'hover:bg-muted/50'
+                )}
+                disabled={!isDraft}
+              >
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   End Date
-                </label>
+                </p>
                 {editingField === 'endDate' && isDraft ? (
                   <Input
                     autoFocus
                     type="date"
                     value={currentValues.endDate || ''}
-                    onChange={(e) =>
-                      handleFieldChange('endDate', e.target.value || undefined)
-                    }
+                    onChange={(e) => handleFieldChange('endDate', e.target.value || undefined)}
                     onBlur={handleFieldBlur}
-                    className="mt-1"
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-1 h-9"
                   />
                 ) : (
-                  <p
-                    className={cn(
-                      'text-base mt-1 px-2 py-1 -mx-2 rounded',
-                      isDraft &&
-                        'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
-                    )}
-                    onClick={() => handleFieldClick('endDate')}
-                  >
-                    {currentValues.endDate || 'Not set'}
-                  </p>
+                  <p className="text-sm mt-1">{currentValues.endDate || 'Not set'}</p>
                 )}
-              </div>
+              </button>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+            {/* Organisation */}
+            <button
+              type="button"
+              onClick={() => handleFieldClick('organisationId')}
+              className={cn(
+                'w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors',
+                isDraft && 'hover:bg-muted/50'
+              )}
+              disabled={!isDraft}
+            >
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Organisation
-              </label>
+              </p>
               {editingField === 'organisationId' && isDraft ? (
                 <select
                   autoFocus
                   value={currentValues.organisationId || ''}
                   onChange={(e) => {
-                    handleFieldChange(
-                      'organisationId',
-                      e.target.value || undefined
-                    )
-                    // Clear account if it doesn't belong to the new org
+                    handleFieldChange('organisationId', e.target.value || undefined)
                     if (currentValues.accountId) {
                       const acc = data.accounts.find((a: Account) => a.id === currentValues.accountId)
                       if (acc?.organisationId !== e.target.value) {
@@ -960,33 +973,32 @@ function TimeSheetDetailPage() {
                     handleFieldChange('projectId', undefined)
                   }}
                   onBlur={handleFieldBlur}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
                 >
                   <option value="">None</option>
                   {data.organisations.map((org: Organisation) => (
-                    <option key={org.id} value={org.id}>
-                      {org.name}
-                    </option>
+                    <option key={org.id} value={org.id}>{org.name}</option>
                   ))}
                 </select>
               ) : (
-                <p
-                  className={cn(
-                    'text-base mt-1 px-2 py-1 -mx-2 rounded',
-                    isDraft &&
-                      'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
-                  )}
-                  onClick={() => handleFieldClick('organisationId')}
-                >
-                  {organisation?.name || 'Not set'}
-                </p>
+                <p className="text-sm mt-1">{organisation?.name || 'Not set'}</p>
               )}
-            </div>
+            </button>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+            {/* Account */}
+            <button
+              type="button"
+              onClick={() => handleFieldClick('accountId')}
+              className={cn(
+                'w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors',
+                isDraft && 'hover:bg-muted/50'
+              )}
+              disabled={!isDraft}
+            >
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Account
-              </label>
+              </p>
               {editingField === 'accountId' && isDraft ? (
                 <select
                   autoFocus
@@ -994,7 +1006,6 @@ function TimeSheetDetailPage() {
                   onChange={(e) => {
                     const value = e.target.value || undefined
                     handleFieldChange('accountId', value)
-                    // Bidirectional: auto-fill organisation from account
                     if (value) {
                       const acc = data.accounts.find((a: Account) => a.id === value)
                       if (acc && acc.organisationId !== currentValues.organisationId) {
@@ -1004,98 +1015,78 @@ function TimeSheetDetailPage() {
                     }
                   }}
                   onBlur={handleFieldBlur}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
                 >
                   <option value="">None</option>
                   {data.accounts
-                    .filter((a: Account) =>
-                      !currentValues.organisationId || a.organisationId === currentValues.organisationId
-                    )
+                    .filter((a: Account) => !currentValues.organisationId || a.organisationId === currentValues.organisationId)
                     .map((acc: Account) => (
-                      <option key={acc.id} value={acc.id}>
-                        {acc.name} ({acc.email})
-                      </option>
+                      <option key={acc.id} value={acc.id}>{acc.name} ({acc.email})</option>
                     ))}
                 </select>
               ) : (
-                <p
-                  className={cn(
-                    'text-base mt-1 px-2 py-1 -mx-2 rounded',
-                    isDraft &&
-                      'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
-                  )}
-                  onClick={() => handleFieldClick('accountId')}
-                >
-                  {account?.name || 'Not set'}
-                </p>
+                <p className="text-sm mt-1">{account?.name || 'Not set'}</p>
               )}
-            </div>
+            </button>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+            {/* Project */}
+            <button
+              type="button"
+              onClick={() => handleFieldClick('projectId')}
+              className={cn(
+                'w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors',
+                isDraft && currentValues.organisationId && 'hover:bg-muted/50'
+              )}
+              disabled={!isDraft || !currentValues.organisationId}
+            >
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Project
-              </label>
+              </p>
               {editingField === 'projectId' && isDraft ? (
                 <select
                   autoFocus
                   value={currentValues.projectId || ''}
-                  onChange={(e) =>
-                    handleFieldChange('projectId', e.target.value || undefined)
-                  }
+                  onChange={(e) => handleFieldChange('projectId', e.target.value || undefined)}
                   onBlur={handleFieldBlur}
+                  onClick={(e) => e.stopPropagation()}
                   disabled={!currentValues.organisationId}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <option value="">None</option>
                   {data.projects
-                    .filter(
-                      (p: Project) =>
-                        p.organisationId === currentValues.organisationId
-                    )
+                    .filter((p: Project) => p.organisationId === currentValues.organisationId)
                     .map((proj: Project) => (
-                      <option key={proj.id} value={proj.id}>
-                        {proj.name}
-                      </option>
+                      <option key={proj.id} value={proj.id}>{proj.name}</option>
                     ))}
                 </select>
               ) : (
-                <p
-                  className={cn(
-                    'text-base mt-1 px-2 py-1 -mx-2 rounded',
-                    isDraft &&
-                      'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
-                  )}
-                  onClick={() => handleFieldClick('projectId')}
-                >
-                  {project?.name || 'Not set'}
-                </p>
+                <p className="text-sm mt-1">{project?.name || 'Not set'}</p>
               )}
-            </div>
+            </button>
 
             {timeSheet.rejectionReason && (
-              <div>
-                <label className="text-sm font-medium text-gray-500">
+              <div className="px-3 py-3 -mx-3 bg-destructive/10 rounded-lg">
+                <p className="text-xs font-medium text-destructive uppercase tracking-wider">
                   Rejection Reason
-                </label>
-                <p className="text-base mt-1 text-red-600">
+                </p>
+                <p className="text-sm mt-1 text-destructive">
                   {timeSheet.rejectionReason}
                 </p>
               </div>
             )}
           </div>
 
+          <Separator />
+
           {/* Time Entries Section */}
-          <div className="border-t pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold">Time Entries</h3>
-                <p className="text-sm text-gray-500">
-                  {entries.length} {entries.length === 1 ? 'entry' : 'entries'}{' '}
-                  • Total: {totalHours.toFixed(2)}h
-                </p>
-              </div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+                Time Entries ({entries.length})
+              </h3>
               {isDraft && (
-                <Button onClick={() => setShowAddEntriesDialog(true)} size="sm">
+                <Button onClick={() => setShowAddEntriesDialog(true)} size="sm" variant="outline">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Entries
                 </Button>
@@ -1109,7 +1100,7 @@ function TimeSheetDetailPage() {
                 getRowId={(row) => row.id}
               />
             ) : (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-muted-foreground">
                 No entries in this time sheet yet.
                 {isDraft && ' Click "Add Entries" to get started.'}
               </div>
@@ -1117,29 +1108,50 @@ function TimeSheetDetailPage() {
           </div>
         </div>
 
+        {/* Footer */}
+        <div className="flex gap-3 justify-between px-6 py-4 border-t border-border/40 bg-muted/30">
+          {isDraft ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          ) : (
+            <div />
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.navigate({ to: '/dashboard/time-sheets' })}
+          >
+            Close
+          </Button>
+        </div>
+
         {/* Delete Confirmation Dialog */}
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md">
-              <h3 className="text-lg font-semibold mb-2">Delete Time Sheet</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <DialogContent showCloseButton={false}>
+            <DialogHeader>
+              <DialogTitle>Delete Time Sheet</DialogTitle>
+              <DialogDescription>
                 Are you sure you want to delete this time sheet? This action
                 cannot be undone.
-              </p>
-              <div className="flex gap-3 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowDeleteConfirm(false)}
-                >
-                  Cancel
-                </Button>
-                <Button variant="destructive" onClick={handleDelete}>
-                  Delete
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDelete}>
+                Delete Time Sheet
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Reject Dialog */}
         {showRejectDialog && (
@@ -1244,33 +1256,23 @@ function TimeSheetDetailPage() {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const variants: Record<string, { label: string; className: string }> = {
-    draft: {
-      label: 'Draft',
-      className:
-        'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100',
-    },
-    submitted: {
-      label: 'Submitted',
-      className:
-        'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
-    },
-    approved: {
-      label: 'Approved',
-      className:
-        'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
-    },
-    rejected: {
-      label: 'Rejected',
-      className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100',
-    },
+  const variants: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+    draft: { label: 'Draft', variant: 'secondary' },
+    submitted: { label: 'Submitted', variant: 'default' },
+    approved: { label: 'Approved', variant: 'outline' },
+    rejected: { label: 'Rejected', variant: 'destructive' },
   }
 
-  const variant = variants[status] || variants.draft
+  const config = variants[status] || variants.draft
 
   return (
-    <Badge variant="outline" className={cn('font-medium', variant.className)}>
-      {variant.label}
+    <Badge
+      variant={config.variant}
+      className={cn(
+        status === 'approved' && 'border-emerald-500/50 text-emerald-600 dark:text-emerald-400'
+      )}
+    >
+      {config.label}
     </Badge>
   )
 }
@@ -1344,18 +1346,18 @@ function AddEntriesDialog({
         </DialogHeader>
 
         {loading ? (
-          <div className="py-8 text-center text-gray-500">
+          <div className="py-8 text-center text-muted-foreground">
             Loading available entries...
           </div>
         ) : availableEntries.length === 0 ? (
-          <div className="py-8 text-center text-gray-500">
+          <div className="py-8 text-center text-muted-foreground">
             No available entries found. All entries may already be in approved
             time sheets.
           </div>
         ) : (
-          <ScrollArea className="flex-1 border rounded-md">
+          <ScrollArea className="flex-1 border border-border/40 rounded-md">
             <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
+              <thead className="bg-muted/50 sticky top-0">
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-medium">
                     <Checkbox
@@ -1377,11 +1379,11 @@ function AddEntriesDialog({
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="divide-y divide-border/40">
                 {availableEntries.map((entry) => (
                   <tr
                     key={entry.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                    className="hover:bg-muted/50 cursor-pointer"
                     onClick={() => handleToggleEntry(entry.id)}
                   >
                     <td className="px-4 py-3">
@@ -1394,7 +1396,7 @@ function AddEntriesDialog({
                     <td className="px-4 py-3 text-sm font-medium">
                       {entry.title}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
                       {entry.description || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm">

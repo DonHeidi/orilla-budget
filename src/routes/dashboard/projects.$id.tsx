@@ -6,15 +6,26 @@ import {
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
-import { FolderKanban, Building2, Clock, Settings2, ChevronDown, ChevronUp } from 'lucide-react'
+import { FolderKanban, Building2, Clock, Settings2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { authRepository } from '@/repositories/auth.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { projectApprovalSettingsRepository } from '@/repositories/projectApprovalSettings.repository'
 import type { Project, ProjectApprovalSettings, UpdateProjectApprovalSettings } from '@/schemas'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
 import {
   Sheet,
   SheetContent,
@@ -278,246 +289,289 @@ function ProjectDetailPage() {
   }
 
   return (
-    <Sheet
-      open={true}
-      onOpenChange={(open) => {
-        if (!open) {
-          navigate({ to: '/dashboard/projects' })
-        }
-      }}
-    >
-      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
-        <SheetHeader className="space-y-3 pb-6 border-b">
-          <SheetTitle>Project Details</SheetTitle>
-          <SheetDescription>
-            View and edit detailed information about this project
-          </SheetDescription>
-        </SheetHeader>
-
-        <div className="space-y-6 py-6">
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                Organisation
-              </label>
-              {editingField === 'organisationId' ? (
-                <select
-                  autoFocus
-                  value={currentValues.organisationId || ''}
-                  onChange={(e) =>
-                    handleFieldChange('organisationId', e.target.value)
-                  }
-                  onBlur={handleFieldBlur}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
-                >
-                  {organisations.map((org: any) => (
-                    <option key={org.id} value={org.id}>
-                      {org.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <p
-                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2 flex items-center gap-1"
-                  onClick={() => handleFieldClick('organisationId')}
-                >
-                  <Building2 className="h-4 w-4 text-gray-500" />
-                  <span>{organisation?.name || 'Unknown'}</span>
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                Project Name
-              </label>
-              {editingField === 'name' ? (
-                <Input
-                  autoFocus
-                  value={currentValues.name}
-                  onChange={(e) => handleFieldChange('name', e.target.value)}
-                  onBlur={handleFieldBlur}
-                  className="mt-1"
-                />
-              ) : (
-                <p
-                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2 flex items-center gap-1"
-                  onClick={() => handleFieldClick('name')}
-                >
-                  <FolderKanban className="h-4 w-4 text-gray-500" />
-                  <span className="font-medium">{currentValues.name}</span>
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                Description
-              </label>
-              {editingField === 'description' ? (
-                <textarea
-                  autoFocus
-                  value={currentValues.description}
-                  onChange={(e) =>
-                    handleFieldChange('description', e.target.value)
-                  }
-                  onBlur={handleFieldBlur}
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1"
-                  rows={3}
-                />
-              ) : (
-                <p
-                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2 min-h-[1.5rem]"
-                  onClick={() => handleFieldClick('description')}
-                >
-                  {currentValues.description || 'Click to add description...'}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                Category
-              </label>
-              {editingField === 'category' ? (
-                <select
-                  autoFocus
-                  value={currentValues.category}
-                  onChange={(e) =>
-                    handleFieldChange(
-                      'category',
-                      e.target.value as 'budget' | 'fixed'
-                    )
-                  }
-                  onBlur={handleFieldBlur}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
-                >
-                  <option value="budget">Budget (Time & Materials)</option>
-                  <option value="fixed">Fixed Price</option>
-                </select>
-              ) : (
-                <p
-                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
-                  onClick={() => handleFieldClick('category')}
-                >
-                  <span
-                    className={cn(
-                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                      currentValues.category === 'budget'
-                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                        : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-                    )}
-                  >
-                    {currentValues.category === 'budget'
-                      ? 'Budget'
-                      : 'Fixed Price'}
-                  </span>
-                </p>
-              )}
-            </div>
-
-            {currentValues.category === 'budget' && (
-              <div>
-                <label className="text-sm font-medium text-gray-500">
-                  Budget (hours)
-                </label>
-                {editingField === 'budgetHours' ? (
-                  <Input
-                    autoFocus
-                    type="number"
-                    step="0.5"
-                    value={currentValues.budgetHours || 0}
-                    onChange={(e) =>
-                      handleFieldChange(
-                        'budgetHours',
-                        parseFloat(e.target.value)
-                      )
-                    }
-                    onBlur={handleFieldBlur}
-                    className="mt-1"
-                  />
-                ) : (
-                  <p
-                    className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
-                    onClick={() => handleFieldClick('budgetHours')}
-                  >
-                    <Clock className="inline h-4 w-4 text-gray-500 mr-1" />
-                    {currentValues.budgetHours ?? 0}h
-                  </p>
-                )}
+    <>
+      <Sheet
+        open={true}
+        onOpenChange={(open) => {
+          if (!open) {
+            navigate({ to: '/dashboard/projects' })
+          }
+        }}
+      >
+        <SheetContent className="w-full sm:max-w-[540px] overflow-y-auto p-0">
+          {/* Header */}
+          <SheetHeader className="px-6 py-5 border-b border-border/40">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-muted">
+                <FolderKanban className="h-5 w-5 text-muted-foreground" />
               </div>
-            )}
+              <div className="flex-1 min-w-0">
+                <SheetTitle className="font-display text-lg tracking-wide">
+                  {currentValues.name}
+                </SheetTitle>
+                <SheetDescription className="mt-1">
+                  {organisation?.name || 'Unknown Organisation'}
+                </SheetDescription>
+              </div>
+              <Badge
+                variant={currentValues.category === 'budget' ? 'default' : 'secondary'}
+                className="shrink-0"
+              >
+                {currentValues.category === 'budget' ? 'Budget' : 'Fixed'}
+              </Badge>
+            </div>
+          </SheetHeader>
 
-            {currentValues.category === 'budget' &&
-              currentValues.budgetHours !== null && (
-                <div className="border-t pt-4">
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">
-                    Budget Summary
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">
-                        Total Budget:
-                      </span>
-                      <span className="text-sm font-medium">
+          <div className="px-6 py-6 space-y-6">
+            {/* Budget Summary Card */}
+            {currentValues.category === 'budget' && currentValues.budgetHours !== null && (
+              <Card className="bg-muted/30 border-border/40">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Budget
+                      </p>
+                      <p className="text-xl font-semibold tabular-nums mt-1">
                         {currentValues.budgetHours}h
-                      </span>
+                      </p>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Used:</span>
-                      <span className="text-sm font-medium">
-                        {totalHours.toFixed(2)}h
-                      </span>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Used
+                      </p>
+                      <p className="text-xl font-semibold tabular-nums mt-1">
+                        {totalHours.toFixed(1)}h
+                      </p>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Remaining:</span>
-                      <span
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Remaining
+                      </p>
+                      <p
                         className={cn(
-                          'text-sm font-semibold',
-                          remainingHours < 0 ? 'text-red-600' : 'text-green-600'
+                          'text-xl font-semibold tabular-nums mt-1',
+                          remainingHours < 0
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-emerald-600 dark:text-emerald-400'
                         )}
                       >
-                        {remainingHours.toFixed(2)}h
-                      </span>
-                    </div>
-                    <div className="flex justify-between pt-2 border-t">
-                      <span className="text-sm text-gray-600">
-                        Time Entries:
-                      </span>
-                      <span className="text-sm font-medium">
-                        {projectTimeEntries.length} entries
-                      </span>
+                        {remainingHours.toFixed(1)}h
+                      </p>
                     </div>
                   </div>
+                  <Separator className="my-4" />
+                  <p className="text-sm text-muted-foreground text-center">
+                    {projectTimeEntries.length} time entries logged
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Details Section */}
+            <div className="space-y-4">
+              <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+                Details
+              </h3>
+
+              {/* Organisation */}
+              <button
+                type="button"
+                onClick={() => handleFieldClick('organisationId')}
+                className="w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-start gap-3">
+                  <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Organisation
+                    </p>
+                    {editingField === 'organisationId' ? (
+                      <select
+                        autoFocus
+                        value={currentValues.organisationId || ''}
+                        onChange={(e) =>
+                          handleFieldChange('organisationId', e.target.value)
+                        }
+                        onBlur={handleFieldBlur}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm mt-1"
+                      >
+                        {organisations.map((org: any) => (
+                          <option key={org.id} value={org.id}>
+                            {org.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="text-sm mt-1">{organisation?.name || 'Unknown'}</p>
+                    )}
+                  </div>
                 </div>
+              </button>
+
+              {/* Project Name */}
+              <button
+                type="button"
+                onClick={() => handleFieldClick('name')}
+                className="w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-start gap-3">
+                  <FolderKanban className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Project Name
+                    </p>
+                    {editingField === 'name' ? (
+                      <Input
+                        autoFocus
+                        value={currentValues.name}
+                        onChange={(e) => handleFieldChange('name', e.target.value)}
+                        onBlur={handleFieldBlur}
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-1 h-9"
+                      />
+                    ) : (
+                      <p className="text-sm font-medium mt-1">{currentValues.name}</p>
+                    )}
+                  </div>
+                </div>
+              </button>
+
+              {/* Description */}
+              <button
+                type="button"
+                onClick={() => handleFieldClick('description')}
+                className="w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors hover:bg-muted/50"
+              >
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Description
+                  </p>
+                  {editingField === 'description' ? (
+                    <textarea
+                      autoFocus
+                      value={currentValues.description}
+                      onChange={(e) =>
+                        handleFieldChange('description', e.target.value)
+                      }
+                      onBlur={handleFieldBlur}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      rows={3}
+                    />
+                  ) : (
+                    <p className="text-sm mt-1 text-muted-foreground">
+                      {currentValues.description || 'No description'}
+                    </p>
+                  )}
+                </div>
+              </button>
+
+              {/* Category */}
+              <button
+                type="button"
+                onClick={() => handleFieldClick('category')}
+                className="w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors hover:bg-muted/50"
+              >
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Category
+                  </p>
+                  {editingField === 'category' ? (
+                    <select
+                      autoFocus
+                      value={currentValues.category}
+                      onChange={(e) =>
+                        handleFieldChange(
+                          'category',
+                          e.target.value as 'budget' | 'fixed'
+                        )
+                      }
+                      onBlur={handleFieldBlur}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm mt-1"
+                    >
+                      <option value="budget">Budget (Time & Materials)</option>
+                      <option value="fixed">Fixed Price</option>
+                    </select>
+                  ) : (
+                    <p className="text-sm mt-1">
+                      {currentValues.category === 'budget'
+                        ? 'Budget (Time & Materials)'
+                        : 'Fixed Price'}
+                    </p>
+                  )}
+                </div>
+              </button>
+
+              {/* Budget Hours */}
+              {currentValues.category === 'budget' && (
+                <button
+                  type="button"
+                  onClick={() => handleFieldClick('budgetHours')}
+                  className="w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors hover:bg-muted/50"
+                >
+                  <div className="flex items-start gap-3">
+                    <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Budget Hours
+                      </p>
+                      {editingField === 'budgetHours' ? (
+                        <Input
+                          autoFocus
+                          type="number"
+                          step="0.5"
+                          value={currentValues.budgetHours || 0}
+                          onChange={(e) =>
+                            handleFieldChange(
+                              'budgetHours',
+                              parseFloat(e.target.value)
+                            )
+                          }
+                          onBlur={handleFieldBlur}
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-1 h-9"
+                        />
+                      ) : (
+                        <p className="text-sm font-medium tabular-nums mt-1">
+                          {currentValues.budgetHours ?? 0} hours
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </button>
               )}
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                Created
-              </label>
-              <p className="text-base mt-1">
-                {formatDateTime(project.createdAt)}
-              </p>
+              {/* Created */}
+              <div className="px-3 py-3 -mx-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Created
+                </p>
+                <p className="text-sm mt-1">{formatDateTime(project.createdAt)}</p>
+              </div>
             </div>
 
+            <Separator />
+
             {/* Approval Settings Section */}
-            <div className="border-t pt-4">
+            <div>
               <button
                 type="button"
                 onClick={handleToggleApprovalSettings}
-                className="flex items-center justify-between w-full text-left group"
+                className="flex items-center justify-between w-full text-left py-2"
               >
                 <div className="flex items-center gap-2">
-                  <Settings2 className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Approval Workflow Settings
+                  <Settings2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+                    Approval Settings
                   </span>
                 </div>
                 {showApprovalSettings ? (
-                  <ChevronUp className="h-4 w-4 text-gray-400" />
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
                 ) : (
-                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 )}
               </button>
 
@@ -541,47 +595,50 @@ function ProjectDetailPage() {
               )}
             </div>
           </div>
-        </div>
 
-        <div className="flex gap-3 justify-between pt-6 border-t">
-          <Button
-            variant="destructive"
-            onClick={() => setShowDeleteConfirm(true)}
-          >
-            Delete Project
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate({ to: '/dashboard/projects' })}
-          >
-            Close
-          </Button>
-        </div>
-
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md">
-              <h3 className="text-lg font-semibold mb-2">Delete Project</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Are you sure you want to delete "{project.name}"? This action
-                cannot be undone and will also delete all associated time
-                entries ({projectTimeEntries.length} entries).
-              </p>
-              <div className="flex gap-3 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowDeleteConfirm(false)}
-                >
-                  Cancel
-                </Button>
-                <Button variant="destructive" onClick={handleDelete}>
-                  Delete
-                </Button>
-              </div>
-            </div>
+          {/* Footer */}
+          <div className="flex gap-3 justify-between px-6 py-4 border-t border-border/40 bg-muted/30">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate({ to: '/dashboard/projects' })}
+            >
+              Close
+            </Button>
           </div>
-        )}
-      </SheetContent>
-    </Sheet>
+        </SheetContent>
+      </Sheet>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete Project</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{project.name}"? This action
+              cannot be undone and will also delete all associated time entries
+              ({projectTimeEntries.length} entries).
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete Project
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

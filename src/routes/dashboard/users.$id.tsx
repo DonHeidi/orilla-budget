@@ -2,10 +2,19 @@ import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { useState } from 'react'
-import { Mail, AtSign } from 'lucide-react'
+import { Mail, AtSign, User, Trash2 } from 'lucide-react'
 import { userRepository } from '@/repositories/user.repository'
-import type { User } from '@/schemas'
+import type { User as UserType } from '@/schemas'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import {
   Sheet,
@@ -31,7 +40,7 @@ function formatDateTime(isoString: string): string {
 
 // Server functions
 const updateUserFn = createServerFn({ method: 'POST' }).handler(
-  async ({ data }: { data: User }) => {
+  async ({ data }: { data: UserType }) => {
     const request = getRequest()
     const { id, createdAt, ...updateData } = data
 
@@ -99,7 +108,7 @@ function UserDetailPage() {
   const navigate = useNavigate()
   const router = useRouter()
   const [editingField, setEditingField] = useState<string | null>(null)
-  const [editedValues, setEditedValues] = useState<Partial<User>>({})
+  const [editedValues, setEditedValues] = useState<Partial<UserType>>({})
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const users = data.users
@@ -116,19 +125,20 @@ function UserDetailPage() {
           }
         }}
       >
-        <SheetContent className="w-full sm:max-w-[600px]">
-          <SheetHeader>
+        <SheetContent className="w-full sm:max-w-[540px] p-0">
+          <SheetHeader className="px-6 py-5 border-b border-border/40">
             <SheetTitle>Error</SheetTitle>
             <SheetDescription>User not found</SheetDescription>
           </SheetHeader>
-          <div className="py-6">
-            <p className="text-gray-500">
+          <div className="px-6 py-6">
+            <p className="text-muted-foreground">
               The requested user could not be found.
             </p>
           </div>
-          <div className="flex gap-3 justify-end pt-6 border-t">
+          <div className="flex gap-3 justify-end px-6 py-4 border-t border-border/40 bg-muted/30">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => navigate({ to: '/dashboard/users' })}
             >
               Back to List
@@ -154,7 +164,7 @@ function UserDetailPage() {
     if (Object.keys(editedValues).length > 0) {
       // Check if any values actually changed
       const hasChanges = Object.entries(editedValues).some(
-        ([key, value]) => user[key as keyof User] !== value
+        ([key, value]) => user[key as keyof UserType] !== value
       )
 
       if (hasChanges) {
@@ -163,7 +173,7 @@ function UserDetailPage() {
           createdAt: user.createdAt,
           ...editedValues,
         }
-        await updateUserFn({ data: updatePayload as User })
+        await updateUserFn({ data: updatePayload as UserType })
         // Invalidate router cache to refetch data without full page reload
         router.invalidate()
       }
@@ -188,123 +198,161 @@ function UserDetailPage() {
   }
 
   return (
-    <Sheet
-      open={true}
-      onOpenChange={(open) => {
-        if (!open) {
-          navigate({ to: '/dashboard/users' })
-        }
-      }}
-    >
-      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
-        <SheetHeader className="space-y-3 pb-6 border-b">
-          <SheetTitle>User Details</SheetTitle>
-          <SheetDescription>
-            View and edit detailed information about this user
-          </SheetDescription>
-        </SheetHeader>
+    <>
+      <Sheet
+        open={true}
+        onOpenChange={(open) => {
+          if (!open) {
+            navigate({ to: '/dashboard/users' })
+          }
+        }}
+      >
+        <SheetContent className="w-full sm:max-w-[540px] overflow-y-auto p-0">
+          {/* Header */}
+          <SheetHeader className="px-6 py-5 border-b border-border/40">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-muted">
+                <User className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <SheetTitle className="font-display text-lg tracking-wide">
+                  @{currentValues.handle}
+                </SheetTitle>
+                <SheetDescription className="mt-1">
+                  {currentValues.email}
+                </SheetDescription>
+              </div>
+              {user.role && (
+                <Badge variant="default">
+                  {user.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                </Badge>
+              )}
+            </div>
+          </SheetHeader>
 
-        <div className="space-y-6 py-6">
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                Handle
-              </label>
-              {editingField === 'handle' ? (
-                <div className="relative mt-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                    @
-                  </span>
-                  <Input
-                    autoFocus
-                    value={currentValues.handle}
-                    onChange={(e) =>
-                      handleFieldChange('handle', e.target.value)
-                    }
-                    onBlur={handleFieldBlur}
-                    className="pl-7"
-                  />
+          <div className="px-6 py-6 space-y-6">
+            {/* Details Section */}
+            <div className="space-y-4">
+              <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+                Details
+              </h3>
+
+              {/* Handle */}
+              <button
+                type="button"
+                onClick={() => handleFieldClick('handle')}
+                className="w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-start gap-3">
+                  <AtSign className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Handle
+                    </p>
+                    {editingField === 'handle' ? (
+                      <div className="relative mt-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                          @
+                        </span>
+                        <Input
+                          autoFocus
+                          value={currentValues.handle}
+                          onChange={(e) =>
+                            handleFieldChange('handle', e.target.value)
+                          }
+                          onBlur={handleFieldBlur}
+                          onClick={(e) => e.stopPropagation()}
+                          className="pl-7 h-9"
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-sm font-medium mt-1">@{currentValues.handle}</p>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <p
-                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2 flex items-center gap-1"
-                  onClick={() => handleFieldClick('handle')}
-                >
-                  <AtSign className="h-4 w-4 text-gray-500" />
-                  <span className="font-medium">@{currentValues.handle}</span>
+              </button>
+
+              {/* Email */}
+              <button
+                type="button"
+                onClick={() => handleFieldClick('email')}
+                className="w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-start gap-3">
+                  <Mail className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Email
+                    </p>
+                    {editingField === 'email' ? (
+                      <Input
+                        autoFocus
+                        type="email"
+                        value={currentValues.email}
+                        onChange={(e) => handleFieldChange('email', e.target.value)}
+                        onBlur={handleFieldBlur}
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-1 h-9"
+                      />
+                    ) : (
+                      <p className="text-sm mt-1">{currentValues.email}</p>
+                    )}
+                  </div>
+                </div>
+              </button>
+
+              {/* Created */}
+              <div className="px-3 py-3 -mx-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Created
                 </p>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-500">Email</label>
-              {editingField === 'email' ? (
-                <Input
-                  autoFocus
-                  type="email"
-                  value={currentValues.email}
-                  onChange={(e) => handleFieldChange('email', e.target.value)}
-                  onBlur={handleFieldBlur}
-                  className="mt-1"
-                />
-              ) : (
-                <p
-                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2 flex items-center gap-1"
-                  onClick={() => handleFieldClick('email')}
-                >
-                  <Mail className="h-4 w-4 text-gray-500" />
-                  <span>{currentValues.email}</span>
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                Created
-              </label>
-              <p className="text-base mt-1">{formatDateTime(user.createdAt)}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex gap-3 justify-between pt-6 border-t">
-          <Button
-            variant="destructive"
-            onClick={() => setShowDeleteConfirm(true)}
-          >
-            Delete User
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate({ to: '/dashboard/users' })}
-          >
-            Close
-          </Button>
-        </div>
-
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md">
-              <h3 className="text-lg font-semibold mb-2">Delete User</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Are you sure you want to delete "{user.name}"? This action
-                cannot be undone.
-              </p>
-              <div className="flex gap-3 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowDeleteConfirm(false)}
-                >
-                  Cancel
-                </Button>
-                <Button variant="destructive" onClick={handleDelete}>
-                  Delete
-                </Button>
+                <p className="text-sm mt-1">{formatDateTime(user.createdAt)}</p>
               </div>
             </div>
           </div>
-        )}
-      </SheetContent>
-    </Sheet>
+
+          {/* Footer */}
+          <div className="flex gap-3 justify-between px-6 py-4 border-t border-border/40 bg-muted/30">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate({ to: '/dashboard/users' })}
+            >
+              Close
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "@{user.handle}"? This action
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

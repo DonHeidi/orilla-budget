@@ -18,13 +18,13 @@ import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 
 const parentRouteApi = getRouteApi('/dashboard/_orgs')
 
@@ -173,7 +173,7 @@ function AccountsPage() {
       </div>
 
       <div className="flex justify-end mb-4">
-        <AddAccountSheet organisations={parentData.organisations} />
+        <AddAccountDialog organisations={parentData.organisations} />
       </div>
 
       <DataTable
@@ -193,7 +193,7 @@ function AccountsPage() {
   )
 }
 
-function AddAccountSheet({ organisations }: { organisations: any[] }) {
+function AddAccountDialog({ organisations }: { organisations: any[] }) {
   const [open, setOpen] = useState(false)
   const [createdAccessCode, setCreatedAccessCode] = useState<string | null>(
     null
@@ -232,31 +232,41 @@ function AddAccountSheet({ organisations }: { organisations: any[] }) {
   }
 
   return (
-    <Sheet
+    <Dialog
       open={open}
       onOpenChange={(open) => {
         if (!open) handleClose()
         else setOpen(open)
       }}
     >
-      <SheetTrigger asChild>
+      <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
           Add Account
         </Button>
-      </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
-        <SheetHeader className="space-y-3 pb-6 border-b">
-          <SheetTitle>Add Account</SheetTitle>
-          <SheetDescription>
-            Create a new account for portal access
-          </SheetDescription>
-        </SheetHeader>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px] p-0">
+        {/* Header */}
+        <DialogHeader className="px-6 py-5 border-b border-border/40">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-muted">
+              <Users className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="font-display text-lg tracking-wide">
+                Add Account
+              </DialogTitle>
+              <DialogDescription className="mt-1">
+                Create a new account for portal access
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
 
         {createdAccessCode ? (
-          <div className="space-y-6 py-6">
+          <div className="px-6 py-6 space-y-6">
             <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-              <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">
+              <h3 className="font-display text-base tracking-wide text-green-900 dark:text-green-100 mb-2">
                 Account Created Successfully!
               </h3>
               <p className="text-sm text-green-800 dark:text-green-200 mb-4">
@@ -268,9 +278,6 @@ function AddAccountSheet({ organisations }: { organisations: any[] }) {
                 </code>
               </div>
             </div>
-            <div className="flex gap-3 justify-end pt-6 border-t">
-              <Button onClick={handleClose}>Done</Button>
-            </div>
           </div>
         ) : (
           <form
@@ -279,150 +286,175 @@ function AddAccountSheet({ organisations }: { organisations: any[] }) {
               e.stopPropagation()
               form.handleSubmit()
             }}
-            className="space-y-6 py-6 px-1"
+            className="px-6 py-6 space-y-6"
           >
-            <form.Field name="organisationId">
-              {(field) => (
-                <div className="space-y-2">
-                  <label htmlFor={field.name} className="text-sm font-medium">
-                    Organisation *
-                  </label>
-                  <select
-                    id={field.name}
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                  >
-                    <option value="">Select organisation</option>
-                    {organisations.map((org: any) => (
-                      <option key={org.id} value={org.id}>
-                        {org.name}
-                      </option>
-                    ))}
-                  </select>
-                  {field.state.meta.errors &&
-                    field.state.meta.errors.length > 0 && (
-                      <p className="text-sm text-red-500">
-                        {field.state.meta.errors
-                          .map((err) =>
-                            typeof err === 'string'
-                              ? err
-                              : err.message || JSON.stringify(err)
-                          )
-                          .join(', ')}
-                      </p>
-                    )}
-                </div>
-              )}
-            </form.Field>
+            {/* Organisation */}
+            <div className="space-y-4">
+              <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+                Organisation
+              </h3>
 
-            <form.Field name="name">
-              {(field) => (
-                <div className="space-y-2">
-                  <label htmlFor={field.name} className="text-sm font-medium">
-                    Account Name *
-                  </label>
-                  <Input
-                    id={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="e.g., Larry Page"
-                  />
-                  {field.state.meta.errors &&
-                    field.state.meta.errors.length > 0 && (
-                      <p className="text-sm text-red-500">
-                        {field.state.meta.errors
-                          .map((err) =>
-                            typeof err === 'string'
-                              ? err
-                              : err.message || JSON.stringify(err)
-                          )
-                          .join(', ')}
-                      </p>
-                    )}
-                </div>
-              )}
-            </form.Field>
+              <form.Field name="organisationId">
+                {(field) => (
+                  <div className="space-y-2">
+                    <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Organisation *
+                    </label>
+                    <select
+                      id={field.name}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    >
+                      <option value="">Select organisation</option>
+                      {organisations.map((org: any) => (
+                        <option key={org.id} value={org.id}>
+                          {org.name}
+                        </option>
+                      ))}
+                    </select>
+                    {field.state.meta.errors &&
+                      field.state.meta.errors.length > 0 && (
+                        <p className="text-sm text-destructive">
+                          {field.state.meta.errors
+                            .map((err) =>
+                              typeof err === 'string'
+                                ? err
+                                : err.message || JSON.stringify(err)
+                            )
+                            .join(', ')}
+                        </p>
+                      )}
+                  </div>
+                )}
+              </form.Field>
+            </div>
 
-            <form.Field name="email">
-              {(field) => (
-                <div className="space-y-2">
-                  <label htmlFor={field.name} className="text-sm font-medium">
-                    Email *
-                  </label>
-                  <Input
-                    id={field.name}
-                    type="email"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="e.g., larry@google.com"
-                  />
-                  {field.state.meta.errors &&
-                    field.state.meta.errors.length > 0 && (
-                      <p className="text-sm text-red-500">
-                        {field.state.meta.errors
-                          .map((err) =>
-                            typeof err === 'string'
-                              ? err
-                              : err.message || JSON.stringify(err)
-                          )
-                          .join(', ')}
-                      </p>
-                    )}
-                </div>
-              )}
-            </form.Field>
+            {/* Account Details */}
+            <div className="space-y-4">
+              <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+                Account Details
+              </h3>
 
-            <form.Field name="role">
-              {(field) => (
-                <div className="space-y-2">
-                  <label htmlFor={field.name} className="text-sm font-medium">
-                    Role *
-                  </label>
-                  <select
-                    id={field.name}
-                    value={field.state.value}
-                    onChange={(e) =>
-                      field.handleChange(
-                        e.target.value as
-                          | 'contact'
-                          | 'project_manager'
-                          | 'finance'
-                      )
-                    }
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                  >
-                    <option value="contact">Contact</option>
-                    <option value="project_manager">Project Manager</option>
-                    <option value="finance">Finance/Controller</option>
-                  </select>
-                  {field.state.meta.errors &&
-                    field.state.meta.errors.length > 0 && (
-                      <p className="text-sm text-red-500">
-                        {field.state.meta.errors
-                          .map((err) =>
-                            typeof err === 'string'
-                              ? err
-                              : err.message || JSON.stringify(err)
-                          )
-                          .join(', ')}
-                      </p>
-                    )}
-                </div>
-              )}
-            </form.Field>
+              <form.Field name="name">
+                {(field) => (
+                  <div className="space-y-2">
+                    <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Account Name *
+                    </label>
+                    <Input
+                      id={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="e.g., Larry Page"
+                      className="h-10"
+                    />
+                    {field.state.meta.errors &&
+                      field.state.meta.errors.length > 0 && (
+                        <p className="text-sm text-destructive">
+                          {field.state.meta.errors
+                            .map((err) =>
+                              typeof err === 'string'
+                                ? err
+                                : err.message || JSON.stringify(err)
+                            )
+                            .join(', ')}
+                        </p>
+                      )}
+                  </div>
+                )}
+              </form.Field>
 
-            <div className="flex gap-3 justify-end pt-6 border-t">
-              <Button type="button" variant="outline" onClick={handleClose}>
-                Cancel
-              </Button>
-              <Button type="submit">Create Account</Button>
+              <form.Field name="email">
+                {(field) => (
+                  <div className="space-y-2">
+                    <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Email *
+                    </label>
+                    <Input
+                      id={field.name}
+                      type="email"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="e.g., larry@google.com"
+                      className="h-10"
+                    />
+                    {field.state.meta.errors &&
+                      field.state.meta.errors.length > 0 && (
+                        <p className="text-sm text-destructive">
+                          {field.state.meta.errors
+                            .map((err) =>
+                              typeof err === 'string'
+                                ? err
+                                : err.message || JSON.stringify(err)
+                            )
+                            .join(', ')}
+                        </p>
+                      )}
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field name="role">
+                {(field) => (
+                  <div className="space-y-2">
+                    <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Role *
+                    </label>
+                    <select
+                      id={field.name}
+                      value={field.state.value}
+                      onChange={(e) =>
+                        field.handleChange(
+                          e.target.value as
+                            | 'contact'
+                            | 'project_manager'
+                            | 'finance'
+                        )
+                      }
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    >
+                      <option value="contact">Contact</option>
+                      <option value="project_manager">Project Manager</option>
+                      <option value="finance">Finance/Controller</option>
+                    </select>
+                    {field.state.meta.errors &&
+                      field.state.meta.errors.length > 0 && (
+                        <p className="text-sm text-destructive">
+                          {field.state.meta.errors
+                            .map((err) =>
+                              typeof err === 'string'
+                                ? err
+                                : err.message || JSON.stringify(err)
+                            )
+                            .join(', ')}
+                        </p>
+                      )}
+                  </div>
+                )}
+              </form.Field>
             </div>
           </form>
         )}
-      </SheetContent>
-    </Sheet>
+
+        {/* Footer */}
+        <div className="flex gap-3 justify-end px-6 py-4 border-t border-border/40 bg-muted/30">
+          {createdAccessCode ? (
+            <Button size="sm" onClick={handleClose}>Done</Button>
+          ) : (
+            <>
+              <Button type="button" variant="outline" size="sm" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" onClick={() => form.handleSubmit()}>
+                Create Account
+              </Button>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

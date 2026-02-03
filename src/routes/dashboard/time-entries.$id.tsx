@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState, useEffect } from 'react'
+import { Clock, Building2, FolderKanban, FileText, Calendar } from 'lucide-react'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
 import { entryMessageRepository } from '@/repositories/entryMessage.repository'
 import { projectMemberRepository } from '@/repositories/projectMember.repository'
@@ -13,6 +14,7 @@ import { hasProjectPermission } from '@/lib/permissions'
 import { getCurrentUser } from '@/repositories/auth.repository'
 import type { TimeEntry, EntryStatus, EntryMessage } from '@/schemas'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
   Sheet,
@@ -259,19 +261,20 @@ function TimeEntryDetailPage() {
           }
         }}
       >
-        <SheetContent className="w-full sm:max-w-[600px]">
-          <SheetHeader>
+        <SheetContent className="w-full sm:max-w-[540px] p-0">
+          <SheetHeader className="px-6 py-5 border-b border-border/40">
             <SheetTitle>Error</SheetTitle>
             <SheetDescription>Time entry not found</SheetDescription>
           </SheetHeader>
-          <div className="py-6">
-            <p className="text-gray-500">
+          <div className="px-6 py-6">
+            <p className="text-muted-foreground">
               The requested time entry could not be found.
             </p>
           </div>
-          <div className="flex gap-3 justify-end pt-6 border-t">
+          <div className="flex gap-3 justify-end px-6 py-4 border-t border-border/40 bg-muted/30">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => navigate({ to: '/dashboard/time-entries' })}
             >
               Back to List
@@ -345,24 +348,56 @@ function TimeEntryDetailPage() {
         }
       }}
     >
-      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto">
-        <SheetHeader className="space-y-3 pb-6 border-b">
-          <div className="flex items-center justify-between">
-            <SheetTitle>Time Entry Details</SheetTitle>
+      <SheetContent className="w-full sm:max-w-[540px] overflow-y-auto p-0">
+        {/* Header */}
+        <SheetHeader className="px-6 py-5 border-b border-border/40">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-muted">
+              <Clock className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <SheetTitle className="font-display text-lg tracking-wide">
+                {currentValues.title || 'Untitled Entry'}
+              </SheetTitle>
+              <SheetDescription className="mt-1">
+                {currentValues.date} • {hoursToTime(currentValues.hours)}
+              </SheetDescription>
+            </div>
             <EntryStatusBadge status={entryStatus} />
           </div>
-          <SheetDescription>
-            View and edit detailed information about this time entry
-          </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-6 py-6">
+        <div className="px-6 py-6 space-y-6">
+          {/* Time Summary Card */}
+          <Card className="bg-muted/30 border-border/40">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Date
+                  </p>
+                  <p className="text-xl font-semibold mt-1">
+                    {currentValues.date}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Duration
+                  </p>
+                  <p className="text-xl font-semibold tabular-nums mt-1">
+                    {hoursToTime(currentValues.hours)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Approval Actions */}
           {(permissions.canApprove || permissions.canQuestion) && (
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-500">
+              <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
                 Approval Actions
-              </label>
+              </h3>
               <EntryApprovalActions
                 currentStatus={entryStatus}
                 onApprove={() => handleStatusChange('approved')}
@@ -374,203 +409,252 @@ function TimeEntryDetailPage() {
             </div>
           )}
 
+          {/* Details Section */}
           <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-500">Title</label>
-              {editingField === 'title' ? (
-                <Input
-                  autoFocus
-                  value={currentValues.title}
-                  onChange={(e) => handleFieldChange('title', e.target.value)}
-                  onBlur={handleFieldBlur}
-                  className="mt-1"
-                />
-              ) : (
-                <p
-                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
-                  onClick={() => handleFieldClick('title')}
-                >
-                  {currentValues.title}
-                </p>
-              )}
-            </div>
+            <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+              Details
+            </h3>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                Description
-              </label>
-              {editingField === 'description' ? (
-                <textarea
-                  autoFocus
-                  value={currentValues.description}
-                  onChange={(e) =>
-                    handleFieldChange('description', e.target.value)
-                  }
-                  onBlur={handleFieldBlur}
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1"
-                  rows={3}
-                />
-              ) : (
-                <p
-                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2 min-h-[1.5rem]"
-                  onClick={() => handleFieldClick('description')}
-                >
-                  {currentValues.description || 'Click to add description...'}
-                </p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-500">
-                  Date
-                </label>
-                {editingField === 'date' ? (
-                  <Input
-                    autoFocus
-                    type="date"
-                    value={currentValues.date}
-                    onChange={(e) => handleFieldChange('date', e.target.value)}
-                    onBlur={handleFieldBlur}
-                    className="mt-1"
-                  />
-                ) : (
-                  <p
-                    className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
-                    onClick={() => handleFieldClick('date')}
-                  >
-                    {currentValues.date}
+            {/* Title */}
+            <button
+              type="button"
+              onClick={() => handleFieldClick('title')}
+              className="w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors hover:bg-muted/50"
+            >
+              <div className="flex items-start gap-3">
+                <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Title
                   </p>
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-500">
-                  Hours
-                </label>
-                {editingField === 'hours' ? (
-                  <div className="flex gap-2 items-center mt-1">
+                  {editingField === 'title' ? (
                     <Input
                       autoFocus
-                      type="number"
-                      min="0"
-                      max="99"
-                      value={Math.floor(currentValues.hours)}
-                      onChange={(e) => {
-                        const hours = parseInt(e.target.value) || 0
-                        const minutes = Math.round(
-                          (currentValues.hours % 1) * 60
-                        )
-                        handleFieldChange('hours', hours + minutes / 60)
-                      }}
+                      value={currentValues.title}
+                      onChange={(e) => handleFieldChange('title', e.target.value)}
                       onBlur={handleFieldBlur}
-                      className="w-20"
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-1 h-9"
                     />
-                    <span className="text-sm">h</span>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="59"
-                      step="15"
-                      value={Math.round((currentValues.hours % 1) * 60)}
-                      onChange={(e) => {
-                        const hours = Math.floor(currentValues.hours)
-                        const minutes = parseInt(e.target.value) || 0
-                        handleFieldChange('hours', hours + minutes / 60)
-                      }}
-                      onBlur={handleFieldBlur}
-                      className="w-20"
-                    />
-                    <span className="text-sm">min</span>
-                  </div>
+                  ) : (
+                    <p className="text-sm font-medium mt-1">{currentValues.title}</p>
+                  )}
+                </div>
+              </div>
+            </button>
+
+            {/* Description */}
+            <button
+              type="button"
+              onClick={() => handleFieldClick('description')}
+              className="w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors hover:bg-muted/50"
+            >
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Description
+                </p>
+                {editingField === 'description' ? (
+                  <textarea
+                    autoFocus
+                    value={currentValues.description}
+                    onChange={(e) =>
+                      handleFieldChange('description', e.target.value)
+                    }
+                    onBlur={handleFieldBlur}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    rows={3}
+                  />
                 ) : (
-                  <p
-                    className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
-                    onClick={() => handleFieldClick('hours')}
-                  >
-                    {hoursToTime(currentValues.hours)}
+                  <p className="text-sm mt-1 text-muted-foreground">
+                    {currentValues.description || 'No description'}
                   </p>
                 )}
               </div>
-            </div>
+            </button>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                Organisation
-              </label>
-              {editingField === 'organisationId' ? (
-                <select
-                  autoFocus
-                  value={currentValues.organisationId || ''}
-                  onChange={(e) => {
-                    handleFieldChange(
-                      'organisationId',
-                      e.target.value || undefined
-                    )
-                    handleFieldChange('projectId', undefined)
-                  }}
-                  onBlur={handleFieldBlur}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1"
-                >
-                  <option value="">None</option>
-                  {organisations.map((org: any) => (
-                    <option key={org.id} value={org.id}>
-                      {org.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <p
-                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
-                  onClick={() => handleFieldClick('organisationId')}
-                >
-                  {organisation?.name || 'Click to select organisation...'}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                Project
-              </label>
-              {editingField === 'projectId' ? (
-                <select
-                  autoFocus
-                  value={currentValues.projectId || ''}
-                  onChange={(e) =>
-                    handleFieldChange('projectId', e.target.value || undefined)
-                  }
-                  onBlur={handleFieldBlur}
-                  disabled={!currentValues.organisationId}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background mt-1 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="">None</option>
-                  {projects
-                    .filter(
-                      (p: any) =>
-                        p.organisationId === currentValues.organisationId
-                    )
-                    .map((proj: any) => (
-                      <option key={proj.id} value={proj.id}>
-                        {proj.name}
-                      </option>
-                    ))}
-                </select>
-              ) : (
-                <p
-                  className="text-base mt-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2"
-                  onClick={() => handleFieldClick('projectId')}
-                >
-                  {project?.name || 'Click to select project...'}
-                </p>
-              )}
-            </div>
-
+            {/* Date & Hours */}
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-500">
+              <button
+                type="button"
+                onClick={() => handleFieldClick('date')}
+                className="text-left rounded-lg px-3 py-3 -mx-3 transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-start gap-3">
+                  <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Date
+                    </p>
+                    {editingField === 'date' ? (
+                      <Input
+                        autoFocus
+                        type="date"
+                        value={currentValues.date}
+                        onChange={(e) => handleFieldChange('date', e.target.value)}
+                        onBlur={handleFieldBlur}
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-1 h-9"
+                      />
+                    ) : (
+                      <p className="text-sm mt-1">{currentValues.date}</p>
+                    )}
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleFieldClick('hours')}
+                className="text-left rounded-lg px-3 py-3 transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-start gap-3">
+                  <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Hours
+                    </p>
+                    {editingField === 'hours' ? (
+                      <div className="flex gap-2 items-center mt-1">
+                        <Input
+                          autoFocus
+                          type="number"
+                          min="0"
+                          max="99"
+                          value={Math.floor(currentValues.hours)}
+                          onChange={(e) => {
+                            const hours = parseInt(e.target.value) || 0
+                            const minutes = Math.round(
+                              (currentValues.hours % 1) * 60
+                            )
+                            handleFieldChange('hours', hours + minutes / 60)
+                          }}
+                          onBlur={handleFieldBlur}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-16 h-9"
+                        />
+                        <span className="text-xs">h</span>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="59"
+                          step="15"
+                          value={Math.round((currentValues.hours % 1) * 60)}
+                          onChange={(e) => {
+                            const hours = Math.floor(currentValues.hours)
+                            const minutes = parseInt(e.target.value) || 0
+                            handleFieldChange('hours', hours + minutes / 60)
+                          }}
+                          onBlur={handleFieldBlur}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-16 h-9"
+                        />
+                        <span className="text-xs">m</span>
+                      </div>
+                    ) : (
+                      <p className="text-sm tabular-nums mt-1">
+                        {hoursToTime(currentValues.hours)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            {/* Organisation */}
+            <button
+              type="button"
+              onClick={() => handleFieldClick('organisationId')}
+              className="w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors hover:bg-muted/50"
+            >
+              <div className="flex items-start gap-3">
+                <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Organisation
+                  </p>
+                  {editingField === 'organisationId' ? (
+                    <select
+                      autoFocus
+                      value={currentValues.organisationId || ''}
+                      onChange={(e) => {
+                        handleFieldChange(
+                          'organisationId',
+                          e.target.value || undefined
+                        )
+                        handleFieldChange('projectId', undefined)
+                      }}
+                      onBlur={handleFieldBlur}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm mt-1"
+                    >
+                      <option value="">None</option>
+                      {organisations.map((org: any) => (
+                        <option key={org.id} value={org.id}>
+                          {org.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm mt-1">
+                      {organisation?.name || 'Not assigned'}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </button>
+
+            {/* Project */}
+            <button
+              type="button"
+              onClick={() => handleFieldClick('projectId')}
+              className="w-full text-left rounded-lg px-3 py-3 -mx-3 transition-colors hover:bg-muted/50"
+            >
+              <div className="flex items-start gap-3">
+                <FolderKanban className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Project
+                  </p>
+                  {editingField === 'projectId' ? (
+                    <select
+                      autoFocus
+                      value={currentValues.projectId || ''}
+                      onChange={(e) =>
+                        handleFieldChange('projectId', e.target.value || undefined)
+                      }
+                      onBlur={handleFieldBlur}
+                      onClick={(e) => e.stopPropagation()}
+                      disabled={!currentValues.organisationId}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm mt-1 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">None</option>
+                      {projects
+                        .filter(
+                          (p: any) =>
+                            p.organisationId === currentValues.organisationId
+                        )
+                        .map((proj: any) => (
+                          <option key={proj.id} value={proj.id}>
+                            {proj.name}
+                          </option>
+                        ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm mt-1">
+                      {project?.name || 'Not assigned'}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </button>
+
+            {/* Billed & Created */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="px-3 py-3 -mx-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Billed
-                </label>
+                </p>
                 <div className="flex items-center mt-1">
                   <input
                     type="checkbox"
@@ -579,41 +663,43 @@ function TimeEntryDetailPage() {
                       handleFieldChange('billed', e.target.checked)
                       handleFieldBlur()
                     }}
-                    className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"
+                    className="h-4 w-4 rounded border-input cursor-pointer"
                   />
-                  <span className="ml-2 text-base">
+                  <span className="ml-2 text-sm">
                     {currentValues.billed ? 'Yes' : 'No'}
                   </span>
                 </div>
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-gray-500">
+              <div className="px-3 py-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Created
-                </label>
-                <p className="text-base mt-1">
+                </p>
+                <p className="text-sm mt-1">
                   {formatDateTime(timeEntry.createdAt)}
                 </p>
               </div>
             </div>
 
             {timeEntry.statusChangedAt && (
-              <div>
-                <label className="text-sm font-medium text-gray-500">
+              <div className="px-3 py-3 -mx-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Status Changed
-                </label>
-                <p className="text-base mt-1">
+                </p>
+                <p className="text-sm mt-1">
                   {formatDateTime(timeEntry.statusChangedAt)}
                 </p>
               </div>
             )}
           </div>
 
-          {/* Messages Section */}
           <Separator />
 
+          {/* Messages Section */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium">Comments & Questions</h3>
+            <h3 className="font-display text-sm tracking-wider uppercase text-muted-foreground">
+              Comments & Questions
+            </h3>
 
             {isLoadingMessages ? (
               <p className="text-sm text-muted-foreground">Loading messages...</p>
@@ -633,9 +719,11 @@ function TimeEntryDetailPage() {
           </div>
         </div>
 
-        <div className="flex gap-3 justify-end pt-6 border-t">
+        {/* Footer */}
+        <div className="flex gap-3 justify-end px-6 py-4 border-t border-border/40 bg-muted/30">
           <Button
             variant="outline"
+            size="sm"
             onClick={() => navigate({ to: '/dashboard/time-entries' })}
           >
             Close

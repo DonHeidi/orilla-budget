@@ -118,7 +118,9 @@ export function ApprovalSettingsForm({
     <div className={cn('space-y-6', className)}>
       {/* Approval Mode */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Approval Mode</label>
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          Approval Mode
+        </label>
         <Select
           value={formData.approvalMode}
           onValueChange={(value) =>
@@ -126,37 +128,39 @@ export function ApprovalSettingsForm({
           }
           disabled={disabled}
         >
-          <SelectTrigger>
+          <SelectTrigger className="h-10">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {approvalModeOptions.map((option) => (
               <SelectItem key={option.value} value={option.value}>
-                <div>
-                  <div className="font-medium">{option.label}</div>
-                  <div className="text-xs text-muted-foreground">{option.description}</div>
-                </div>
+                {option.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <p className="text-xs text-muted-foreground">
+          {approvalModeOptions.find((o) => o.value === formData.approvalMode)?.description}
+        </p>
       </div>
 
       {/* Multi-Stage Configuration */}
       {formData.approvalMode === 'multi_stage' && (
         <div className="space-y-3">
-          <label className="text-sm font-medium">Approval Stages (in order)</label>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Approval Stages (in order)
+          </label>
           <div className="space-y-2">
             {formData.approvalStages.map((stage, index) => (
               <div key={index} className="flex items-center gap-2">
                 <GripVertical className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground w-6">{index + 1}.</span>
+                <span className="text-xs text-muted-foreground w-6 tabular-nums">{index + 1}.</span>
                 <Select
                   value={stage}
                   onValueChange={(value) => updateStage(index, value as ApprovalStage)}
                   disabled={disabled}
                 >
-                  <SelectTrigger className="flex-1">
+                  <SelectTrigger className="flex-1 h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -179,7 +183,7 @@ export function ApprovalSettingsForm({
                   size="sm"
                   onClick={() => removeStage(index)}
                   disabled={disabled}
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -203,8 +207,10 @@ export function ApprovalSettingsForm({
 
       {/* Auto-Approve Days */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Auto-Approve After (days)</label>
-        <div className="flex items-center gap-2">
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          Auto-Approve After (days)
+        </label>
+        <div className="flex items-center gap-3">
           <Input
             type="number"
             min={0}
@@ -216,7 +222,7 @@ export function ApprovalSettingsForm({
               })
             }
             disabled={disabled}
-            className="w-24"
+            className="w-20 h-10 text-center"
           />
           <span className="text-sm text-muted-foreground">
             {formData.autoApproveAfterDays === 0
@@ -227,44 +233,51 @@ export function ApprovalSettingsForm({
       </div>
 
       {/* Checkboxes */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="requireAllEntriesApproved"
-            checked={formData.requireAllEntriesApproved}
-            onCheckedChange={(checked) =>
-              setFormData({
-                ...formData,
-                requireAllEntriesApproved: checked === true,
-              })
-            }
-            disabled={disabled}
-          />
-          <label htmlFor="requireAllEntriesApproved" className="text-sm">
-            Require all entries to be individually approved before sheet approval
-          </label>
-        </div>
+      <div className="space-y-4">
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          Additional Options
+        </label>
+        <div className="space-y-3">
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="requireAllEntriesApproved"
+              checked={formData.requireAllEntriesApproved}
+              onCheckedChange={(checked) =>
+                setFormData({
+                  ...formData,
+                  requireAllEntriesApproved: checked === true,
+                })
+              }
+              disabled={disabled}
+              className="mt-0.5"
+            />
+            <label htmlFor="requireAllEntriesApproved" className="text-sm leading-tight">
+              Require all entries to be individually approved before sheet approval
+            </label>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="allowSelfApproveNoClient"
-            checked={formData.allowSelfApproveNoClient}
-            onCheckedChange={(checked) =>
-              setFormData({
-                ...formData,
-                allowSelfApproveNoClient: checked === true,
-              })
-            }
-            disabled={disabled}
-          />
-          <label htmlFor="allowSelfApproveNoClient" className="text-sm">
-            Allow experts to self-approve when no client is assigned
-          </label>
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="allowSelfApproveNoClient"
+              checked={formData.allowSelfApproveNoClient}
+              onCheckedChange={(checked) =>
+                setFormData({
+                  ...formData,
+                  allowSelfApproveNoClient: checked === true,
+                })
+              }
+              disabled={disabled}
+              className="mt-0.5"
+            />
+            <label htmlFor="allowSelfApproveNoClient" className="text-sm leading-tight">
+              Allow experts to self-approve when no client is assigned
+            </label>
+          </div>
         </div>
       </div>
 
       {/* Save Button */}
-      <Button onClick={handleSave} disabled={disabled}>
+      <Button onClick={handleSave} disabled={disabled} size="sm">
         {isSaving ? 'Saving...' : 'Save Settings'}
       </Button>
     </div>
