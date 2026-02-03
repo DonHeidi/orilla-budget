@@ -4,7 +4,8 @@ This directory contains the database schema and connection for the Orilla Budget
 
 ## Files
 
-- `schema.ts` - Drizzle schema definitions for all tables
+- `schema.ts` - Application-specific table definitions
+- `better-auth-schema.ts` - Better Auth tables (user, session, organization, team, member)
 - `index.ts` - Database connection using Bun SQLite driver
 
 The database file `data.db` lives at the project root (not in this directory).
@@ -55,14 +56,28 @@ export const projects = sqliteTable('projects', {
 
 ## Current Tables
 
-- `users` - User accounts (Better Auth managed)
-- `sessions` - Auth sessions (Better Auth managed)
-- `accounts` - OAuth accounts (Better Auth managed)
-- `verifications` - Email verification tokens (Better Auth managed)
-- `organisations` - Client organisations
-- `organisationAccounts` - Org account contacts
-- `projects` - Projects within organisations
-- `projectMembers` - User-project role assignments
+### Better Auth Tables (`better-auth-schema.ts`)
+
+- `user` - User accounts
+- `session` - Auth sessions
+- `account` - OAuth provider accounts
+- `verification` - Email verification tokens
+- `organization` - Client organizations
+- `team` - Teams/projects within organizations
+- `teamMember` - User-team role assignments
+- `member` - Organization membership
+- `invitation` - Organization invitations
+
+### Application Tables (`schema.ts`)
+
+- `project` - Legacy project definitions
+- `pii` - Personally identifiable information (GDPR)
+- `accounts` - Organization member accounts
+- `contacts` - External contacts
+- `invitations` - Project invitations
 - `timeEntries` - Time tracking entries
 - `timeSheets` - Time sheet groupings
-- `timeSheetEntries` - Junction table for sheets/entries
+- `timeSheetEntries` - Junction: sheets ↔ entries
+- `entryMessages` - Comments on time entries
+- `projectApprovalSettings` - Approval workflow config
+- `timeSheetApprovals` - Time sheet approval records

@@ -15,6 +15,20 @@ const isMobile = useIsMobile()
 // true if viewport width < 768px
 ```
 
+### `use-locale.ts`
+
+Locale detection and formatting utilities.
+
+### `useAuth.ts`
+
+Authentication state and session management:
+
+```typescript
+import { useAuth } from '@/hooks/useAuth'
+
+const { user, session, isLoading } = useAuth()
+```
+
 ## Creating New Hooks
 
 ```typescript

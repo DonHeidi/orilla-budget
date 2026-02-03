@@ -4,9 +4,11 @@ This directory contains utility functions and helpers.
 
 ## Files
 
-- `utils.ts` - General utility functions
-- `auth.ts` - Better Auth client configuration
+- `utils.ts` - General utility functions (cn, etc.)
+- `auth.ts` - Better Auth configuration
 - `auth-client.ts` - Auth client for React components
+- `auth-server.ts` - Server-side auth utilities
+- `date-utils.ts` - Date formatting and manipulation
 - `permissions.ts` - Permission checking utilities
 
 ## Path Aliases

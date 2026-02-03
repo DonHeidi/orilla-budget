@@ -67,14 +67,20 @@ const getUsersFn = createServerFn({ method: 'GET' }).handler(async () => {
 
 ## Current Repositories
 
-- `user.repository.ts` - User CRUD
+- `account.repository.ts` - Organization member accounts
 - `auth.repository.ts` - Better Auth wrapper
+- `contact.repository.ts` - External contacts management
+- `entryMessage.repository.ts` - Time entry comments/messages
+- `invitation.repository.ts` - User invitation handling
 - `organisation.repository.ts` - Organisation operations
-- `account.repository.ts` - Account/contact management
+- `pii.repository.ts` - Personally identifiable information
 - `project.repository.ts` - Project operations
+- `projectApprovalSettings.repository.ts` - Approval workflow config
 - `projectMember.repository.ts` - Project membership
 - `timeEntry.repository.ts` - Time entry tracking
 - `timeSheet.repository.ts` - Time sheet workflows
+- `timeSheetApproval.repository.ts` - Time sheet approval workflow
+- `user.repository.ts` - User CRUD
 
 ## Testing
 
