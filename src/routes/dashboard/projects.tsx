@@ -5,13 +5,13 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { Plus, FolderKanban } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
-import { cn } from '@/lib/utils'
 import { authRepository } from '@/repositories/auth.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { timeEntryRepository } from '@/repositories/timeEntry.repository'
 import { getCurrentUser, isAdmin } from '@/repositories/auth.repository'
 import { createProjectSchema, type Project } from '@/schemas'
+import { Table } from '@/components/ui/table'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -149,10 +149,7 @@ function ProjectsPage() {
       accessorKey: 'name',
       header: 'Project Name',
       cell: ({ getValue }) => (
-        <div className="flex items-center gap-1">
-          <FolderKanban className="h-4 w-4 text-gray-500" />
-          <span className="font-medium">{getValue() as string}</span>
-        </div>
+        <Table.TitleCell icon={FolderKanban}>{getValue() as string}</Table.TitleCell>
       ),
     },
     {
@@ -173,16 +170,9 @@ function ProjectsPage() {
       cell: ({ getValue }) => {
         const category = getValue() as 'budget' | 'fixed'
         return (
-          <span
-            className={cn(
-              'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-              category === 'budget'
-                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-            )}
-          >
+          <Table.StatusCell variant={category === 'budget' ? 'info' : 'muted'}>
             {category === 'budget' ? 'Budget' : 'Fixed Price'}
-          </span>
+          </Table.StatusCell>
         )
       },
     },

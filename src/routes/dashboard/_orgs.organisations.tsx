@@ -21,6 +21,7 @@ import {
   type Organisation,
   type Account,
 } from '@/schemas'
+import { Table } from '@/components/ui/table'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -174,20 +175,14 @@ function OrganisationsPage() {
       accessorKey: 'contactName',
       header: 'Contact',
       cell: ({ getValue }) => (
-        <div className="flex items-center gap-1">
-          <Users className="h-4 w-4 text-gray-500" />
-          <span>{getValue() as string}</span>
-        </div>
+        <Table.SecondaryCell icon={Users}>{getValue() as string}</Table.SecondaryCell>
       ),
     },
     {
       accessorKey: 'contactEmail',
       header: 'Email',
       cell: ({ getValue }) => (
-        <div className="flex items-center gap-1">
-          <Mail className="h-4 w-4 text-gray-500" />
-          <span>{getValue() as string}</span>
-        </div>
+        <Table.SecondaryCell icon={Mail}>{getValue() as string}</Table.SecondaryCell>
       ),
     },
     {

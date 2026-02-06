@@ -1,4 +1,5 @@
 import { CheckCircle, XCircle } from 'lucide-react'
+import { Table } from '@/components/ui/table'
 import { DataTable } from './DataTable'
 import { type ColumnDef } from '@tanstack/react-table'
 import { useLocale } from '@/hooks/use-locale'
@@ -31,18 +32,17 @@ export function TimeEntriesTable({
       accessorKey: 'date',
       header: 'Date',
       size: 110,
-      cell: ({ getValue }) => {
-        const dateStr = getValue() as string
-        return <div className="w-[110px]">{formatDate(dateStr, locale)}</div>
-      },
+      cell: ({ getValue }) => (
+        <Table.DateTimeCell className="w-[110px]">{formatDate(getValue() as string, locale)}</Table.DateTimeCell>
+      ),
     },
     {
       accessorKey: 'title',
       header: 'Title',
       size: 200,
-      cell: ({ getValue }) => {
-        return <div className="w-[200px] font-medium">{getValue() as string}</div>
-      },
+      cell: ({ getValue }) => (
+        <Table.TitleCell className="w-[200px]">{getValue() as string}</Table.TitleCell>
+      ),
     },
     ...(showDescription
       ? [
@@ -52,12 +52,10 @@ export function TimeEntriesTable({
             size: 250,
             cell: ({ getValue }: any) => {
               const description = getValue() as string | undefined
-              return description ? (
-                <div className="w-[250px] text-muted-foreground truncate" title={description}>
-                  {description}
-                </div>
-              ) : (
-                <div className="w-[250px] text-muted-foreground">-</div>
+              return (
+                <Table.SecondaryCell className="w-[250px] truncate">
+                  {description || '-'}
+                </Table.SecondaryCell>
               )
             },
           },
@@ -69,7 +67,7 @@ export function TimeEntriesTable({
       size: 80,
       cell: ({ getValue }) => {
         const hours = getValue() as number
-        return <div className="w-[80px] text-right">{hoursToTime(hours)}</div>
+        return <Table.NumericCell className="w-[80px]">{hoursToTime(hours)}</Table.NumericCell>
       },
     },
     {
@@ -97,7 +95,7 @@ export function TimeEntriesTable({
       size: 180,
       cell: ({ getValue }) => {
         const approvedDate = getValue() as string | undefined
-        return <div className="w-[180px]">{approvedDate ? formatDateTime(approvedDate, locale) : '-'}</div>
+        return <Table.DateTimeCell className="w-[180px]">{approvedDate ? formatDateTime(approvedDate, locale) : '-'}</Table.DateTimeCell>
       },
     },
   ]

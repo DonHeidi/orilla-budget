@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@/test-utils'
+import { FolderKanban, Mail } from 'lucide-react'
 import {
   Table,
   TableHeader,
@@ -10,6 +11,7 @@ import {
   TableCell,
   TableCaption,
 } from './table'
+import type { StatusVariant } from './table'
 
 describe('Table', () => {
   describe('Rendering', () => {
@@ -527,5 +529,272 @@ describe('Table', () => {
 
       expect(screen.getByText('No data available')).toBeInTheDocument()
     })
+  })
+})
+
+describe('Table.TitleCell', () => {
+  it('renders text with font-medium', () => {
+    render(<Table.TitleCell>Project Alpha</Table.TitleCell>)
+    const span = screen.getByText('Project Alpha')
+    expect(span).toBeInTheDocument()
+    expect(span).toHaveClass('font-medium')
+  })
+
+  it('renders with an icon', () => {
+    const { container } = render(
+      <Table.TitleCell icon={FolderKanban}>Project Alpha</Table.TitleCell>
+    )
+    expect(screen.getByText('Project Alpha')).toBeInTheDocument()
+    expect(container.querySelector('svg')).toBeInTheDocument()
+  })
+
+  it('renders without icon when none provided', () => {
+    const { container } = render(
+      <Table.TitleCell>Project Alpha</Table.TitleCell>
+    )
+    expect(container.querySelector('svg')).not.toBeInTheDocument()
+  })
+
+  it('applies custom className', () => {
+    const { container } = render(
+      <Table.TitleCell className="w-[200px]">Test</Table.TitleCell>
+    )
+    const wrapper = container.querySelector('[data-slot="table-title-cell"]')
+    expect(wrapper).toHaveClass('w-[200px]')
+  })
+
+  it('has correct data-slot attribute', () => {
+    const { container } = render(<Table.TitleCell>Test</Table.TitleCell>)
+    expect(
+      container.querySelector('[data-slot="table-title-cell"]')
+    ).toBeInTheDocument()
+  })
+})
+
+describe('Table.SecondaryCell', () => {
+  it('renders text with muted foreground', () => {
+    const { container } = render(
+      <Table.SecondaryCell>user@example.com</Table.SecondaryCell>
+    )
+    const wrapper = container.querySelector(
+      '[data-slot="table-secondary-cell"]'
+    )
+    expect(wrapper).toHaveClass('text-muted-foreground')
+    expect(screen.getByText('user@example.com')).toBeInTheDocument()
+  })
+
+  it('renders with an icon', () => {
+    const { container } = render(
+      <Table.SecondaryCell icon={Mail}>user@example.com</Table.SecondaryCell>
+    )
+    expect(screen.getByText('user@example.com')).toBeInTheDocument()
+    expect(container.querySelector('svg')).toBeInTheDocument()
+  })
+
+  it('renders without icon when none provided', () => {
+    const { container } = render(
+      <Table.SecondaryCell>user@example.com</Table.SecondaryCell>
+    )
+    expect(container.querySelector('svg')).not.toBeInTheDocument()
+  })
+
+  it('applies custom className', () => {
+    const { container } = render(
+      <Table.SecondaryCell className="w-[250px] truncate">
+        Long text
+      </Table.SecondaryCell>
+    )
+    const wrapper = container.querySelector(
+      '[data-slot="table-secondary-cell"]'
+    )
+    expect(wrapper).toHaveClass('w-[250px]')
+    expect(wrapper).toHaveClass('truncate')
+  })
+
+  it('has correct data-slot attribute', () => {
+    const { container } = render(
+      <Table.SecondaryCell>Test</Table.SecondaryCell>
+    )
+    expect(
+      container.querySelector('[data-slot="table-secondary-cell"]')
+    ).toBeInTheDocument()
+  })
+})
+
+describe('Table.NumericCell', () => {
+  it('renders with right-aligned monospace muted text', () => {
+    const { container } = render(
+      <Table.NumericCell>42.50h</Table.NumericCell>
+    )
+    const wrapper = container.querySelector(
+      '[data-slot="table-numeric-cell"]'
+    )
+    expect(wrapper).toHaveClass('text-right')
+    expect(wrapper).toHaveClass('font-mono')
+    expect(wrapper).toHaveClass('text-muted-foreground')
+    expect(screen.getByText('42.50h')).toBeInTheDocument()
+  })
+
+  it('applies custom className', () => {
+    const { container } = render(
+      <Table.NumericCell className="w-[80px]">1:30</Table.NumericCell>
+    )
+    const wrapper = container.querySelector(
+      '[data-slot="table-numeric-cell"]'
+    )
+    expect(wrapper).toHaveClass('w-[80px]')
+  })
+
+  it('has correct data-slot attribute', () => {
+    const { container } = render(
+      <Table.NumericCell>100</Table.NumericCell>
+    )
+    expect(
+      container.querySelector('[data-slot="table-numeric-cell"]')
+    ).toBeInTheDocument()
+  })
+})
+
+describe('Table.EmailCell', () => {
+  it('renders email text with muted foreground', () => {
+    const { container } = render(
+      <Table.EmailCell>alice@example.com</Table.EmailCell>
+    )
+    const wrapper = container.querySelector('[data-slot="table-email-cell"]')
+    expect(wrapper).toHaveClass('text-muted-foreground')
+    expect(screen.getByText('alice@example.com')).toBeInTheDocument()
+  })
+
+  it('renders with built-in Mail icon', () => {
+    const { container } = render(
+      <Table.EmailCell>alice@example.com</Table.EmailCell>
+    )
+    expect(container.querySelector('svg')).toBeInTheDocument()
+  })
+
+  it('applies truncate on text span', () => {
+    render(<Table.EmailCell>very-long-email@example.com</Table.EmailCell>)
+    const span = screen.getByText('very-long-email@example.com')
+    expect(span).toHaveClass('truncate')
+  })
+
+  it('applies custom className', () => {
+    const { container } = render(
+      <Table.EmailCell className="w-[200px]">test@test.com</Table.EmailCell>
+    )
+    const wrapper = container.querySelector('[data-slot="table-email-cell"]')
+    expect(wrapper).toHaveClass('w-[200px]')
+  })
+
+  it('has correct data-slot attribute', () => {
+    const { container } = render(
+      <Table.EmailCell>test@test.com</Table.EmailCell>
+    )
+    expect(
+      container.querySelector('[data-slot="table-email-cell"]')
+    ).toBeInTheDocument()
+  })
+})
+
+describe('Table.DateTimeCell', () => {
+  it('renders with muted foreground and tabular-nums', () => {
+    const { container } = render(
+      <Table.DateTimeCell>2025-01-15</Table.DateTimeCell>
+    )
+    const wrapper = container.querySelector(
+      '[data-slot="table-datetime-cell"]'
+    )
+    expect(wrapper).toHaveClass('text-muted-foreground')
+    expect(wrapper).toHaveClass('tabular-nums')
+    expect(screen.getByText('2025-01-15')).toBeInTheDocument()
+  })
+
+  it('renders formatted datetime strings', () => {
+    render(
+      <Table.DateTimeCell>Jan 15, 2025 14:30</Table.DateTimeCell>
+    )
+    expect(screen.getByText('Jan 15, 2025 14:30')).toBeInTheDocument()
+  })
+
+  it('applies custom className', () => {
+    const { container } = render(
+      <Table.DateTimeCell className="w-[110px]">2025-01-15</Table.DateTimeCell>
+    )
+    const wrapper = container.querySelector(
+      '[data-slot="table-datetime-cell"]'
+    )
+    expect(wrapper).toHaveClass('w-[110px]')
+  })
+
+  it('has correct data-slot attribute', () => {
+    const { container } = render(
+      <Table.DateTimeCell>2025-01-15</Table.DateTimeCell>
+    )
+    expect(
+      container.querySelector('[data-slot="table-datetime-cell"]')
+    ).toBeInTheDocument()
+  })
+})
+
+describe('Table.StatusCell', () => {
+  it('renders text content', () => {
+    render(<Table.StatusCell variant="success">Active</Table.StatusCell>)
+    expect(screen.getByText('Active')).toBeInTheDocument()
+  })
+
+  it('has base pill styles', () => {
+    const { container } = render(
+      <Table.StatusCell variant="success">Active</Table.StatusCell>
+    )
+    const el = container.querySelector('[data-slot="table-status-cell"]')
+    expect(el).toHaveClass('inline-flex')
+    expect(el).toHaveClass('rounded')
+    expect(el).toHaveClass('border')
+    expect(el).toHaveClass('px-2')
+    expect(el).toHaveClass('font-medium')
+  })
+
+  const variantCases: Array<{
+    variant: StatusVariant
+    bgClass: string
+    textClass: string
+    borderClass: string
+  }> = [
+    { variant: 'success', bgClass: 'bg-success-dim', textClass: 'text-success', borderClass: 'border-success-border' },
+    { variant: 'warning', bgClass: 'bg-warning-dim', textClass: 'text-warning', borderClass: 'border-warning-border' },
+    { variant: 'destructive', bgClass: 'bg-destructive-dim', textClass: 'text-destructive', borderClass: 'border-destructive-border' },
+    { variant: 'info', bgClass: 'bg-info-dim', textClass: 'text-info', borderClass: 'border-info-border' },
+    { variant: 'muted', bgClass: 'bg-muted', textClass: 'text-muted-foreground', borderClass: 'border-border' },
+  ]
+
+  variantCases.forEach(({ variant, bgClass, textClass, borderClass }) => {
+    it(`applies ${variant} variant classes`, () => {
+      const { container } = render(
+        <Table.StatusCell variant={variant}>Label</Table.StatusCell>
+      )
+      const el = container.querySelector('[data-slot="table-status-cell"]')
+      expect(el).toHaveClass(bgClass)
+      expect(el).toHaveClass(textClass)
+      expect(el).toHaveClass(borderClass)
+    })
+  })
+
+  it('applies custom className', () => {
+    const { container } = render(
+      <Table.StatusCell variant="success" className="uppercase">
+        Active
+      </Table.StatusCell>
+    )
+    const el = container.querySelector('[data-slot="table-status-cell"]')
+    expect(el).toHaveClass('uppercase')
+  })
+
+  it('has correct data-slot attribute', () => {
+    const { container } = render(
+      <Table.StatusCell variant="muted">Draft</Table.StatusCell>
+    )
+    expect(
+      container.querySelector('[data-slot="table-status-cell"]')
+    ).toBeInTheDocument()
   })
 })
