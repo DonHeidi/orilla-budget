@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, redirect, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet, redirect, useMatchRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn, useServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { useState, useMemo } from 'react'
@@ -18,6 +18,7 @@ import {
   FileText,
   LogOut,
   Contact,
+  Search,
 } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
@@ -310,7 +311,19 @@ function Dashboard() {
   const displayName = user?.pii?.name || user?.handle || user?.email || 'User'
   const canViewUsers = user && hasSystemPermission(user, 'users:view')
   const canViewOrganisations = user && hasSystemPermission(user, 'organisations:view')
-  const hasProjects = auth.projectMemberships.length > 0
+  const userInitials = displayName
+    .split(' ')
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+
+  const roleLabel = user?.role === 'super_admin'
+    ? 'Super Admin'
+    : user?.role === 'admin'
+      ? 'Admin'
+      : 'Member'
 
   const handleLogout = async () => {
     await logout()
@@ -323,6 +336,8 @@ function Dashboard() {
     else setTheme('light')
   }
 
+  const matchRoute = useMatchRoute()
+
   return (
     <AuthProvider
       initialUser={auth.user}
@@ -331,16 +346,38 @@ function Dashboard() {
       <SidebarProvider>
         <div className="flex min-h-screen w-full">
           <Sidebar>
-            <SidebarHeader className="border-b px-4 py-3">
-              <div>
-                <p className="font-medium">Orilla Budget</p>
-                <p className="text-sm text-muted-foreground">{displayName}</p>
-                {hasProjects && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {auth.projectMemberships.length} project
-                    {auth.projectMemberships.length !== 1 ? 's' : ''}
-                  </p>
-                )}
+            <SidebarHeader className="px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-display text-xl tracking-widest text-sidebar-foreground">ORILLA</p>
+                  <p className="text-[10px] text-muted-foreground tracking-wide font-medium">Budget & Time</p>
+                </div>
+                <button
+                  onClick={cycleTheme}
+                  className="flex h-[30px] w-[30px] items-center justify-center rounded-md border border-border bg-muted/50 hover:bg-muted transition-colors"
+                  title={
+                    theme === 'light'
+                      ? 'Switch to dark mode'
+                      : theme === 'dark'
+                        ? 'Switch to system mode'
+                        : 'Switch to light mode'
+                  }
+                >
+                  {theme === 'light' ? (
+                    <Sun className="h-3.5 w-3.5" />
+                  ) : theme === 'dark' ? (
+                    <Moon className="h-3.5 w-3.5" />
+                  ) : (
+                    <Monitor className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              </div>
+              <div className="relative mt-3">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Search..."
+                  className="h-8 pl-8 text-xs bg-background"
+                />
               </div>
             </SidebarHeader>
 
@@ -351,7 +388,7 @@ function Dashboard() {
                   <SidebarMenu>
                     <SidebarMenuItem>
                       <div className="flex items-center justify-between w-full">
-                        <SidebarMenuButton asChild className="flex-1">
+                        <SidebarMenuButton asChild className="flex-1" isActive={!!matchRoute({ to: '/dashboard/time-entries', fuzzy: true })}>
                           <Link to="/dashboard/time-entries">
                             <Clock className="mr-2 h-4 w-4" />
                             <span>Time Entries</span>
@@ -382,7 +419,7 @@ function Dashboard() {
                       )}
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton asChild isActive={!!matchRoute({ to: '/dashboard/time-sheets', fuzzy: true })}>
                         <Link to="/dashboard/time-sheets">
                           <FileText className="mr-2 h-4 w-4" />
                           <span>Time Sheets</span>
@@ -390,7 +427,7 @@ function Dashboard() {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton asChild isActive={!!matchRoute({ to: '/dashboard/organisations', fuzzy: true })}>
                         <Link to="/dashboard/organisations">
                           <Users className="mr-2 h-4 w-4" />
                           <span>Organisations & Accounts</span>
@@ -398,7 +435,7 @@ function Dashboard() {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton asChild isActive={!!matchRoute({ to: '/dashboard/projects', fuzzy: true })}>
                         <Link to="/dashboard/projects">
                           <FolderKanban className="mr-2 h-4 w-4" />
                           <span>Projects</span>
@@ -406,7 +443,7 @@ function Dashboard() {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton asChild isActive={!!matchRoute({ to: '/dashboard/contacts', fuzzy: true })}>
                         <Link to="/dashboard/contacts">
                           <Contact className="mr-2 h-4 w-4" />
                           <span>Teams & Contacts</span>
@@ -425,7 +462,7 @@ function Dashboard() {
                     <SidebarMenu>
                       {canViewUsers && (
                         <SidebarMenuItem>
-                          <SidebarMenuButton asChild>
+                          <SidebarMenuButton asChild isActive={!!matchRoute({ to: '/dashboard/users', fuzzy: true })}>
                             <Link to="/dashboard/users">
                               <Users className="mr-2 h-4 w-4" />
                               <span>Users</span>
@@ -439,44 +476,23 @@ function Dashboard() {
               )}
             </SidebarContent>
 
-            <SidebarFooter>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={cycleTheme}
-                    tooltip={
-                      theme === 'light'
-                        ? 'Switch to dark mode'
-                        : theme === 'dark'
-                          ? 'Switch to system mode'
-                          : 'Switch to light mode'
-                    }
-                  >
-                    {theme === 'light' ? (
-                      <>
-                        <Sun className="mr-2 h-4 w-4" />
-                        <span>Light</span>
-                      </>
-                    ) : theme === 'dark' ? (
-                      <>
-                        <Moon className="mr-2 h-4 w-4" />
-                        <span>Dark</span>
-                      </>
-                    ) : (
-                      <>
-                        <Monitor className="mr-2 h-4 w-4" />
-                        <span>System</span>
-                      </>
-                    )}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton onClick={handleLogout} tooltip="Sign out">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sign out</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
+            <SidebarFooter className="border-t border-sidebar-border">
+              <div className="flex items-center gap-2.5 px-2 py-1.5">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-sidebar-accent border border-sidebar-border">
+                  <span className="text-[10px] font-semibold text-sidebar-primary">{userInitials}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate text-sidebar-foreground">{displayName}</p>
+                  <p className="text-[10px] text-muted-foreground">{roleLabel}</p>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors"
+                  title="Sign out"
+                >
+                  <LogOut className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              </div>
             </SidebarFooter>
           </Sidebar>
 
