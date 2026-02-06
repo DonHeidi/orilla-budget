@@ -10,6 +10,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { getCookie } from '@tanstack/react-start/server'
 import appCss from '@/styles/app.css?url'
 import { ThemeProvider } from '@/components/theme-provider'
+import { DevUserBar } from '@/components/dev-user-bar'
 
 const getThemeFromCookieFn = createServerFn({ method: 'GET' }).handler(
   async () => {
@@ -89,6 +90,7 @@ function RootDocument({
         data-gr-ext-installed=""
       >
         {children}
+        {import.meta.env.DEV && <DevUserBar />}
         <Scripts />
       </body>
     </html>
