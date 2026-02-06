@@ -54,7 +54,7 @@ bun scripts/reset-db.ts --seed  # Drop all tables, migrate, seed test data
 
 ### Critical Rules
 
-1. **Worktree Policy**: ALWAYS create a worktree before making code changes. Never commit directly to main. See [docs/git-workflow.md](docs/git-workflow.md).
+1. **Worktree Policy**: ALWAYS create a worktree before making code changes. Never commit directly to main. Never `git checkout main` or `git merge` from a worktree — merges happen from the main worktree only. See [docs/git-workflow.md](docs/git-workflow.md).
 
 2. **Atomic Commits**: Each commit should represent a single, complete, logical change. One concern per commit.
 
