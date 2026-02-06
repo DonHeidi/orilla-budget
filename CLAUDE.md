@@ -49,6 +49,7 @@ bun run dev          # Start development server (port 3000)
 bun test             # Run all tests
 bun run db:generate  # Generate migration from schema changes
 bun run db:migrate   # Apply migrations
+bun scripts/reset-db.ts --seed  # Drop all tables, migrate, seed test data
 ```
 
 ### Critical Rules
@@ -74,14 +75,20 @@ bun run db:migrate   # Apply migrations
 git worktree add ../feature-name feature/feature-name
 cd ../feature-name
 bun install
-cp ../orilla-budget/data.db ./data.db
-bun run db:migrate
+bun scripts/reset-db.ts --seed   # Fresh DB with test data
 bun run dev
 ```
 
 **Branch naming**: `feature/*`, `fix/*`, `db/*`, `refactor/*`, `exp/*`
 
 **Exceptions** (no worktree needed): Trivial typo fixes in markdown, updating roadmap table.
+
+---
+
+## Dev Mode
+
+- **User switcher bar**: `src/components/dev-user-bar.tsx` — draggable floating panel (dev-only) for switching between users. Auto-logs in as super_admin. All seeded users have password `password123`.
+- **Dev-only gating**: Client: `import.meta.env.DEV` (tree-shaken in prod). Server: `process.env.NODE_ENV !== 'development'`.
 
 ---
 
