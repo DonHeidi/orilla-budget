@@ -2,13 +2,14 @@ import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Plus, Mail, Building2, User, UserCheck } from 'lucide-react'
+import { Plus, Building2, User, UserCheck } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { contactRepository } from '@/repositories/contact.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { createContactSchema } from '@/schemas'
 import { getCurrentUser } from '@/repositories/auth.repository'
+import { Table } from '@/components/ui/table'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -89,10 +90,7 @@ function ContactsListPage() {
       accessorKey: 'email',
       header: 'Email',
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Mail className="h-4 w-4 text-gray-500" />
-          <span>{row.original.email}</span>
-        </div>
+        <Table.EmailCell>{row.original.email}</Table.EmailCell>
       ),
     },
     {
@@ -134,15 +132,9 @@ function ContactsListPage() {
       id: 'status',
       header: 'Status',
       cell: ({ row }) => (
-        <span
-          className={`px-2 py-1 rounded-full text-xs ${
-            row.original.userId
-              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-              : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-          }`}
-        >
+        <Table.StatusCell variant={row.original.userId ? 'success' : 'muted'}>
           {row.original.userId ? 'Has Account' : 'Invited'}
-        </span>
+        </Table.StatusCell>
       ),
     },
   ]

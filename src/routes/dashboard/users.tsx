@@ -11,6 +11,7 @@ import { invitationRepository } from '@/repositories/invitation.repository'
 import { userRepository } from '@/repositories/user.repository'
 import { getCurrentUser } from '@/repositories/auth.repository'
 import type { User, Contact, Invitation } from '@/schemas'
+import { Table } from '@/components/ui/table'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -92,10 +93,7 @@ function UsersPage() {
       accessorKey: 'handle',
       header: 'Handle',
       cell: ({ getValue }) => (
-        <div className="flex items-center gap-1">
-          <Users className="h-4 w-4 text-gray-500" />
-          <span className="font-medium">@{getValue() as string}</span>
-        </div>
+        <Table.TitleCell icon={Users}>@{getValue() as string}</Table.TitleCell>
       ),
     },
     {

@@ -1,4 +1,6 @@
 import * as React from 'react'
+import type { LucideIcon } from 'lucide-react'
+import { Mail } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -102,6 +104,147 @@ function TableCaption({
   )
 }
 
+function TitleCell({
+  children,
+  icon: Icon,
+  className,
+}: {
+  children: React.ReactNode
+  icon?: LucideIcon
+  className?: string
+}) {
+  return (
+    <div
+      data-slot="table-title-cell"
+      className={cn('flex items-center gap-1.5', className)}
+    >
+      {Icon && <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />}
+      <span className="font-medium">{children}</span>
+    </div>
+  )
+}
+
+function SecondaryCell({
+  children,
+  icon: Icon,
+  className,
+}: {
+  children: React.ReactNode
+  icon?: LucideIcon
+  className?: string
+}) {
+  return (
+    <div
+      data-slot="table-secondary-cell"
+      className={cn(
+        'flex items-center gap-1.5 text-muted-foreground',
+        className
+      )}
+    >
+      {Icon && <Icon className="h-4 w-4 shrink-0" />}
+      <span>{children}</span>
+    </div>
+  )
+}
+
+function NumericCell({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      data-slot="table-numeric-cell"
+      className={cn(
+        'text-right font-mono text-muted-foreground',
+        className
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+function EmailCell({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      data-slot="table-email-cell"
+      className={cn(
+        'flex items-center gap-1.5 text-muted-foreground',
+        className
+      )}
+    >
+      <Mail className="h-4 w-4 shrink-0" />
+      <span className="truncate">{children}</span>
+    </div>
+  )
+}
+
+function DateTimeCell({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      data-slot="table-datetime-cell"
+      className={cn('text-muted-foreground tabular-nums', className)}
+    >
+      {children}
+    </div>
+  )
+}
+
+const statusVariants = {
+  success: 'bg-success-dim text-success border-success-border',
+  warning: 'bg-warning-dim text-warning border-warning-border',
+  destructive: 'bg-destructive-dim text-destructive border-destructive-border',
+  info: 'bg-info-dim text-info border-info-border',
+  muted: 'bg-muted text-muted-foreground border-border',
+} as const
+
+type StatusVariant = keyof typeof statusVariants
+
+function StatusCell({
+  children,
+  variant,
+  className,
+}: {
+  children: React.ReactNode
+  variant: StatusVariant
+  className?: string
+}) {
+  return (
+    <span
+      data-slot="table-status-cell"
+      className={cn(
+        'inline-flex items-center rounded border px-2 py-0.5 text-[11px] font-medium',
+        statusVariants[variant],
+        className
+      )}
+    >
+      {children}
+    </span>
+  )
+}
+
+Table.TitleCell = TitleCell
+Table.SecondaryCell = SecondaryCell
+Table.NumericCell = NumericCell
+Table.EmailCell = EmailCell
+Table.DateTimeCell = DateTimeCell
+Table.StatusCell = StatusCell
+
 export {
   Table,
   TableHeader,
@@ -112,3 +255,5 @@ export {
   TableCell,
   TableCaption,
 }
+
+export type { StatusVariant }

@@ -10,7 +10,8 @@ import { type ColumnDef, type Row } from '@tanstack/react-table'
 import { FileText, Plus, ChevronDown, ChevronRight, ArrowRight } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
-import { cn } from '@/lib/utils'
+import { Table } from '@/components/ui/table'
+import type { StatusVariant } from '@/components/ui/table'
 import { timeSheetRepository } from '@/repositories/timeSheet.repository'
 import { organisationRepository } from '@/repositories/organisation.repository'
 import { projectRepository } from '@/repositories/project.repository'
@@ -42,7 +43,6 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { useLocale } from '@/hooks/use-locale'
 import { formatDate, formatDateTime, hoursToTime } from '@/lib/date-utils'
 import { CheckCircle, XCircle, LayoutGrid, Table as TableIcon } from 'lucide-react'
@@ -216,7 +216,20 @@ function TimeSheetsPage() {
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ getValue }) => <StatusBadge status={getValue() as string} />,
+      cell: ({ getValue }) => {
+        const status = getValue() as string
+        const variantMap: Record<string, StatusVariant> = {
+          draft: 'muted',
+          submitted: 'info',
+          approved: 'success',
+          rejected: 'destructive',
+        }
+        return (
+          <Table.StatusCell variant={variantMap[status] ?? 'muted'}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </Table.StatusCell>
+        )
+      },
     },
     {
       id: 'dateRange',
@@ -430,38 +443,6 @@ function TimeSheetsPage() {
       <Outlet />
       </div>
     </div>
-  )
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const variants: Record<string, { label: string; className: string }> = {
-    draft: {
-      label: 'Draft',
-      className:
-        'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100',
-    },
-    submitted: {
-      label: 'Submitted',
-      className:
-        'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
-    },
-    approved: {
-      label: 'Approved',
-      className:
-        'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
-    },
-    rejected: {
-      label: 'Rejected',
-      className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100',
-    },
-  }
-
-  const variant = variants[status] || variants.draft
-
-  return (
-    <Badge variant="outline" className={cn('font-medium', variant.className)}>
-      {variant.label}
-    </Badge>
   )
 }
 

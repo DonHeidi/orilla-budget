@@ -9,11 +9,12 @@ import {
 import { createServerFn } from '@tanstack/react-start'
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Plus, Mail, Building2, Users } from 'lucide-react'
+import { Plus, Building2, Users } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { zodValidator } from '@tanstack/zod-form-adapter'
 import { accountRepository } from '@/repositories/account.repository'
 import { createAccountSchema, type Account } from '@/schemas'
+import { Table } from '@/components/ui/table'
 import { DataTable } from '@/components/DataTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -97,10 +98,7 @@ function AccountsPage() {
       accessorKey: 'email',
       header: 'Email',
       cell: ({ getValue }) => (
-        <div className="flex items-center gap-1">
-          <Mail className="h-4 w-4 text-gray-500" />
-          <span>{getValue() as string}</span>
-        </div>
+        <Table.EmailCell>{getValue() as string}</Table.EmailCell>
       ),
     },
     {
@@ -114,9 +112,9 @@ function AccountsPage() {
           finance: 'Finance/Controller',
         }
         return (
-          <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded text-sm">
+          <Table.StatusCell variant="info">
             {roleLabels[role as keyof typeof roleLabels] || role}
-          </span>
+          </Table.StatusCell>
         )
       },
     },
@@ -124,10 +122,7 @@ function AccountsPage() {
       accessorKey: 'organisationName',
       header: 'Organisation',
       cell: ({ getValue }) => (
-        <div className="flex items-center gap-1">
-          <Building2 className="h-4 w-4 text-gray-500" />
-          <span>{getValue() as string}</span>
-        </div>
+        <Table.SecondaryCell icon={Building2}>{getValue() as string}</Table.SecondaryCell>
       ),
     },
     {
