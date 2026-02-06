@@ -39,3 +39,6 @@ data.db-*
 
 *storybook.log
 storybook-static
+
+# Claude Code local settings
+.claude/settings.local.json
