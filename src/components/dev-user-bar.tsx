@@ -34,7 +34,7 @@ export function DevUserBar() {
   // Dragging state
   const barRef = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState<{ x: number; y: number }>(
-    () => loadPosition() ?? { x: 16, y: window.innerHeight - 60 }
+    () => loadPosition() ?? { x: 16, y: typeof window !== 'undefined' ? window.innerHeight - 60 : 16 }
   )
   const [isDragging, setIsDragging] = useState(false)
   const dragOffset = useRef({ x: 0, y: 0 })
@@ -131,8 +131,6 @@ export function DevUserBar() {
 
   const currentUser = users.find((u) => u.id === currentUserId)
 
-  if (isLoading) return null
-
   return (
     <div
       ref={barRef}
@@ -164,7 +162,9 @@ export function DevUserBar() {
             <span className="bg-black text-amber-400 px-1.5 py-0.5 rounded text-[10px]">
               DEV
             </span>
-            {currentUser ? (
+            {isLoading ? (
+              <span className="font-normal opacity-80 animate-pulse">loading...</span>
+            ) : currentUser ? (
               <span className="font-normal opacity-80 truncate">
                 {currentUser.handle || currentUser.name}
               </span>
