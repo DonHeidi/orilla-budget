@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import { ChevronUp, ChevronDown, GripVertical } from 'lucide-react'
-import { authClient } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
 import { getDevUsersFn, type DevUser } from '@/lib/dev-mode.server'
 import { cn } from '@/lib/utils'
 
@@ -25,9 +25,10 @@ function savePosition(pos: { x: number; y: number }) {
 
 export function DevUserBar() {
   const router = useRouter()
+  const session = useSession()
+  const currentUserId = session.data?.user?.id ?? null
   const [isExpanded, setIsExpanded] = useState(false)
   const [users, setUsers] = useState<DevUser[]>([])
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [switchingUserId, setSwitchingUserId] = useState<string | null>(null)
 
@@ -43,7 +44,6 @@ export function DevUserBar() {
     getDevUsersFn()
       .then(async (data) => {
         setUsers(data.users)
-        setCurrentUserId(data.currentUserId)
 
         // Auto-login as super_admin if no one is logged in
         if (!data.currentUserId) {
@@ -121,6 +121,7 @@ export function DevUserBar() {
         alert(`Switch failed: ${error.message}\nEnsure all dev users have password: ${DEV_PASSWORD}`)
         setSwitchingUserId(null)
       } else {
+        setSwitchingUserId(null)
         router.invalidate()
       }
     } catch (err) {
