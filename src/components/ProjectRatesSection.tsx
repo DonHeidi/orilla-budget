@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
+import { createServerFn, useServerFn } from '@tanstack/react-start'
 import {
   DollarSign,
   ChevronDown,
@@ -166,6 +166,16 @@ export function ProjectRatesSection({
   canEdit,
 }: ProjectRatesSectionProps) {
   const router = useRouter()
+
+  // Wrap server functions with useServerFn for proper client-server boundary
+  const getBillingData = useServerFn(getBillingDataFn)
+  const createBillingRole = useServerFn(createBillingRoleFn)
+  const updateBillingRole = useServerFn(updateBillingRoleFn)
+  const archiveBillingRole = useServerFn(archiveBillingRoleFn)
+  const setRate = useServerFn(setRateFn)
+  const setMemberBillingRole = useServerFn(setMemberBillingRoleFn)
+  const updateProjectDefaults = useServerFn(updateProjectDefaultsFn)
+
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [billingData, setBillingData] = useState<{
@@ -191,7 +201,7 @@ export function ProjectRatesSection({
     if (!isOpen && !billingData) {
       setLoading(true)
       try {
-        const data = await getBillingDataFn({ data: { projectId: teamId } })
+        const data = await getBillingData({ data: { projectId: teamId } })
         setBillingData(data)
       } catch (error) {
         console.error('Failed to load billing data:', error)
@@ -206,7 +216,7 @@ export function ProjectRatesSection({
     if (!newRoleName.trim()) return
 
     try {
-      const role = await createBillingRoleFn({
+      const role = await createBillingRole({
         data: {
           projectId: teamId,
           name: newRoleName.trim(),
@@ -217,7 +227,7 @@ export function ProjectRatesSection({
       // If a rate was specified, create the rate record
       if (newRoleRate && parseFloat(newRoleRate) > 0) {
         const today = new Date().toISOString().split('T')[0]!
-        await setRateFn({
+        await setRate({
           data: {
             projectId: teamId,
             rateType: 'billing_role' as const,
@@ -229,7 +239,7 @@ export function ProjectRatesSection({
       }
 
       // Refresh data
-      const data = await getBillingDataFn({ data: { projectId: teamId } })
+      const data = await getBillingData({ data: { projectId: teamId } })
       setBillingData(data)
 
       // Reset form
@@ -246,7 +256,7 @@ export function ProjectRatesSection({
     if (!editingRole || !newRoleName.trim()) return
 
     try {
-      await updateBillingRoleFn({
+      await updateBillingRole({
         data: {
           id: editingRole.id,
           updates: {
@@ -259,7 +269,7 @@ export function ProjectRatesSection({
       // Update rate if changed
       if (newRoleRate && parseFloat(newRoleRate) > 0) {
         const today = new Date().toISOString().split('T')[0]!
-        await setRateFn({
+        await setRate({
           data: {
             projectId: teamId,
             rateType: 'billing_role' as const,
@@ -271,7 +281,7 @@ export function ProjectRatesSection({
       }
 
       // Refresh data
-      const data = await getBillingDataFn({ data: { projectId: teamId } })
+      const data = await getBillingData({ data: { projectId: teamId } })
       setBillingData(data)
 
       // Reset form
@@ -286,8 +296,8 @@ export function ProjectRatesSection({
 
   const handleArchiveRole = async (roleId: string) => {
     try {
-      await archiveBillingRoleFn({ data: { id: roleId } })
-      const data = await getBillingDataFn({ data: { projectId: teamId } })
+      await archiveBillingRole({ data: { id: roleId } })
+      const data = await getBillingData({ data: { projectId: teamId } })
       setBillingData(data)
     } catch (error) {
       console.error('Failed to archive billing role:', error)
@@ -300,7 +310,7 @@ export function ProjectRatesSection({
 
     try {
       const today = new Date().toISOString().split('T')[0]!
-      await setRateFn({
+      await setRate({
         data: {
           projectId: teamId,
           rateType: 'default' as const,
@@ -310,11 +320,11 @@ export function ProjectRatesSection({
       })
 
       // Also update the project's defaultHourlyRate for display
-      await updateProjectDefaultsFn({
+      await updateProjectDefaults({
         data: { id: projectId, defaultHourlyRate: rate },
       })
 
-      const data = await getBillingDataFn({ data: { projectId: teamId } })
+      const data = await getBillingData({ data: { projectId: teamId } })
       setBillingData(data)
       setEditingDefaultRate(false)
       router.invalidate()
@@ -328,7 +338,7 @@ export function ProjectRatesSection({
     if (isNaN(price) || price <= 0) return
 
     try {
-      await updateProjectDefaultsFn({
+      await updateProjectDefaults({
         data: { id: projectId, fixedPrice: price },
       })
       setEditingFixedPrice(false)
@@ -340,10 +350,10 @@ export function ProjectRatesSection({
 
   const handleMemberRoleChange = async (teamMemberId: string, billingRoleId: string | null) => {
     try {
-      await setMemberBillingRoleFn({
+      await setMemberBillingRole({
         data: { teamMemberId, billingRoleId },
       })
-      const data = await getBillingDataFn({ data: { projectId: teamId } })
+      const data = await getBillingData({ data: { projectId: teamId } })
       setBillingData(data)
     } catch (error) {
       console.error('Failed to update member billing role:', error)
