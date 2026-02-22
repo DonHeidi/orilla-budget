@@ -4,8 +4,9 @@ import {
   useNavigate,
   useRouter,
 } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
+import { createServerFn, useServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
+import { z } from 'zod'
 import {
   FolderKanban,
   Building2,
@@ -16,10 +17,18 @@ import {
   Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { authRepository } from '@/repositories/auth.repository'
+import { authRepository, getCurrentUser } from '@/repositories/auth.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { projectApprovalSettingsRepository } from '@/repositories/projectApprovalSettings.repository'
+import { projectBillingRoleRepository } from '@/repositories/projectBillingRole.repository'
+import { projectRateRepository } from '@/repositories/projectRate.repository'
+import { projectMemberBillingRoleRepository } from '@/repositories/projectMemberBillingRole.repository'
 import type { Project, ProjectApprovalSettings, UpdateProjectApprovalSettings } from '@/schemas'
+import {
+  createProjectBillingRoleSchema,
+  updateProjectBillingRoleSchema,
+  createProjectRateSchema,
+} from '@/schemas'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -143,7 +152,72 @@ const updateApprovalSettingsFn = createServerFn({ method: 'POST' }).handler(
   }
 )
 
-// Route definition - no loader, uses parent route data
+// ============================================================================
+// Billing Rate Server Functions
+// ============================================================================
+
+const getBillingDataFn = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ teamId: z.string() }))
+  .handler(async ({ data }) => {
+    const [billingRoles, activeRates, memberDetails] = await Promise.all([
+      projectBillingRoleRepository.findByProjectId(data.teamId),
+      projectRateRepository.findActiveByProjectId(data.teamId),
+      projectMemberBillingRoleRepository.findByProjectIdWithDetails(data.teamId),
+    ])
+    return { billingRoles, activeRates, memberDetails }
+  })
+
+const createBillingRoleFn = createServerFn({ method: 'POST' })
+  .inputValidator(createProjectBillingRoleSchema)
+  .handler(async ({ data }) => {
+    return projectBillingRoleRepository.create(data)
+  })
+
+const updateBillingRoleFn = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ id: z.string(), updates: updateProjectBillingRoleSchema }))
+  .handler(async ({ data }) => {
+    return projectBillingRoleRepository.update(data.id, data.updates)
+  })
+
+const archiveBillingRoleFn = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ id: z.string() }))
+  .handler(async ({ data }) => {
+    return projectBillingRoleRepository.archive(data.id)
+  })
+
+const setRateFn = createServerFn({ method: 'POST' })
+  .inputValidator(createProjectRateSchema)
+  .handler(async ({ data }) => {
+    const user = await getCurrentUser()
+    if (!user) throw new Error('Unauthorized')
+    return projectRateRepository.setRate({ ...data, createdBy: user.id })
+  })
+
+const setMemberBillingRoleFn = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ teamMemberId: z.string(), billingRoleId: z.string().nullable() }))
+  .handler(async ({ data }) => {
+    return projectMemberBillingRoleRepository.setMemberBillingRole(
+      data.teamMemberId,
+      data.billingRoleId
+    )
+  })
+
+const updateProjectRateDefaultsFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      fixedPrice: z.number().positive().nullable().optional(),
+      defaultHourlyRate: z.number().positive().nullable().optional(),
+    })
+  )
+  .handler(async ({ data }) => {
+    return projectRepository.update(data.id, {
+      fixedPrice: data.fixedPrice,
+      defaultHourlyRate: data.defaultHourlyRate,
+    })
+  })
+
+// Route definition - uses parent route data, child detail has no separate loader
 export const Route = createFileRoute('/dashboard/projects/$id')({
   component: ProjectDetailPage,
 })
@@ -154,6 +228,16 @@ function ProjectDetailPage() {
   const navigate = useNavigate()
   const router = useRouter()
   const { getProjectMembership } = useAuth()
+
+  // Wrap billing server functions for client-server boundary
+  const getBillingData = useServerFn(getBillingDataFn)
+  const createBillingRole = useServerFn(createBillingRoleFn)
+  const updateBillingRole = useServerFn(updateBillingRoleFn)
+  const archiveBillingRole = useServerFn(archiveBillingRoleFn)
+  const setRate = useServerFn(setRateFn)
+  const setMemberBillingRole = useServerFn(setMemberBillingRoleFn)
+  const updateProjectRateDefaults = useServerFn(updateProjectRateDefaultsFn)
+
   const [editingField, setEditingField] = useState<string | null>(null)
   const [editedValues, setEditedValues] = useState<Partial<Project>>({})
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -629,6 +713,15 @@ function ProjectDetailPage() {
                   fixedPrice={currentValues.fixedPrice}
                   defaultHourlyRate={currentValues.defaultHourlyRate}
                   canEdit={canEditRates}
+                  // Server function callbacks
+                  onGetBillingData={getBillingData}
+                  onCreateBillingRole={createBillingRole}
+                  onUpdateBillingRole={updateBillingRole}
+                  onArchiveBillingRole={archiveBillingRole}
+                  onSetRate={setRate}
+                  onSetMemberBillingRole={setMemberBillingRole}
+                  onUpdateProjectDefaults={updateProjectRateDefaults}
+                  onInvalidate={() => router.invalidate()}
                 />
               )
             })()}

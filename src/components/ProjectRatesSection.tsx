@@ -1,6 +1,4 @@
 import React, { useState } from 'react'
-import { useRouter } from '@tanstack/react-router'
-import { createServerFn, useServerFn } from '@tanstack/react-start'
 import {
   DollarSign,
   ChevronDown,
@@ -11,31 +9,14 @@ import {
   Users,
 } from 'lucide-react'
 
-import { z } from 'zod'
-
-import {
-  projectBillingRoleRepository,
-  type ProjectBillingRole,
-} from '@/repositories/projectBillingRole.repository'
-import {
-  projectRateRepository,
-  type ProjectRate,
-} from '@/repositories/projectRate.repository'
-import {
-  projectMemberBillingRoleRepository,
-  type MemberBillingDetails,
-} from '@/repositories/projectMemberBillingRole.repository'
-import { projectRepository } from '@/repositories/project.repository'
-import { getCurrentUser } from '@/repositories/auth.repository'
-import {
-  createProjectBillingRoleSchema,
-  updateProjectBillingRoleSchema,
-  createProjectRateSchema,
-} from '@/schemas'
+import type { ProjectBillingRole } from '@/repositories/projectBillingRole.repository'
+import type { ProjectRate } from '@/repositories/projectRate.repository'
+import type { MemberBillingDetails } from '@/repositories/projectMemberBillingRole.repository'
+import type { CreateProjectBillingRole, UpdateProjectBillingRole } from '@/schemas'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -46,71 +27,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-
-// ============================================================================
-// Server Functions
-// ============================================================================
-
-const getBillingDataFn = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ projectId: z.string() }))
-  .handler(async ({ data }) => {
-    const [billingRoles, activeRates, memberDetails] = await Promise.all([
-      projectBillingRoleRepository.findByProjectId(data.projectId),
-      projectRateRepository.findActiveByProjectId(data.projectId),
-      projectMemberBillingRoleRepository.findByProjectIdWithDetails(data.projectId),
-    ])
-    return { billingRoles, activeRates, memberDetails }
-  })
-
-const createBillingRoleFn = createServerFn({ method: 'POST' })
-  .inputValidator(createProjectBillingRoleSchema)
-  .handler(async ({ data }) => {
-    return projectBillingRoleRepository.create(data)
-  })
-
-const updateBillingRoleFn = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ id: z.string(), updates: updateProjectBillingRoleSchema }))
-  .handler(async ({ data }) => {
-    return projectBillingRoleRepository.update(data.id, data.updates)
-  })
-
-const archiveBillingRoleFn = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ id: z.string() }))
-  .handler(async ({ data }) => {
-    return projectBillingRoleRepository.archive(data.id)
-  })
-
-const setRateFn = createServerFn({ method: 'POST' })
-  .inputValidator(createProjectRateSchema)
-  .handler(async ({ data }) => {
-    const user = await getCurrentUser()
-    if (!user) throw new Error('Unauthorized')
-    return projectRateRepository.setRate({ ...data, createdBy: user.id })
-  })
-
-const setMemberBillingRoleFn = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ teamMemberId: z.string(), billingRoleId: z.string().nullable() }))
-  .handler(async ({ data }) => {
-    return projectMemberBillingRoleRepository.setMemberBillingRole(
-      data.teamMemberId,
-      data.billingRoleId
-    )
-  })
-
-const updateProjectDefaultsFn = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      id: z.string(),
-      fixedPrice: z.number().positive().nullable().optional(),
-      defaultHourlyRate: z.number().positive().nullable().optional(),
-    })
-  )
-  .handler(async ({ data }) => {
-    return projectRepository.update(data.id, {
-      fixedPrice: data.fixedPrice,
-      defaultHourlyRate: data.defaultHourlyRate,
-    })
-  })
 
 // ============================================================================
 // Helper Functions
@@ -144,6 +60,12 @@ function centsToDollars(cents: number): number {
 // Types
 // ============================================================================
 
+type BillingData = {
+  billingRoles: ProjectBillingRole[]
+  activeRates: ProjectRate[]
+  memberDetails: MemberBillingDetails[]
+}
+
 interface ProjectRatesSectionProps {
   projectId: string
   teamId: string
@@ -151,6 +73,15 @@ interface ProjectRatesSectionProps {
   fixedPrice: number | null
   defaultHourlyRate: number | null
   canEdit: boolean
+  // Server function callbacks (passed from route)
+  onGetBillingData: (args: { data: { teamId: string } }) => Promise<BillingData>
+  onCreateBillingRole: (args: { data: CreateProjectBillingRole }) => Promise<ProjectBillingRole>
+  onUpdateBillingRole: (args: { data: { id: string; updates: UpdateProjectBillingRole } }) => Promise<ProjectBillingRole | undefined>
+  onArchiveBillingRole: (args: { data: { id: string } }) => Promise<void>
+  onSetRate: (args: { data: { projectId: string; rateType: 'default' | 'billing_role' | 'member'; billingRoleId?: string; rateAmountCents: number; effectiveFrom: string } }) => Promise<ProjectRate>
+  onSetMemberBillingRole: (args: { data: { teamMemberId: string; billingRoleId: string | null } }) => Promise<unknown>
+  onUpdateProjectDefaults: (args: { data: { id: string; fixedPrice?: number | null; defaultHourlyRate?: number | null } }) => Promise<unknown>
+  onInvalidate: () => void
 }
 
 // ============================================================================
@@ -164,25 +95,18 @@ export function ProjectRatesSection({
   fixedPrice,
   defaultHourlyRate,
   canEdit,
+  onGetBillingData,
+  onCreateBillingRole,
+  onUpdateBillingRole,
+  onArchiveBillingRole,
+  onSetRate,
+  onSetMemberBillingRole,
+  onUpdateProjectDefaults,
+  onInvalidate,
 }: ProjectRatesSectionProps) {
-  const router = useRouter()
-
-  // Wrap server functions with useServerFn for proper client-server boundary
-  const getBillingData = useServerFn(getBillingDataFn)
-  const createBillingRole = useServerFn(createBillingRoleFn)
-  const updateBillingRole = useServerFn(updateBillingRoleFn)
-  const archiveBillingRole = useServerFn(archiveBillingRoleFn)
-  const setRate = useServerFn(setRateFn)
-  const setMemberBillingRole = useServerFn(setMemberBillingRoleFn)
-  const updateProjectDefaults = useServerFn(updateProjectDefaultsFn)
-
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [billingData, setBillingData] = useState<{
-    billingRoles: ProjectBillingRole[]
-    activeRates: ProjectRate[]
-    memberDetails: MemberBillingDetails[]
-  } | null>(null)
+  const [billingData, setBillingData] = useState<BillingData | null>(null)
 
   // Dialog states
   const [showAddRoleDialog, setShowAddRoleDialog] = useState(false)
@@ -201,7 +125,7 @@ export function ProjectRatesSection({
     if (!isOpen && !billingData) {
       setLoading(true)
       try {
-        const data = await getBillingData({ data: { projectId: teamId } })
+        const data = await onGetBillingData({ data: { teamId } })
         setBillingData(data)
       } catch (error) {
         console.error('Failed to load billing data:', error)
@@ -212,11 +136,16 @@ export function ProjectRatesSection({
     setIsOpen(!isOpen)
   }
 
+  const refreshBillingData = async () => {
+    const data = await onGetBillingData({ data: { teamId } })
+    setBillingData(data)
+  }
+
   const handleCreateRole = async () => {
     if (!newRoleName.trim()) return
 
     try {
-      const role = await createBillingRole({
+      const role = await onCreateBillingRole({
         data: {
           projectId: teamId,
           name: newRoleName.trim(),
@@ -227,7 +156,7 @@ export function ProjectRatesSection({
       // If a rate was specified, create the rate record
       if (newRoleRate && parseFloat(newRoleRate) > 0) {
         const today = new Date().toISOString().split('T')[0]!
-        await setRate({
+        await onSetRate({
           data: {
             projectId: teamId,
             rateType: 'billing_role' as const,
@@ -238,9 +167,7 @@ export function ProjectRatesSection({
         })
       }
 
-      // Refresh data
-      const data = await getBillingData({ data: { projectId: teamId } })
-      setBillingData(data)
+      await refreshBillingData()
 
       // Reset form
       setNewRoleName('')
@@ -256,7 +183,7 @@ export function ProjectRatesSection({
     if (!editingRole || !newRoleName.trim()) return
 
     try {
-      await updateBillingRole({
+      await onUpdateBillingRole({
         data: {
           id: editingRole.id,
           updates: {
@@ -269,7 +196,7 @@ export function ProjectRatesSection({
       // Update rate if changed
       if (newRoleRate && parseFloat(newRoleRate) > 0) {
         const today = new Date().toISOString().split('T')[0]!
-        await setRate({
+        await onSetRate({
           data: {
             projectId: teamId,
             rateType: 'billing_role' as const,
@@ -280,9 +207,7 @@ export function ProjectRatesSection({
         })
       }
 
-      // Refresh data
-      const data = await getBillingData({ data: { projectId: teamId } })
-      setBillingData(data)
+      await refreshBillingData()
 
       // Reset form
       setEditingRole(null)
@@ -296,9 +221,8 @@ export function ProjectRatesSection({
 
   const handleArchiveRole = async (roleId: string) => {
     try {
-      await archiveBillingRole({ data: { id: roleId } })
-      const data = await getBillingData({ data: { projectId: teamId } })
-      setBillingData(data)
+      await onArchiveBillingRole({ data: { id: roleId } })
+      await refreshBillingData()
     } catch (error) {
       console.error('Failed to archive billing role:', error)
     }
@@ -310,7 +234,7 @@ export function ProjectRatesSection({
 
     try {
       const today = new Date().toISOString().split('T')[0]!
-      await setRate({
+      await onSetRate({
         data: {
           projectId: teamId,
           rateType: 'default' as const,
@@ -320,14 +244,13 @@ export function ProjectRatesSection({
       })
 
       // Also update the project's defaultHourlyRate for display
-      await updateProjectDefaults({
+      await onUpdateProjectDefaults({
         data: { id: projectId, defaultHourlyRate: rate },
       })
 
-      const data = await getBillingData({ data: { projectId: teamId } })
-      setBillingData(data)
+      await refreshBillingData()
       setEditingDefaultRate(false)
-      router.invalidate()
+      onInvalidate()
     } catch (error) {
       console.error('Failed to update default rate:', error)
     }
@@ -338,11 +261,11 @@ export function ProjectRatesSection({
     if (isNaN(price) || price <= 0) return
 
     try {
-      await updateProjectDefaults({
+      await onUpdateProjectDefaults({
         data: { id: projectId, fixedPrice: price },
       })
       setEditingFixedPrice(false)
-      router.invalidate()
+      onInvalidate()
     } catch (error) {
       console.error('Failed to update fixed price:', error)
     }
@@ -350,11 +273,10 @@ export function ProjectRatesSection({
 
   const handleMemberRoleChange = async (teamMemberId: string, billingRoleId: string | null) => {
     try {
-      await setMemberBillingRole({
+      await onSetMemberBillingRole({
         data: { teamMemberId, billingRoleId },
       })
-      const data = await getBillingData({ data: { projectId: teamId } })
-      setBillingData(data)
+      await refreshBillingData()
     } catch (error) {
       console.error('Failed to update member billing role:', error)
     }
