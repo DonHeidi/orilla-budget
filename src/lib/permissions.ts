@@ -58,6 +58,10 @@ export const PROJECT_PERMISSIONS = {
   'approval-settings:view': 'View project approval settings',
   'approval-settings:edit': 'Edit project approval settings',
 
+  // Billing rates (project-level configuration)
+  'rates:view': 'View billing rates and roles',
+  'rates:edit': 'Edit billing rates and roles',
+
   // Project management
   'project:view': 'View project details',
   'project:edit': 'Edit project settings',
@@ -135,6 +139,9 @@ export const PROJECT_ROLE_PERMISSIONS: Record<ProjectRole, ProjectPermission[]> 
       // Approval settings - full access
       'approval-settings:view',
       'approval-settings:edit',
+      // Billing rates - full access (owner only)
+      'rates:view',
+      'rates:edit',
       // Contacts
       'contacts:view',
       'contacts:invite',
