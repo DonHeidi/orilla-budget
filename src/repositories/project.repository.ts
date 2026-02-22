@@ -105,7 +105,12 @@ export const projectRepository = {
    */
   async update(
     id: string,
-    data: Partial<Pick<Project, 'name' | 'description' | 'category' | 'budgetHours'>>
+    data: Partial<
+      Pick<
+        Project,
+        'name' | 'description' | 'category' | 'budgetHours' | 'fixedPrice' | 'defaultHourlyRate'
+      >
+    >
   ): Promise<Project | undefined> {
     const result = await db
       .update(project)
@@ -124,7 +129,12 @@ export const projectRepository = {
    */
   async updateByTeamId(
     teamId: string,
-    data: Partial<Pick<Project, 'name' | 'description' | 'category' | 'budgetHours'>>
+    data: Partial<
+      Pick<
+        Project,
+        'name' | 'description' | 'category' | 'budgetHours' | 'fixedPrice' | 'defaultHourlyRate'
+      >
+    >
   ): Promise<Project | undefined> {
     const result = await db
       .update(project)
