@@ -11,6 +11,8 @@ import {
   Users,
 } from 'lucide-react'
 
+import { z } from 'zod'
+
 import { projectBillingRoleRepository } from '@/repositories/projectBillingRole.repository'
 import { projectRateRepository } from '@/repositories/projectRate.repository'
 import { projectMemberBillingRoleRepository } from '@/repositories/projectMemberBillingRole.repository'
@@ -47,16 +49,16 @@ import {
 // Server Functions
 // ============================================================================
 
-const getBillingDataFn = createServerFn({ method: 'GET' }).handler(
-  async ({ data }: { data: { projectId: string } }) => {
+const getBillingDataFn = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ projectId: z.string() }))
+  .handler(async ({ data }) => {
     const [billingRoles, activeRates, memberDetails] = await Promise.all([
       projectBillingRoleRepository.findByProjectId(data.projectId),
       projectRateRepository.findActiveByProjectId(data.projectId),
       projectMemberBillingRoleRepository.findByProjectIdWithDetails(data.projectId),
     ])
     return { billingRoles, activeRates, memberDetails }
-  }
-)
+  })
 
 const createBillingRoleFn = createServerFn({ method: 'POST' })
   .inputValidator(createProjectBillingRoleSchema)
@@ -64,17 +66,17 @@ const createBillingRoleFn = createServerFn({ method: 'POST' })
     return projectBillingRoleRepository.create(data)
   })
 
-const updateBillingRoleFn = createServerFn({ method: 'POST' }).handler(
-  async ({ data }: { data: { id: string; updates: UpdateProjectBillingRole } }) => {
+const updateBillingRoleFn = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ id: z.string(), updates: updateProjectBillingRoleSchema }))
+  .handler(async ({ data }) => {
     return projectBillingRoleRepository.update(data.id, data.updates)
-  }
-)
+  })
 
-const archiveBillingRoleFn = createServerFn({ method: 'POST' }).handler(
-  async ({ data }: { data: { id: string } }) => {
+const archiveBillingRoleFn = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ id: z.string() }))
+  .handler(async ({ data }) => {
     return projectBillingRoleRepository.archive(data.id)
-  }
-)
+  })
 
 const setRateFn = createServerFn({ method: 'POST' })
   .inputValidator(createProjectRateSchema)
@@ -84,27 +86,29 @@ const setRateFn = createServerFn({ method: 'POST' })
     return projectRateRepository.setRate({ ...data, createdBy: user.id })
   })
 
-const setMemberBillingRoleFn = createServerFn({ method: 'POST' }).handler(
-  async ({ data }: { data: { teamMemberId: string; billingRoleId: string | null } }) => {
+const setMemberBillingRoleFn = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ teamMemberId: z.string(), billingRoleId: z.string().nullable() }))
+  .handler(async ({ data }) => {
     return projectMemberBillingRoleRepository.setMemberBillingRole(
       data.teamMemberId,
       data.billingRoleId
     )
-  }
-)
+  })
 
-const updateProjectDefaultsFn = createServerFn({ method: 'POST' }).handler(
-  async ({
-    data,
-  }: {
-    data: { id: string; fixedPrice?: number | null; defaultHourlyRate?: number | null }
-  }) => {
+const updateProjectDefaultsFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      fixedPrice: z.number().positive().nullable().optional(),
+      defaultHourlyRate: z.number().positive().nullable().optional(),
+    })
+  )
+  .handler(async ({ data }) => {
     return projectRepository.update(data.id, {
       fixedPrice: data.fixedPrice,
       defaultHourlyRate: data.defaultHourlyRate,
     })
-  }
-)
+  })
 
 // ============================================================================
 // Helper Functions
