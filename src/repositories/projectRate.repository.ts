@@ -1,5 +1,5 @@
 import { db, betterAuth } from '@/db'
-import { projectRates, projectBillingRoles, projectMemberBillingRoles, project } from '@/db/schema'
+import { projectRates, projectBillingRoles, projectMemberBillingRoles } from '@/db/schema'
 import { eq, and, isNull, lte, or, gt, desc } from 'drizzle-orm'
 import type { CreateProjectRate, RateType, EffectiveRate } from '@/schemas'
 

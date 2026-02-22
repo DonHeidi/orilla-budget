@@ -1,4 +1,4 @@
-import { db, betterAuth } from '@/db'
+import { db } from '@/db'
 import { projectBillingRoles } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
 import type { CreateProjectBillingRole, UpdateProjectBillingRole } from '@/schemas'
