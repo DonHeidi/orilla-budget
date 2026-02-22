@@ -6,7 +6,15 @@ import {
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
-import { FolderKanban, Building2, Clock, Settings2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import {
+  FolderKanban,
+  Building2,
+  Clock,
+  Settings2,
+  ChevronDown,
+  ChevronUp,
+  Trash2,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { authRepository } from '@/repositories/auth.repository'
 import { projectRepository } from '@/repositories/project.repository'
@@ -34,6 +42,9 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { ApprovalSettingsForm } from '@/components/ApprovalSettingsForm'
+import { ProjectRatesSection } from '@/components/ProjectRatesSection'
+import { useAuth } from '@/hooks/useAuth'
+import { hasProjectPermission } from '@/lib/permissions'
 
 // Use parent route for data (follows pattern from time-entries.$id.tsx)
 const parentRouteApi = getRouteApi('/dashboard/projects')
@@ -142,6 +153,7 @@ function ProjectDetailPage() {
   const data = parentRouteApi.useLoaderData()
   const navigate = useNavigate()
   const router = useRouter()
+  const { getProjectMembership } = useAuth()
   const [editingField, setEditingField] = useState<string | null>(null)
   const [editedValues, setEditedValues] = useState<Partial<Project>>({})
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -594,6 +606,32 @@ function ProjectDetailPage() {
                 </div>
               )}
             </div>
+
+            <Separator />
+
+            {/* Rates & Billing Section */}
+            {(() => {
+              const membership = getProjectMembership(project.teamId)
+              const canEditRates = membership
+                ? hasProjectPermission(membership, 'rates:edit')
+                : false
+              const canViewRates = membership
+                ? hasProjectPermission(membership, 'rates:view')
+                : false
+
+              if (!canViewRates) return null
+
+              return (
+                <ProjectRatesSection
+                  projectId={project.id}
+                  teamId={project.teamId}
+                  category={currentValues.category}
+                  fixedPrice={currentValues.fixedPrice}
+                  defaultHourlyRate={currentValues.defaultHourlyRate}
+                  canEdit={canEditRates}
+                />
+              )
+            })()}
           </div>
 
           {/* Footer */}
