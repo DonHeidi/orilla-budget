@@ -1,9 +1,10 @@
 import { db, betterAuth } from '@/db'
 import { projectMemberBillingRoles, projectBillingRoles, projectRates } from '@/db/schema'
-import { eq, and, isNull, lte, or, gt } from 'drizzle-orm'
+import { eq, and, isNull, or, sql } from 'drizzle-orm'
 import type { MemberBillingDetails, EffectiveRate } from '@/schemas'
 
 export type ProjectMemberBillingRole = typeof projectMemberBillingRoles.$inferSelect
+export type { MemberBillingDetails }
 
 export const projectMemberBillingRoleRepository = {
   /**
@@ -59,8 +60,8 @@ export const projectMemberBillingRoleRepository = {
       .where(
         and(
           eq(projectRates.projectId, projectId),
-          lte(projectRates.effectiveFrom, date),
-          or(isNull(projectRates.effectiveTo), gt(projectRates.effectiveTo, date))
+          sql`${projectRates.effectiveFrom} <= ${date}`,
+          or(isNull(projectRates.effectiveTo), sql`${projectRates.effectiveTo} > ${date}`)
         )
       )
 
@@ -141,7 +142,7 @@ export const projectMemberBillingRoleRepository = {
         })
         .where(eq(projectMemberBillingRoles.teamMemberId, teamMemberId))
         .returning()
-      return result[0]
+      return result[0]!
     } else {
       const result = await db
         .insert(projectMemberBillingRoles)
@@ -153,7 +154,7 @@ export const projectMemberBillingRoleRepository = {
           updatedAt: now,
         })
         .returning()
-      return result[0]
+      return result[0]!
     }
   },
 

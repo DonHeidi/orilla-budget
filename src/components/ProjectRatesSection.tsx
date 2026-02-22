@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import {
@@ -13,22 +13,24 @@ import {
 
 import { z } from 'zod'
 
-import { projectBillingRoleRepository } from '@/repositories/projectBillingRole.repository'
-import { projectRateRepository } from '@/repositories/projectRate.repository'
-import { projectMemberBillingRoleRepository } from '@/repositories/projectMemberBillingRole.repository'
+import {
+  projectBillingRoleRepository,
+  type ProjectBillingRole,
+} from '@/repositories/projectBillingRole.repository'
+import {
+  projectRateRepository,
+  type ProjectRate,
+} from '@/repositories/projectRate.repository'
+import {
+  projectMemberBillingRoleRepository,
+  type MemberBillingDetails,
+} from '@/repositories/projectMemberBillingRole.repository'
 import { projectRepository } from '@/repositories/project.repository'
 import { getCurrentUser } from '@/repositories/auth.repository'
 import {
   createProjectBillingRoleSchema,
   updateProjectBillingRoleSchema,
   createProjectRateSchema,
-} from '@/schemas'
-import type {
-  ProjectBillingRole,
-  ProjectRate,
-  MemberBillingDetails,
-  CreateProjectBillingRole,
-  UpdateProjectBillingRole,
 } from '@/schemas'
 
 import { Button } from '@/components/ui/button'
@@ -214,13 +216,14 @@ export function ProjectRatesSection({
 
       // If a rate was specified, create the rate record
       if (newRoleRate && parseFloat(newRoleRate) > 0) {
+        const today = new Date().toISOString().split('T')[0]!
         await setRateFn({
           data: {
             projectId: teamId,
-            rateType: 'billing_role',
+            rateType: 'billing_role' as const,
             billingRoleId: role.id,
             rateAmountCents: dollarsToCents(parseFloat(newRoleRate)),
-            effectiveFrom: new Date().toISOString().split('T')[0],
+            effectiveFrom: today,
           },
         })
       }
@@ -255,13 +258,14 @@ export function ProjectRatesSection({
 
       // Update rate if changed
       if (newRoleRate && parseFloat(newRoleRate) > 0) {
+        const today = new Date().toISOString().split('T')[0]!
         await setRateFn({
           data: {
             projectId: teamId,
-            rateType: 'billing_role',
+            rateType: 'billing_role' as const,
             billingRoleId: editingRole.id,
             rateAmountCents: dollarsToCents(parseFloat(newRoleRate)),
-            effectiveFrom: new Date().toISOString().split('T')[0],
+            effectiveFrom: today,
           },
         })
       }
@@ -295,12 +299,13 @@ export function ProjectRatesSection({
     if (isNaN(rate) || rate <= 0) return
 
     try {
+      const today = new Date().toISOString().split('T')[0]!
       await setRateFn({
         data: {
           projectId: teamId,
-          rateType: 'default',
+          rateType: 'default' as const,
           rateAmountCents: dollarsToCents(rate),
-          effectiveFrom: new Date().toISOString().split('T')[0],
+          effectiveFrom: today,
         },
       })
 
@@ -407,7 +412,7 @@ export function ProjectRatesSection({
                           step="0.01"
                           min="0"
                           value={editedFixedPrice}
-                          onChange={(e) => setEditedFixedPrice(e.target.value)}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedFixedPrice(e.target.value)}
                           className="w-28 h-8"
                           placeholder="0.00"
                         />
@@ -455,7 +460,7 @@ export function ProjectRatesSection({
                         step="0.01"
                         min="0"
                         value={editedDefaultRate}
-                        onChange={(e) => setEditedDefaultRate(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedDefaultRate(e.target.value)}
                         className="w-28 h-8"
                         placeholder="0.00"
                       />
@@ -596,7 +601,7 @@ export function ProjectRatesSection({
                             {canEdit && billingData?.billingRoles.length > 0 ? (
                               <select
                                 value={member.billingRoleId || ''}
-                                onChange={(e) =>
+                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                                   handleMemberRoleChange(
                                     member.teamMemberId,
                                     e.target.value || null
@@ -659,7 +664,7 @@ export function ProjectRatesSection({
               <Input
                 id="name"
                 value={newRoleName}
-                onChange={(e) => setNewRoleName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewRoleName(e.target.value)}
                 placeholder="e.g., Senior Developer"
               />
             </div>
@@ -670,7 +675,7 @@ export function ProjectRatesSection({
               <Input
                 id="description"
                 value={newRoleDescription}
-                onChange={(e) => setNewRoleDescription(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewRoleDescription(e.target.value)}
                 placeholder="e.g., 5+ years experience"
               />
             </div>
@@ -684,7 +689,7 @@ export function ProjectRatesSection({
                 step="0.01"
                 min="0"
                 value={newRoleRate}
-                onChange={(e) => setNewRoleRate(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewRoleRate(e.target.value)}
                 placeholder="e.g., 150.00"
               />
             </div>
@@ -715,7 +720,7 @@ export function ProjectRatesSection({
               <Input
                 id="edit-name"
                 value={newRoleName}
-                onChange={(e) => setNewRoleName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewRoleName(e.target.value)}
                 placeholder="e.g., Senior Developer"
               />
             </div>
@@ -726,7 +731,7 @@ export function ProjectRatesSection({
               <Input
                 id="edit-description"
                 value={newRoleDescription}
-                onChange={(e) => setNewRoleDescription(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewRoleDescription(e.target.value)}
                 placeholder="e.g., 5+ years experience"
               />
             </div>
@@ -740,7 +745,7 @@ export function ProjectRatesSection({
                 step="0.01"
                 min="0"
                 value={newRoleRate}
-                onChange={(e) => setNewRoleRate(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewRoleRate(e.target.value)}
                 placeholder="e.g., 150.00"
               />
             </div>

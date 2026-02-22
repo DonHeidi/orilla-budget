@@ -57,7 +57,7 @@ export const projectBillingRoleRepository = {
       })
       .returning()
 
-    return result[0]
+    return result[0]!
   },
 
   /**
@@ -109,7 +109,7 @@ export const projectBillingRoleRepository = {
       .where(and(...conditions))
       .limit(1)
 
-    if (excludeId && result.length > 0) {
+    if (excludeId && result.length > 0 && result[0]) {
       return result[0].id !== excludeId
     }
 
