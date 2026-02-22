@@ -36,6 +36,10 @@ export const project = sqliteTable('project', {
   category: text('category', { enum: ['budget', 'fixed'] }).default('budget'),
   budgetHours: real('budget_hours'),
 
+  // Billing/pricing fields
+  fixedPrice: real('fixed_price'), // For fixed-price projects (in USD)
+  defaultHourlyRate: real('default_hourly_rate'), // Fallback rate when no role rate applies
+
   // Timestamps
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
@@ -253,4 +257,85 @@ export const timeSheetApprovals = sqliteTable('time_sheet_approvals', {
     .references(() => betterAuth.user.id, { onDelete: 'cascade' }),
   approvedAt: text('approved_at').notNull(),
   notes: text('notes'),
+})
+
+// ============================================================================
+// BILLING RATE TABLES - Project-specific rates with history tracking
+// ============================================================================
+
+// Project billing roles - per-project role definitions (e.g., "Senior Developer", "Designer")
+// Separate from permission roles (owner, expert, etc.)
+export const projectBillingRoles = sqliteTable('project_billing_roles', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => betterAuth.team.id, { onDelete: 'cascade' }),
+
+  name: text('name').notNull(), // e.g., "Senior Developer", "Designer"
+  description: text('description').default(''),
+
+  // Archived roles are hidden from UI but preserved for historical data
+  archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
+
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+})
+
+// Project rates - time-based rate history for projects
+// Supports hierarchy: member-specific > billing role > project default
+export const projectRates = sqliteTable('project_rates', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => betterAuth.team.id, { onDelete: 'cascade' }),
+
+  // What this rate applies to (hierarchy: member > billing_role > default)
+  rateType: text('rate_type', {
+    enum: ['default', 'billing_role', 'member'],
+  }).notNull(),
+
+  // References (nullable based on rateType)
+  // - rateType='default': both null
+  // - rateType='billing_role': billingRoleId set, memberId null
+  // - rateType='member': memberId set, billingRoleId null
+  billingRoleId: text('billing_role_id').references(() => projectBillingRoles.id, {
+    onDelete: 'cascade',
+  }),
+  memberId: text('member_id').references(() => betterAuth.teamMember.id, {
+    onDelete: 'cascade',
+  }),
+
+  // Rate value in USD cents (e.g., 15000 = $150.00)
+  // Using cents avoids floating-point precision issues
+  rateAmountCents: integer('rate_amount_cents').notNull(),
+
+  // Time-based applicability
+  effectiveFrom: text('effective_from').notNull(), // ISO date (YYYY-MM-DD)
+  effectiveTo: text('effective_to'), // NULL = currently active
+
+  // Audit trail
+  createdBy: text('created_by').references(() => betterAuth.user.id, {
+    onDelete: 'set null',
+  }),
+  createdAt: text('created_at').notNull(),
+})
+
+// Project member billing roles - assigns billing roles to team members
+// Extends teamMember with billing role assignment (1:1 relationship)
+export const projectMemberBillingRoles = sqliteTable('project_member_billing_roles', {
+  id: text('id').primaryKey(),
+
+  // 1:1 with teamMember (permission roles separate from billing roles)
+  teamMemberId: text('team_member_id')
+    .notNull()
+    .unique()
+    .references(() => betterAuth.teamMember.id, { onDelete: 'cascade' }),
+
+  // Billing role assignment (optional - member may have no billing role)
+  billingRoleId: text('billing_role_id').references(() => projectBillingRoles.id, {
+    onDelete: 'set null',
+  }),
+
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
 })
