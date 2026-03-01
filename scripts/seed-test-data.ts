@@ -12,6 +12,9 @@ import {
   projectApprovalSettings,
   timeSheetApprovals,
   project,
+  projectBillingRoles,
+  projectRates,
+  projectMemberBillingRoles,
 } from '../src/db/schema'
 import {
   user as baUser,
@@ -64,6 +67,11 @@ async function clearDatabase() {
   await db.delete(invitations)
   await db.delete(contacts)
   await db.delete(accounts) // Client portal accounts (not Better Auth accounts)
+
+  // Billing rate tables (delete before team members due to FK)
+  await db.delete(projectMemberBillingRoles)
+  await db.delete(projectRates)
+  await db.delete(projectBillingRoles)
 
   // Project table (business data linked to teams)
   await db.delete(project)
@@ -470,6 +478,114 @@ async function seedDatabase() {
       }
     }
     console.log(`✓ Created ${testProjectMembers.length} project members`)
+
+    // ========================================
+    // BILLING ROLES
+    // ========================================
+    console.log('\n💼 Creating billing roles...')
+
+    const testBillingRoles = [
+      // Website Redesign (proj-1)
+      { id: 'br-1', projectId: 'proj-1', name: 'Senior Developer', description: 'Full-stack senior developer' },
+      { id: 'br-2', projectId: 'proj-1', name: 'Junior Developer', description: 'Entry-level developer' },
+      { id: 'br-3', projectId: 'proj-1', name: 'Designer', description: 'UI/UX designer' },
+      // Mobile App Development (proj-2)
+      { id: 'br-4', projectId: 'proj-2', name: 'Senior Developer', description: 'Mobile app specialist' },
+      { id: 'br-5', projectId: 'proj-2', name: 'QA Engineer', description: 'Quality assurance' },
+      // Social Media Campaign (proj-5)
+      { id: 'br-6', projectId: 'proj-5', name: 'Content Creator', description: 'Social media content specialist' },
+      { id: 'br-7', projectId: 'proj-5', name: 'Strategist', description: 'Marketing strategist' },
+      // Video Production (proj-6)
+      { id: 'br-8', projectId: 'proj-6', name: 'Video Editor', description: 'Post-production specialist' },
+      { id: 'br-9', projectId: 'proj-6', name: 'Director', description: 'Creative director' },
+    ]
+
+    for (const role of testBillingRoles) {
+      await db.insert(projectBillingRoles).values({
+        id: role.id,
+        projectId: role.projectId,
+        name: role.name,
+        description: role.description,
+        archived: false,
+        createdAt: now(),
+        updatedAt: now(),
+      })
+    }
+    console.log(`✓ Created ${testBillingRoles.length} billing roles`)
+
+    // ========================================
+    // PROJECT RATES
+    // ========================================
+    console.log('\n💰 Creating project rates...')
+
+    const thirtyDaysAgo = dateString(30)
+    const testProjectRates = [
+      // Website Redesign (proj-1) - default and role rates
+      { id: 'rate-1', projectId: 'proj-1', rateType: 'default' as const, rateAmountCents: 12000, effectiveFrom: thirtyDaysAgo },
+      { id: 'rate-2', projectId: 'proj-1', rateType: 'billing_role' as const, billingRoleId: 'br-1', rateAmountCents: 18000, effectiveFrom: thirtyDaysAgo },
+      { id: 'rate-3', projectId: 'proj-1', rateType: 'billing_role' as const, billingRoleId: 'br-2', rateAmountCents: 10000, effectiveFrom: thirtyDaysAgo },
+      { id: 'rate-4', projectId: 'proj-1', rateType: 'billing_role' as const, billingRoleId: 'br-3', rateAmountCents: 15000, effectiveFrom: thirtyDaysAgo },
+      // Mobile App Development (proj-2) - default and role rates
+      { id: 'rate-5', projectId: 'proj-2', rateType: 'default' as const, rateAmountCents: 14000, effectiveFrom: thirtyDaysAgo },
+      { id: 'rate-6', projectId: 'proj-2', rateType: 'billing_role' as const, billingRoleId: 'br-4', rateAmountCents: 20000, effectiveFrom: thirtyDaysAgo },
+      { id: 'rate-7', projectId: 'proj-2', rateType: 'billing_role' as const, billingRoleId: 'br-5', rateAmountCents: 11000, effectiveFrom: thirtyDaysAgo },
+      // Member-specific override on proj-2 for user-3
+      { id: 'rate-8', projectId: 'proj-2', rateType: 'member' as const, memberId: 'pm-5', rateAmountCents: 22500, effectiveFrom: thirtyDaysAgo },
+      // Social Media Campaign (proj-5) - default and role rates
+      { id: 'rate-9', projectId: 'proj-5', rateType: 'default' as const, rateAmountCents: 9500, effectiveFrom: thirtyDaysAgo },
+      { id: 'rate-10', projectId: 'proj-5', rateType: 'billing_role' as const, billingRoleId: 'br-6', rateAmountCents: 8500, effectiveFrom: thirtyDaysAgo },
+      { id: 'rate-11', projectId: 'proj-5', rateType: 'billing_role' as const, billingRoleId: 'br-7', rateAmountCents: 16000, effectiveFrom: thirtyDaysAgo },
+      // Video Production (proj-6) - default and role rates
+      { id: 'rate-12', projectId: 'proj-6', rateType: 'default' as const, rateAmountCents: 11000, effectiveFrom: thirtyDaysAgo },
+      { id: 'rate-13', projectId: 'proj-6', rateType: 'billing_role' as const, billingRoleId: 'br-8', rateAmountCents: 13000, effectiveFrom: thirtyDaysAgo },
+      { id: 'rate-14', projectId: 'proj-6', rateType: 'billing_role' as const, billingRoleId: 'br-9', rateAmountCents: 25000, effectiveFrom: thirtyDaysAgo },
+    ]
+
+    for (const rate of testProjectRates) {
+      await db.insert(projectRates).values({
+        id: rate.id,
+        projectId: rate.projectId,
+        rateType: rate.rateType,
+        billingRoleId: rate.billingRoleId || null,
+        memberId: rate.memberId || null,
+        rateAmountCents: rate.rateAmountCents,
+        effectiveFrom: rate.effectiveFrom,
+        effectiveTo: null,
+        createdBy: 'user-admin',
+        createdAt: now(),
+      })
+    }
+    console.log(`✓ Created ${testProjectRates.length} project rates`)
+
+    // ========================================
+    // MEMBER BILLING ROLE ASSIGNMENTS
+    // ========================================
+    console.log('\n🏷️  Assigning billing roles to members...')
+
+    const testMemberBillingRoles = [
+      // Website Redesign (proj-1)
+      { id: 'mbr-1', teamMemberId: 'pm-1', billingRoleId: 'br-1' }, // Alice - Senior Developer
+      { id: 'mbr-2', teamMemberId: 'pm-2', billingRoleId: 'br-3' }, // Bob PM - Designer
+      // Mobile App Development (proj-2)
+      { id: 'mbr-3', teamMemberId: 'pm-4', billingRoleId: 'br-4' }, // Alice - Senior Developer
+      { id: 'mbr-4', teamMemberId: 'pm-5', billingRoleId: 'br-4' }, // Charlie - Senior Developer (but has member override)
+      // Social Media Campaign (proj-5)
+      { id: 'mbr-5', teamMemberId: 'pm-11', billingRoleId: 'br-7' }, // Charlie (owner) - Strategist
+      { id: 'mbr-6', teamMemberId: 'pm-12', billingRoleId: 'br-6' }, // Bob - Content Creator
+      // Video Production (proj-6)
+      { id: 'mbr-7', teamMemberId: 'pm-13', billingRoleId: 'br-9' }, // Alice (owner) - Director
+    ]
+
+    for (const assignment of testMemberBillingRoles) {
+      await db.insert(projectMemberBillingRoles).values({
+        id: assignment.id,
+        teamMemberId: assignment.teamMemberId,
+        billingRoleId: assignment.billingRoleId,
+        createdAt: now(),
+        updatedAt: now(),
+      })
+    }
+    console.log(`✓ Created ${testMemberBillingRoles.length} member billing role assignments`)
 
     // ========================================
     // TIME ENTRIES
@@ -895,6 +1011,9 @@ async function seedDatabase() {
     console.log(`   Accounts: ${testAccounts.length}`)
     console.log(`   Projects: ${testProjects.length}`)
     console.log(`   Project Members: ${testProjectMembers.length}`)
+    console.log(`   Billing Roles: ${testBillingRoles.length}`)
+    console.log(`   Project Rates: ${testProjectRates.length}`)
+    console.log(`   Member Billing Assignments: ${testMemberBillingRoles.length}`)
     console.log(`   Time Entries: ${testTimeEntries.length}`)
     console.log(`   Time Sheets: ${testTimeSheets.length}`)
     console.log(`   Time Sheet Entries: ${allSheetEntries.length}`)

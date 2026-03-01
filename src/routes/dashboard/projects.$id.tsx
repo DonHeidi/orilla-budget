@@ -53,7 +53,6 @@ import {
 import { ApprovalSettingsForm } from '@/components/ApprovalSettingsForm'
 import { ProjectRatesSection } from '@/components/ProjectRatesSection'
 import { useAuth } from '@/hooks/useAuth'
-import { hasProjectPermission } from '@/lib/permissions'
 
 // Use parent route for data (follows pattern from time-entries.$id.tsx)
 const parentRouteApi = getRouteApi('/dashboard/projects')
@@ -227,7 +226,7 @@ function ProjectDetailPage() {
   const data = parentRouteApi.useLoaderData()
   const navigate = useNavigate()
   const router = useRouter()
-  const { getProjectMembership } = useAuth()
+  const { canOnProject } = useAuth()
 
   // Wrap billing server functions for client-server boundary
   const getBillingData = useServerFn(getBillingDataFn)
@@ -695,13 +694,8 @@ function ProjectDetailPage() {
 
             {/* Rates & Billing Section */}
             {(() => {
-              const membership = getProjectMembership(project.teamId)
-              const canEditRates = membership
-                ? hasProjectPermission(membership, 'rates:edit')
-                : false
-              const canViewRates = membership
-                ? hasProjectPermission(membership, 'rates:view')
-                : false
+              const canEditRates = canOnProject(project.teamId, 'rates:edit')
+              const canViewRates = canOnProject(project.teamId, 'rates:view')
 
               if (!canViewRates) return null
 
