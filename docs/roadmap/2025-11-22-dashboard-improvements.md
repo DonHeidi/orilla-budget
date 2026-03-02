@@ -145,21 +145,37 @@ This document captures improvements and feature requests identified during the i
 **Status:** Moved to Future Considerations (2025-02-22)
 **Rationale:** Lower priority; focus on financial features first
 
-### 12. Project-Specific Rates
-**Description:** Define hourly rates per project, potentially with role-based rate variations
-**Use Case:** Different projects have different billing rates; team members may have different rates based on role (e.g., Senior Dev vs. Junior Dev)
+### 12. Project-Specific Rates ✅ IMPLEMENTED
+**Description:** Define hourly rates with cascading hierarchy: individual member rate > billing role rate > project default rate
+**Use Case:** Different projects have different billing rates; team members may have different rates based on role or individual negotiation
 **Priority:** High
-**Data Model Changes:**
-- Add `projectRates` table with columns: `projectId`, `role`, `hourlyRate`, `currency`
-- Or simpler: Add `defaultHourlyRate` to `projects` table
-- Consider adding `role` to time entries for rate lookup
-**UI Changes:**
-- Add rate configuration in project detail view
-- Show calculated cost in time entry views (hours × rate)
-- Display total project cost alongside total hours
-**Business Logic:**
-- Calculate revenue based on logged hours × applicable rate
-- Support different rates for different roles on same project
+**Branch:** `feature/project-rates` (pending merge)
+
+**Rate Resolution Order (most specific wins):**
+1. **Individual rate** - rate set for a specific member on a project
+2. **Billing role rate** - rate set for a billing role on a project (e.g., "Senior Dev" rate)
+3. **Project default rate** - default hourly rate for the project
+
+**Data Model (implemented):**
+- `projectBillingRoles` table: named billing roles per project (e.g., "Senior Dev", "Junior Dev") with soft-delete via `archived` flag
+- `projectRates` table: time-based rate history using `effectiveFrom`/`effectiveTo` pattern, integer cents, three-level hierarchy (`default`, `billing_role`, `member`)
+- `projectMemberBillingRoles` table: assigns team members to billing roles (1:1 via unique constraint)
+- Added `fixedPrice` and `defaultHourlyRate` columns to `project` table
+
+**Permissions:** `rates:view` and `rates:edit` (owner-only)
+
+**UI (implemented):**
+- Collapsible "Billing & Rates" section on project detail view
+- Default hourly rate editing
+- Fixed price editing (for `fixed` category projects)
+- Billing role CRUD (create, edit name/description/rate, archive)
+- Member billing role assignment via inline select
+- Displays effective rate and source (`member`, `billing_role`, or `default`) per member
+
+**Remaining gaps (follow-up):**
+- Per-member rate override UI — backend supports it but no UI affordance to set member-specific rates
+- Rate history view — repository supports it but UI only shows active rates
+- User-facing error messages — errors only logged to console
 
 ### 13. Profitability Calculation
 **Description:** Calculate and display project profitability, especially important for fixed-price projects
@@ -216,7 +232,7 @@ This document captures improvements and feature requests identified during the i
 10. ~~Quick edit on time entries row (UX #7)~~ ✅
 
 **Phase 4: Financial Features** (High Priority)
-11. Project-specific rates (feature #12) - requires data model changes
+11. ~~Project-specific rates (feature #12)~~ ✅ Implemented on `feature/project-rates` branch (pending merge)
 12. Profitability calculation (feature #13) - depends on #11
 
 **Phase 5: Additional Features**
@@ -237,11 +253,14 @@ This document captures improvements and feature requests identified during the i
 - ~~Update repository queries and validation schemas~~ ✅
 - Note: `accountId` kept optional to allow org-only time sheets
 
-**For item #12 (project-specific rates):**
-- Add `projectRates` table or `defaultHourlyRate` column to `projects`
-- If using roles: add `role` field to time entries
-- Backfill existing projects with default rate (from organization or system setting)
-- Add currency support if needed
+**For item #12 (project-specific rates):** ✅ COMPLETE
+- Added `projectBillingRoles`, `projectRates`, `projectMemberBillingRoles` tables
+- Added `fixedPrice` and `defaultHourlyRate` columns to `project` table
+- Migration: `0015_cooing_deathstrike.sql`
+- Three new repositories with full CRUD and rate hierarchy resolution
+- Zod schemas for all billing rate types
+- UI component `ProjectRatesSection.tsx` integrated in project detail view
+- Branch: `feature/project-rates` (pending merge)
 
 **For item #13 (profitability calculation):**
 - Add `fixedPrice` and `internalCostRate` columns to `projects`
