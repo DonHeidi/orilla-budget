@@ -3,7 +3,7 @@
 **Date:** 2025-11-22
 **Status:** In Progress
 **Context:** Initial review of Agent Dashboard after product description research
-**Last Updated:** 2025-11-25
+**Last Updated:** 2025-02-22
 
 ## Overview
 
@@ -124,27 +124,26 @@ This document captures improvements and feature requests identified during the i
 
 ## New Features
 
-### 10. Approved Time Entries & Invoices View
-**Description:** Create dedicated view for approved time entries and invoices
-**Use Case:** Users need to see what has been approved and is ready for billing
+### 10. Reports View
+**Description:** Dedicated view for approved time sheets and entries for accounting/audit purposes
+**Use Case:** Accounting downloads approved time sheets for documentation or when audited
 **Priority:** Medium
-**Suggested Route:** `/dashboard/approved` or `/dashboard/invoices`
+**Route:** `/dashboard/reports`
+
+**Permission Control:**
+- Add `reports:view` permission
+- Visibility controlled by capabilities (not route-level protection)
+
 **Features:**
 - Filter by approval date range
-- Group by time sheet or organization
-- Export to PDF/CSV for invoicing
-- Mark as billed/invoiced
+- Group by time sheet, project, or organization
+- Export to PDF/CSV for accounting records
+- View approved entries across projects
 
-### 11. Quick Entry Templates
+### 11. Quick Entry Templates — OUT OF SCOPE
 **Description:** Allow users to create reusable templates for common time entries
-**Use Case:** Repetitive tasks (e.g., "Weekly standup", "Client meeting") can be logged faster
-**Priority:** Medium
-**Location:** Beneath "Quick Entry" menu item in sidebar
-**Features:**
-- Save template: title, project, default hours, description
-- Click template to pre-fill quick entry form
-- CRUD for templates (manage in settings)
-- Templates stored per user or organization-wide
+**Status:** Moved to Future Considerations (2025-02-22)
+**Rationale:** Lower priority; focus on financial features first
 
 ### 12. Project-Specific Rates
 **Description:** Define hourly rates per project, potentially with role-based rate variations
@@ -166,21 +165,33 @@ This document captures improvements and feature requests identified during the i
 **Description:** Calculate and display project profitability, especially important for fixed-price projects
 **Use Case:** Understand if fixed-price projects are profitable or losing money based on time invested
 **Priority:** High
+
+**Permission Control:**
+- Add `project:view-profitability` permission
+- Granted to: `owner`, `expert` (potentially `reviewer`)
+- **NOT** granted to: `client`, `viewer` (guests)
+- System admins (`super_admin`, `admin`) can always view
+
 **Requirements:**
 - For **Budget (T&M) projects**: Revenue = hours logged × hourly rate, compare to budget
-- For **Fixed Price projects**: Revenue = fixed price, Cost = hours logged × internal cost rate, Profit = Revenue - Cost
+- For **Fixed Price projects**: Revenue = fixed price, compare to hours logged × billable rate
+
 **Data Model Changes:**
 - Add `fixedPrice` (decimal) to `projects` table for fixed-price projects
-- Add `internalCostRate` (optional) to calculate true profitability
 - Add `projectCategory` values or separate field to distinguish T&M vs. Fixed
+
+**Future Enhancement:**
+- Add `internalCostRate` to enable true profit margin calculations (revenue - actual cost)
+- Currently using single billable rate only; "profitability" = revenue vs budget/fixed price
+
 **UI Display:**
-- Show profitability metrics on project detail view:
+- Show profitability metrics on project detail view (permission-gated):
   - Total Revenue (fixed price or hours × rate)
   - Total Cost (hours × internal rate)
   - Profit/Loss amount and percentage
   - Color-coded: green (profitable), red (loss)
-- Add profitability column to projects list
-- Dashboard widget showing most/least profitable projects
+- Add profitability column to projects list (hidden for users without permission)
+- Dashboard widget showing most/least profitable projects (permission-gated)
 
 ---
 
@@ -209,8 +220,8 @@ This document captures improvements and feature requests identified during the i
 12. Profitability calculation (feature #13) - depends on #11
 
 **Phase 5: Additional Features**
-13. Approved entries/invoices view (feature #10)
-14. Quick entry templates (feature #11)
+13. Reports view at `/dashboard/reports` (feature #10)
+14. ~~Quick entry templates (feature #11)~~ — moved to Future Considerations
 
 ### Testing Considerations
 
@@ -243,6 +254,9 @@ This document captures improvements and feature requests identified during the i
 
 These items are not planned for immediate implementation but should be considered:
 
+- **Quick Entry Templates:** Reusable templates for common time entries (e.g., "Weekly standup", "Client meeting") to pre-fill quick entry form. Decide on user-specific vs org-wide scope.
+- **Internal Cost Rates:** Track internal/cost rates alongside billable rates to calculate true profit margins (revenue - cost), not just revenue vs budget
+- **Multi-Currency Support:** Handle international projects with different currencies
 - **Batch Operations:** Bulk approve/reject time sheets
 - **Notifications:** Alert accounts when time sheets need submission/approval
 - **Calendar Integration:** Sync time entries with calendar events
@@ -254,9 +268,9 @@ These items are not planned for immediate implementation but should be considere
 
 1. ~~**Route Breaking Change:** Should `/dashboard` be renamed to `/expert`? This would affect existing bookmarks/links.~~ → Resolved: Routes renamed to `/expert/*` (2025-11-25)
 2. ~~**Time Sheet Account Migration:** How should we handle existing time sheets that don't have an associated account?~~ → Resolved: `accountId` is optional, existing sheets remain valid without account association
-3. **Template Scope:** Should quick entry templates be user-specific or organization-wide?
-4. **Approved View:** Should "Approved Time Entries" be a separate view or a filter on the existing time entries view?
-5. **Rate Structure:** Should rates be simple (one rate per project) or complex (multiple rates per role per project)?
-6. **Profitability Privacy:** Should profitability metrics be visible in the client portal, or only in the expert dashboard?
-7. **Internal vs. External Rates:** Do we need to track both billable rates (what clients pay) and internal cost rates (what it costs the business)?
-8. **Currency Support:** Do we need multi-currency support for international projects, or is single currency sufficient?
+3. ~~**Template Scope:** Should quick entry templates be user-specific or organization-wide?~~ → Resolved: Quick Entry Templates moved to Future Considerations (out of scope for now). (2025-02-22)
+4. ~~**Approved View:** Should "Approved Time Entries" be a separate view or a filter on the existing time entries view?~~ → Resolved: New view at `/dashboard/reports` for accounting to download approved time sheets for documentation/audits. Permission-gated via `reports:view`. (2025-02-22)
+5. ~~**Rate Structure:** Should rates be simple (one rate per project) or complex (multiple rates per role per project)?~~ → Resolved: Complex rate structure with cascading hierarchy: **individual member rate > role rate > project rate** (most specific wins) (2025-02-22)
+6. ~~**Profitability Privacy:** Should profitability metrics be visible in the client portal, or only in the expert dashboard?~~ → Resolved: Visibility controlled by user capabilities/permissions. Guests (e.g., `client`, `viewer` roles) do not see profitability. Add `project:view-profitability` permission. (2025-02-22)
+7. ~~**Internal vs. External Rates:** Do we need to track both billable rates (what clients pay) and internal cost rates (what it costs the business)?~~ → Resolved: Single rate (billable/external) for now. Internal cost rates are a **future enhancement** to enable true profit margin calculations. (2025-02-22)
+8. ~~**Currency Support:** Do we need multi-currency support for international projects, or is single currency sufficient?~~ → Resolved: Multi-currency out of scope for now. Single currency only. (2025-02-22)
