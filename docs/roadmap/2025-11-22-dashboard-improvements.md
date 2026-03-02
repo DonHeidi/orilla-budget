@@ -203,7 +203,7 @@ This document captures improvements and feature requests identified during the i
 **UI Display:**
 - Show profitability metrics on project detail view (permission-gated):
   - Total Revenue (fixed price or hours × rate)
-  - Total Cost (hours × internal rate)
+  - Total Cost (future: hours × internal rate; not yet supported)
   - Profit/Loss amount and percentage
   - Color-coded: green (profitable), red (loss)
 - Add profitability column to projects list (hidden for users without permission)
