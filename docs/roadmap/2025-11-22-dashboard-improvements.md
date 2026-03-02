@@ -33,13 +33,12 @@ This document captures improvements and feature requests identified during the i
 
 ### 3. Rename "Agent Dashboard" to "Expert Dashboard" ✅ FIXED
 **Rationale:** "Expert" better reflects the role and status of users managing the dashboard
-**Impact:** UI labels, documentation, route names
+**Impact:** UI labels, documentation
 **Priority:** Medium
 **Changes Required:**
 - Update sidebar/header labels
 - Update documentation (CLAUDE.md, README)
-- Consider route rename `/dashboard` → `/expert` (breaking change)
-**Resolution:** Renamed all routes from `/dashboard/*` to `/expert/*`, updated all labels to "Expert Dashboard", updated CLAUDE.md (2025-11-25)
+**Resolution:** Updated labels to "Expert Dashboard". Routes remain at `/dashboard/*` (route rename was not implemented). (2025-11-25, clarified 2025-02-22)
 
 ---
 

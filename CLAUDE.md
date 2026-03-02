@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Orilla Budget is a time tracking and budget management application built with TanStack Start (React), Bun, Drizzle ORM, and SQLite. The app provides both an expert interface for managing organisations, projects, and time entries, as well as a client portal for viewing budget information.
 
-**Note**: The expert interface uses the `/expert` route. All expert pages are under `/expert/*`.
+**Note**: The expert interface (labeled "Expert Dashboard") uses the `/dashboard` route. All expert pages are under `/dashboard/*`.
 
 ---
 
