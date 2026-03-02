@@ -57,7 +57,7 @@ export const project = sqliteTable('project', {
     enum: ['budget', 'fixed', 'retainer']
   }).default('budget'),
 
-  // Existing field (used by budget & retainer-hours)
+  // Existing field (used by budget/T&M projects only)
   budgetHours: real('budget_hours'),
 
   // NEW: Retainer-specific fields
@@ -65,7 +65,8 @@ export const project = sqliteTable('project', {
     enum: ['hours', 'budget']
   }), // Only set when category='retainer'
 
-  retainerAmount: real('retainer_amount'), // Monthly budget amount (for budget-based retainers)
+  monthlyHours: real('monthly_hours'), // Monthly hours allocation (for hours-based retainers)
+  monthlyAmount: real('monthly_amount'), // Monthly budget amount (for budget-based retainers)
 
   retainerStartDate: text('retainer_start_date'), // When retainer begins
   retainerEndDate: text('retainer_end_date'), // Contract end (optional, null = ongoing)
@@ -88,7 +89,7 @@ export const project = sqliteTable('project', {
 
 ### New Table: Retainer Config History
 
-Track all configuration changes for accurate historical calculations:
+Minimal snapshot of calculation-relevant fields at each config change. The canonical/current config lives on the `project` table; this table provides an audit trail and enables historical usage calculations against the config that was active when each time entry was logged.
 
 ```typescript
 export const retainerConfigHistory = sqliteTable('retainer_config_history', {
@@ -97,22 +98,16 @@ export const retainerConfigHistory = sqliteTable('retainer_config_history', {
     .notNull()
     .references(() => project.id, { onDelete: 'cascade' }),
 
-  // Snapshot of config at this point in time
+  // Calculation-relevant config snapshot
   retainerType: text('retainer_type', { enum: ['hours', 'budget'] }).notNull(),
   monthlyHours: real('monthly_hours'), // Hours-based allocation
   monthlyAmount: real('monthly_amount'), // Budget-based allocation
-  billingCycle: text('billing_cycle', {
-    enum: ['monthly', 'quarterly', 'annually']
-  }).notNull(),
-  periodAlignment: text('period_alignment', {
-    enum: ['calendar', 'rolling']
-  }).notNull().default('calendar'),
   rolloverPolicy: text('rollover_policy', {
     enum: ['none', 'next_period', 'accumulate']
   }).notNull(),
   rolloverLimit: real('rollover_limit'),
 
-  // When this config became active
+  // When this config was active
   effectiveFrom: text('effective_from').notNull(), // ISO date
   effectiveTo: text('effective_to'), // NULL = currently active
 
@@ -123,7 +118,9 @@ export const retainerConfigHistory = sqliteTable('retainer_config_history', {
 })
 ```
 
-When calculating usage for a time entry, lookup the config where `effectiveFrom <= entry.date` and (`effectiveTo IS NULL` or `effectiveTo > entry.date`).
+Non-calculation fields (`billingCycle`, `periodAlignment`) are authoritative on the `project` table only. When retainer settings change, close the current config record (`effectiveTo` = today), insert a new snapshot, and update the project table with the new values.
+
+When calculating usage for a time entry, look up the config where `effectiveFrom <= entry.date` and (`effectiveTo IS NULL` or `effectiveTo > entry.date`).
 
 ### New Table: Retainer Periods
 
@@ -180,7 +177,8 @@ export const projectInsertSchema = z.object({
 
   // Retainer fields (required when category='retainer')
   retainerType: retainerTypeSchema.optional(),
-  retainerAmount: z.number().positive().optional(),
+  monthlyHours: z.number().positive().optional(),
+  monthlyAmount: z.number().positive().optional(),
   retainerStartDate: z.string().optional(),
   retainerEndDate: z.string().optional(),
   billingCycle: billingCycleSchema.optional(),
@@ -188,11 +186,19 @@ export const projectInsertSchema = z.object({
   rolloverPolicy: rolloverPolicySchema.optional(),
   rolloverLimit: z.number().positive().optional(),
 }).refine(data => {
-  if (data.category === 'retainer') {
-    return data.retainerType && data.retainerStartDate
+  if (data.category !== 'retainer') return true
+  if (!data.retainerType || !data.retainerStartDate) return false
+
+  if (data.retainerType === 'hours') {
+    return !!data.monthlyHours && !data.monthlyAmount
   }
-  return true
-}, { message: 'Retainer projects require retainerType and retainerStartDate' })
+  if (data.retainerType === 'budget') {
+    return !!data.monthlyAmount && !data.monthlyHours
+  }
+  return false
+}, {
+  message: 'Retainer projects require retainerType, retainerStartDate, and exactly one of monthlyHours (hours-based) or monthlyAmount (budget-based)',
+})
 ```
 
 ---
@@ -203,7 +209,7 @@ export const projectInsertSchema = z.object({
 
 When "Retainer" category is selected, show additional fields:
 
-```
+```text
 Category: [Budget] [Fixed] [Retainer*]
 
 -- Retainer Options (shown when Retainer selected) --
@@ -225,7 +231,7 @@ Rollover Limit: [____] hours/amount (optional)
 
 Show retainer-specific information:
 
-```
+```text
 ┌─────────────────────────────────────────────────┐
 │ Project: Acme Corp Monthly Support              │
 │ Type: Retainer (Hours-based)                    │
@@ -246,7 +252,7 @@ Show retainer-specific information:
 
 Add dashboard widget showing all retainers and their current period status:
 
-```
+```text
 Active Retainers (3)
 ┌──────────────────┬────────────┬───────────────┐
 │ Project          │ Period     │ Usage         │
@@ -306,7 +312,7 @@ Active Retainers (3)
 | `src/repositories/retainerPeriodRepository.ts` | Retainer period CRUD and queries |
 | `src/components/retainer/period-usage-bar.tsx` | Visual usage progress component |
 | `src/components/retainer/period-history.tsx` | Historical period list |
-| `src/routes/expert/retainers.tsx` | Retainer overview dashboard |
+| `src/routes/dashboard/retainers.tsx` | Retainer overview dashboard |
 
 ### Files to Modify
 
@@ -316,7 +322,7 @@ Active Retainers (3)
 | `src/schemas.ts` | Zod schemas for retainer types |
 | `src/repositories/projectRepository.ts` | Retainer-specific queries |
 | `src/components/projects/project-form.tsx` | Retainer form fields |
-| `src/routes/expert/projects.$id.tsx` | Period usage display |
+| `src/routes/dashboard/projects.$id.tsx` | Period usage display |
 
 ---
 
@@ -348,8 +354,22 @@ function calculateRollover(period: RetainerPeriod, policy: RolloverPolicy, limit
 
 ### Usage Calculation
 
-- For hours-based: Sum `timeEntries.hours` where `projectId` matches and `date` within period
-- For budget-based: Requires hourly rates (depends on Dashboard Improvements #12)
+- **Hours-based (`usedHours`)**: Sum `timeEntries.hours` where `projectId` matches and `date` falls within the period boundaries.
+- **Budget-based (`usedAmount`)**: Computed independently by iterating over time entries in the period and multiplying each entry's hours by the member's effective hourly rate, resolved via the rate hierarchy from Project-Specific Rates (#12):
+
+```typescript
+function calculateUsedAmount(entries: TimeEntry[], projectId: string): number {
+  let total = 0
+  for (const entry of entries) {
+    // Rate hierarchy: member-specific rate → billing role rate → project default rate
+    const rate = getEffectiveRate(projectId, entry.createdByUserId)
+    total += entry.hours * rate
+  }
+  return total
+}
+```
+
+Both `usedHours` and `usedAmount` on `retainerPeriods` are updated independently whenever time entries change. For hours-based retainers, `usedHours` drives the budget comparison; for budget-based retainers, `usedAmount` drives it.
 
 ### Config-Aware Calculations
 
@@ -376,13 +396,13 @@ This ensures mid-period config changes don't retroactively affect past entries.
 ### Config Change Workflow
 
 When retainer settings are updated:
-1. Close current config: set `effectiveTo` to today
-2. Create new config history record with `effectiveFrom` = today
-3. Update project table with current values (for easy querying)
+1. Update project table with new values (authoritative source for current config)
+2. Close current config history record: set `effectiveTo` to today
+3. Insert new config history snapshot with `effectiveFrom` = today (calculation-relevant fields only)
 
 ### Integration with Project Rates
 
-This feature depends on [Project-specific rates (#12)](./2025-11-22-dashboard-improvements.md) for budget-based retainers to calculate monetary usage.
+Budget-based retainers depend on [Project-specific rates (#12)](./2025-11-22-dashboard-improvements.md) to compute `usedAmount`. For each time entry in a period, the effective hourly rate is resolved via the `projectRates` table hierarchy: member-specific rate > billing role rate > project `defaultHourlyRate`. The `usedAmount` field on `retainerPeriods` accumulates `entry.hours × effectiveRate` across all entries in the period.
 
 ---
 
