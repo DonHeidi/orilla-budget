@@ -192,9 +192,9 @@ This document captures improvements and feature requests identified during the i
 - For **Budget (T&M) projects**: Revenue = hours logged × hourly rate, compare to budget
 - For **Fixed Price projects**: Revenue = fixed price, compare to hours logged × billable rate
 
-**Data Model Changes:**
-- Add `fixedPrice` (decimal) to `projects` table for fixed-price projects
-- Add `projectCategory` values or separate field to distinguish T&M vs. Fixed
+**Data Model:**
+- Use existing `fixedPrice` field on `project` table (added in Project-Specific Rates #12) for fixed-price revenue
+- Use existing `category` enum on `project` table (`'budget'` for T&M, `'fixed'` for fixed-price) to determine calculation method
 
 **Future Enhancement:**
 - Add `internalCostRate` to enable true profit margin calculations (revenue - actual cost)
@@ -263,9 +263,9 @@ This document captures improvements and feature requests identified during the i
 - Branch: `feature/project-rates` (pending merge)
 
 **For item #13 (profitability calculation):**
-- Add `fixedPrice` and `internalCostRate` columns to `projects`
-- Update existing projects: set fixedPrice for category="fixed" projects
-- Create views/computed fields for profitability metrics
+- `fixedPrice` already exists on `project` table (added in #12); no new column needed
+- Add `internalCostRate` column to `project` table (future enhancement for true profit margins)
+- Create views/computed fields for profitability metrics using `project.category` and `project.fixedPrice`
 
 ---
 
@@ -285,7 +285,7 @@ These items are not planned for immediate implementation but should be considere
 
 ## Questions & Decisions Needed
 
-1. ~~**Route Breaking Change:** Should `/dashboard` be renamed to `/expert`? This would affect existing bookmarks/links.~~ → Resolved: Routes renamed to `/expert/*` (2025-11-25)
+1. ~~**Route Breaking Change:** Should `/dashboard` be renamed to `/expert`? This would affect existing bookmarks/links.~~ → Resolved: Routes remain at `/dashboard/*`; only the UI label changed to "Expert Dashboard" (2025-11-25, clarified 2025-02-22)
 2. ~~**Time Sheet Account Migration:** How should we handle existing time sheets that don't have an associated account?~~ → Resolved: `accountId` is optional, existing sheets remain valid without account association
 3. ~~**Template Scope:** Should quick entry templates be user-specific or organization-wide?~~ → Resolved: Quick Entry Templates moved to Future Considerations (out of scope for now). (2025-02-22)
 4. ~~**Approved View:** Should "Approved Time Entries" be a separate view or a filter on the existing time entries view?~~ → Resolved: New view at `/dashboard/reports` for accounting to download approved time sheets for documentation/audits. Permission-gated via `reports:view`. (2025-02-22)
