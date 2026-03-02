@@ -107,3 +107,4 @@ bun run dev
 | [Email Integration](docs/roadmap/2025-12-03-email-integration.md) | Planned | GDPR-safe email service, password reset, verification |
 | [User Auth Flows](docs/roadmap/2025-12-03-user-auth-flows.md) | Planned | Signup, password reset, settings, session management |
 | [Project Ownership Model](docs/roadmap/2025-12-06-project-ownership-model.md) | Completed | Creator tracking, ownership rules, minimum owner enforcement |
+| [Retainer Projects](docs/roadmap/2025-02-22-retainer-projects.md) | Planned | Monthly recurring service agreements |
