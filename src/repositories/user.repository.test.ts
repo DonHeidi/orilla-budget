@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { createTestDb, cleanDatabase, testFactories, seed } from '@/test/db-utils'
-import { hashPassword, verifyPassword } from '@/lib/auth'
+import { hashPassword, verifyPassword } from '@/lib/password'
 import type { User } from '@/schemas'
 
 /**

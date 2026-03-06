@@ -7,7 +7,7 @@ import {
   getSessionExpiry,
   isSessionExpired,
   now,
-} from './auth'
+} from './auth-utils'
 
 describe('auth utilities', () => {
   describe('hashPassword', () => {

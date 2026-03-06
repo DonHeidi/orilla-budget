@@ -7,7 +7,6 @@
  * - Utility functions
  */
 
-import { randomBytes } from 'crypto'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { admin } from 'better-auth/plugins'
@@ -258,74 +257,17 @@ export const SESSION_COOKIE_OPTIONS = {
 export const SESSION_COOKIE_NAME = 'session_token'
 
 // =============================================================================
-// UTILITY FUNCTIONS
+// UTILITY FUNCTIONS (re-exported from auth-utils.ts)
 // =============================================================================
+// Import from '@/lib/auth-utils' directly to avoid triggering auth initialization
 
-/**
- * Generate a unique ID (UUIDv4)
- * Uses Web Crypto API which is available in both browsers and Node.js
- */
-export function generateId(): string {
-  return crypto.randomUUID()
-}
-
-/**
- * Get current ISO timestamp
- */
-export function now(): string {
-  return new Date().toISOString()
-}
-
-/**
- * Hash a password using Bun's built-in Argon2id implementation
- */
-export async function hashPassword(password: string): Promise<string> {
-  return await Bun.password.hash(password, {
-    algorithm: 'argon2id',
-    memoryCost: 19456, // 19 MiB
-    timeCost: 2,
-  })
-}
-
-/**
- * Verify a password against a hash
- */
-export async function verifyPassword(
-  password: string,
-  hash: string
-): Promise<boolean> {
-  return await Bun.password.verify(password, hash)
-}
-
-/**
- * Generate a cryptographically secure session token
- */
-export function generateSessionToken(): string {
-  return randomBytes(SESSION_TOKEN_LENGTH).toString('base64url')
-}
-
-/**
- * Calculate session expiry timestamp
- */
-export function getSessionExpiry(days: number = SESSION_EXPIRY_DAYS): string {
-  const expiry = new Date()
-  expiry.setDate(expiry.getDate() + days)
-  return expiry.toISOString()
-}
-
-/**
- * Check if a session has expired
- */
-export function isSessionExpired(expiresAt: string): boolean {
-  return new Date(expiresAt) < new Date()
-}
-
-/**
- * Generate a cryptographically secure token of specified length
- * Used for invitation codes, password reset tokens, etc.
- */
-export function generateToken(length: number = 32): string {
-  // Calculate bytes needed for the desired character length in base64url
-  const bytesNeeded = Math.ceil((length * 3) / 4)
-  return randomBytes(bytesNeeded).toString('base64url').slice(0, length)
-}
+export {
+  hashPassword,
+  verifyPassword,
+  generateId,
+  generateSessionToken,
+  generateToken,
+  now,
+  getSessionExpiry,
+  isSessionExpired,
+} from './auth-utils'
