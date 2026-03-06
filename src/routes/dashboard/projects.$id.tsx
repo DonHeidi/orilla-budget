@@ -23,7 +23,9 @@ import { projectApprovalSettingsRepository } from '@/repositories/projectApprova
 import { projectBillingRoleRepository } from '@/repositories/projectBillingRole.repository'
 import { projectRateRepository } from '@/repositories/projectRate.repository'
 import { projectMemberBillingRoleRepository } from '@/repositories/projectMemberBillingRole.repository'
-import type { Project, ProjectApprovalSettings, UpdateProjectApprovalSettings } from '@/schemas'
+import { projectMemberRepository } from '@/repositories/projectMember.repository'
+import { canOnProject } from '@/lib/permissions'
+import type { Project, ProjectApprovalSettings, UpdateProjectApprovalSettings, ProjectRole } from '@/schemas'
 import {
   createProjectBillingRoleSchema,
   updateProjectBillingRoleSchema,
@@ -155,9 +157,19 @@ const updateApprovalSettingsFn = createServerFn({ method: 'POST' }).handler(
 // Billing Rate Server Functions
 // ============================================================================
 
+async function requireBillingPermission(teamId: string, permission: 'rates:view' | 'rates:edit') {
+  const user = await getCurrentUser()
+  if (!user) throw new Error('Not authenticated')
+  const membership = await projectMemberRepository.findByProjectAndUser(teamId, user.id)
+  if (!canOnProject(user, membership ? { role: membership.projectRole as ProjectRole } : null, permission))
+    throw new Error('Insufficient permissions')
+  return user
+}
+
 const getBillingDataFn = createServerFn({ method: 'GET' })
   .inputValidator(z.object({ teamId: z.string() }))
   .handler(async ({ data }) => {
+    await requireBillingPermission(data.teamId, 'rates:view')
     const [billingRoles, activeRates, memberDetails] = await Promise.all([
       projectBillingRoleRepository.findByProjectId(data.teamId),
       projectRateRepository.findActiveByProjectId(data.teamId),
@@ -169,32 +181,47 @@ const getBillingDataFn = createServerFn({ method: 'GET' })
 const createBillingRoleFn = createServerFn({ method: 'POST' })
   .inputValidator(createProjectBillingRoleSchema)
   .handler(async ({ data }) => {
+    await requireBillingPermission(data.projectId, 'rates:edit')
+    const exists = await projectBillingRoleRepository.existsByName(data.projectId, data.name)
+    if (exists) throw new Error('A billing role with this name already exists')
     return projectBillingRoleRepository.create(data)
   })
 
 const updateBillingRoleFn = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string(), updates: updateProjectBillingRoleSchema }))
   .handler(async ({ data }) => {
+    const role = await projectBillingRoleRepository.findById(data.id)
+    if (!role) throw new Error('Billing role not found')
+    await requireBillingPermission(role.projectId, 'rates:edit')
+    if (data.updates.name) {
+      const exists = await projectBillingRoleRepository.existsByName(role.projectId, data.updates.name, data.id)
+      if (exists) throw new Error('A billing role with this name already exists')
+    }
     return projectBillingRoleRepository.update(data.id, data.updates)
   })
 
 const archiveBillingRoleFn = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
+    const role = await projectBillingRoleRepository.findById(data.id)
+    if (!role) throw new Error('Billing role not found')
+    await requireBillingPermission(role.projectId, 'rates:edit')
     return projectBillingRoleRepository.archive(data.id)
   })
 
 const setRateFn = createServerFn({ method: 'POST' })
   .inputValidator(createProjectRateSchema)
   .handler(async ({ data }) => {
-    const user = await getCurrentUser()
-    if (!user) throw new Error('Unauthorized')
+    const user = await requireBillingPermission(data.projectId, 'rates:edit')
     return projectRateRepository.setRate({ ...data, createdBy: user.id })
   })
 
 const setMemberBillingRoleFn = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ teamMemberId: z.string(), billingRoleId: z.string().nullable() }))
   .handler(async ({ data }) => {
+    const member = await projectMemberRepository.findById(data.teamMemberId)
+    if (!member) throw new Error('Team member not found')
+    await requireBillingPermission(member.teamId, 'rates:edit')
     return projectMemberBillingRoleRepository.setMemberBillingRole(
       data.teamMemberId,
       data.billingRoleId
@@ -210,6 +237,9 @@ const updateProjectRateDefaultsFn = createServerFn({ method: 'POST' })
     })
   )
   .handler(async ({ data }) => {
+    const project = await projectRepository.findById(data.id)
+    if (!project) throw new Error('Project not found')
+    await requireBillingPermission(project.teamId, 'rates:edit')
     return projectRepository.update(data.id, {
       fixedPrice: data.fixedPrice,
       defaultHourlyRate: data.defaultHourlyRate,

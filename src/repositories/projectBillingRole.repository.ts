@@ -1,6 +1,6 @@
 import { db } from '@/db'
 import { projectBillingRoles } from '@/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, ne } from 'drizzle-orm'
 import type { CreateProjectBillingRole, UpdateProjectBillingRole } from '@/schemas'
 
 export type ProjectBillingRole = typeof projectBillingRoles.$inferSelect
@@ -103,15 +103,15 @@ export const projectBillingRoleRepository = {
       eq(projectBillingRoles.archived, false),
     ]
 
+    if (excludeId) {
+      conditions.push(ne(projectBillingRoles.id, excludeId))
+    }
+
     const result = await db
       .select({ id: projectBillingRoles.id })
       .from(projectBillingRoles)
       .where(and(...conditions))
       .limit(1)
-
-    if (excludeId && result.length > 0 && result[0]) {
-      return result[0].id !== excludeId
-    }
 
     return result.length > 0
   },
