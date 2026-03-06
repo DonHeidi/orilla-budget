@@ -137,8 +137,12 @@ export function ProjectRatesSection({
   }
 
   const refreshBillingData = async () => {
-    const data = await onGetBillingData({ data: { teamId } })
-    setBillingData(data)
+    try {
+      const data = await onGetBillingData({ data: { teamId } })
+      setBillingData(data)
+    } catch (error) {
+      console.error('Failed to refresh billing data:', error)
+    }
   }
 
   const handleCreateRole = async () => {
@@ -408,7 +412,7 @@ export function ProjectRatesSection({
                       <span className="text-sm font-semibold tabular-nums">
                         {currentDefaultRate
                           ? `${formatCurrency(currentDefaultRate.rateAmountCents)}/hr`
-                          : formatDollars(defaultHourlyRate)
+                          : defaultHourlyRate != null
                             ? `${formatDollars(defaultHourlyRate)}/hr`
                             : '—'}
                       </span>

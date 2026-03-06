@@ -131,31 +131,24 @@ export const projectMemberBillingRoleRepository = {
     billingRoleId: string | null
   ): Promise<ProjectMemberBillingRole> {
     const now = new Date().toISOString()
-    const existing = await this.findByTeamMemberId(teamMemberId)
-
-    if (existing) {
-      const result = await db
-        .update(projectMemberBillingRoles)
-        .set({
+    const result = await db
+      .insert(projectMemberBillingRoles)
+      .values({
+        id: crypto.randomUUID(),
+        teamMemberId,
+        billingRoleId,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: projectMemberBillingRoles.teamMemberId,
+        set: {
           billingRoleId,
           updatedAt: now,
-        })
-        .where(eq(projectMemberBillingRoles.teamMemberId, teamMemberId))
-        .returning()
-      return result[0]!
-    } else {
-      const result = await db
-        .insert(projectMemberBillingRoles)
-        .values({
-          id: crypto.randomUUID(),
-          teamMemberId,
-          billingRoleId,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .returning()
-      return result[0]!
-    }
+        },
+      })
+      .returning()
+    return result[0]!
   },
 
   /**
