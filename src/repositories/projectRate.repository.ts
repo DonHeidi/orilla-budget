@@ -91,7 +91,7 @@ export const projectRateRepository = {
    * Hierarchy: member-specific > billing role > project default
    */
   async getEffectiveRateForMember(
-    memberId: string,
+    teamMemberId: string,
     date: string
   ): Promise<EffectiveRate | null> {
     // Get member's team (project) and billing role assignment
@@ -110,7 +110,7 @@ export const projectRateRepository = {
         projectBillingRoles,
         eq(projectMemberBillingRoles.billingRoleId, projectBillingRoles.id)
       )
-      .where(eq(betterAuth.teamMember.id, memberId))
+      .where(eq(betterAuth.teamMember.id, teamMemberId))
       .limit(1)
 
     if (!memberData[0]) return null
@@ -130,12 +130,12 @@ export const projectRateRepository = {
       )
 
     // 1. Check for member-specific rate (highest priority)
-    const memberRate = rates.find((r) => r.rateType === 'member' && r.memberId === memberId)
+    const memberRate = rates.find((r) => r.rateType === 'member' && r.memberId === teamMemberId)
     if (memberRate) {
       return {
         rateAmountCents: memberRate.rateAmountCents,
         source: 'member',
-        sourceId: memberId,
+        sourceId: teamMemberId,
         sourceName: 'Individual Rate',
       }
     }
@@ -174,48 +174,50 @@ export const projectRateRepository = {
    * This maintains rate history by setting effectiveTo on the old rate
    */
   async setRate(data: CreateProjectRate & { createdBy: string }): Promise<ProjectRate> {
-    const now = new Date().toISOString()
+    return db.transaction(async (tx) => {
+      const now = new Date().toISOString()
 
-    // Build conditions to find the existing active rate to close
-    const conditions = [
-      eq(projectRates.projectId, data.projectId),
-      eq(projectRates.rateType, data.rateType),
-      isNull(projectRates.effectiveTo),
-    ]
+      // Build conditions to find the existing active rate to close
+      const conditions = [
+        eq(projectRates.projectId, data.projectId),
+        eq(projectRates.rateType, data.rateType),
+        isNull(projectRates.effectiveTo),
+      ]
 
-    if (data.rateType === 'billing_role' && data.billingRoleId) {
-      conditions.push(eq(projectRates.billingRoleId, data.billingRoleId))
-    } else if (data.rateType === 'member' && data.memberId) {
-      conditions.push(eq(projectRates.memberId, data.memberId))
-    } else if (data.rateType === 'default') {
-      conditions.push(isNull(projectRates.billingRoleId))
-      conditions.push(isNull(projectRates.memberId))
-    }
+      if (data.rateType === 'billing_role' && data.billingRoleId) {
+        conditions.push(eq(projectRates.billingRoleId, data.billingRoleId))
+      } else if (data.rateType === 'member' && data.memberId) {
+        conditions.push(eq(projectRates.memberId, data.memberId))
+      } else if (data.rateType === 'default') {
+        conditions.push(isNull(projectRates.billingRoleId))
+        conditions.push(isNull(projectRates.memberId))
+      }
 
-    // Close any existing active rate of the same type/target
-    await db
-      .update(projectRates)
-      .set({ effectiveTo: data.effectiveFrom })
-      .where(and(...conditions))
+      // Close any existing active rate of the same type/target
+      await tx
+        .update(projectRates)
+        .set({ effectiveTo: data.effectiveFrom })
+        .where(and(...conditions))
 
-    // Create new rate
-    const result = await db
-      .insert(projectRates)
-      .values({
-        id: crypto.randomUUID(),
-        projectId: data.projectId,
-        rateType: data.rateType,
-        billingRoleId: data.billingRoleId || null,
-        memberId: data.memberId || null,
-        rateAmountCents: data.rateAmountCents,
-        effectiveFrom: data.effectiveFrom,
-        effectiveTo: null,
-        createdBy: data.createdBy,
-        createdAt: now,
-      })
-      .returning()
+      // Create new rate
+      const result = await tx
+        .insert(projectRates)
+        .values({
+          id: crypto.randomUUID(),
+          projectId: data.projectId,
+          rateType: data.rateType,
+          billingRoleId: data.billingRoleId || null,
+          memberId: data.memberId || null,
+          rateAmountCents: data.rateAmountCents,
+          effectiveFrom: data.effectiveFrom,
+          effectiveTo: null,
+          createdBy: data.createdBy,
+          createdAt: now,
+        })
+        .returning()
 
-    return result[0]!
+      return result[0]!
+    })
   },
 
   /**
