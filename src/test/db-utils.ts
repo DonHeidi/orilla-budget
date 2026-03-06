@@ -45,6 +45,10 @@ export async function cleanDatabase(db: ReturnType<typeof createTestDb>['db']) {
   await db.delete(schema.timeSheets)
   await db.delete(schema.timeEntries)
   await db.delete(schema.projectApprovalSettings)
+  // Billing rate tables (order matters for FK constraints)
+  await db.delete(schema.projectMemberBillingRoles)
+  await db.delete(schema.projectRates)
+  await db.delete(schema.projectBillingRoles)
   await db.delete(schema.projectMembers)
   await db.delete(schema.projects) // project table
   await db.delete(betterAuth.team) // Better Auth team table
@@ -308,6 +312,62 @@ export const testFactories = {
       ...overrides,
     }
   },
+
+  // Project billing role (app table, ISO strings)
+  projectBillingRole: (
+    projectId: string,
+    overrides?: Partial<typeof schema.projectBillingRoles.$inferInsert>
+  ) => {
+    const now = new Date().toISOString()
+    return {
+      id: generateTestId(),
+      projectId,
+      name: 'Developer',
+      description: '',
+      archived: false,
+      createdAt: now,
+      updatedAt: now,
+      ...overrides,
+    }
+  },
+
+  // Project rate (app table, ISO strings)
+  projectRate: (
+    projectId: string,
+    overrides?: Partial<typeof schema.projectRates.$inferInsert>
+  ) => {
+    const now = new Date().toISOString()
+    const today = now.split('T')[0]
+    return {
+      id: generateTestId(),
+      projectId,
+      rateType: 'default' as const,
+      billingRoleId: null,
+      memberId: null,
+      rateAmountCents: 10000, // $100.00
+      effectiveFrom: today,
+      effectiveTo: null,
+      createdBy: null,
+      createdAt: now,
+      ...overrides,
+    }
+  },
+
+  // Project member billing role (app table, ISO strings)
+  projectMemberBillingRole: (
+    teamMemberId: string,
+    overrides?: Partial<typeof schema.projectMemberBillingRoles.$inferInsert>
+  ) => {
+    const now = new Date().toISOString()
+    return {
+      id: generateTestId(),
+      teamMemberId,
+      billingRoleId: null,
+      createdAt: now,
+      updatedAt: now,
+      ...overrides,
+    }
+  },
 }
 
 /**
@@ -513,5 +573,41 @@ export const seed = {
       .values(testFactories.projectMember(projectId, userId, data))
       .returning()
     return member
+  },
+
+  async projectBillingRole(
+    db: ReturnType<typeof createTestDb>['db'],
+    projectId: string,
+    data?: Partial<typeof schema.projectBillingRoles.$inferInsert>
+  ) {
+    const [role] = await db
+      .insert(schema.projectBillingRoles)
+      .values(testFactories.projectBillingRole(projectId, data))
+      .returning()
+    return role
+  },
+
+  async projectRate(
+    db: ReturnType<typeof createTestDb>['db'],
+    projectId: string,
+    data?: Partial<typeof schema.projectRates.$inferInsert>
+  ) {
+    const [rate] = await db
+      .insert(schema.projectRates)
+      .values(testFactories.projectRate(projectId, data))
+      .returning()
+    return rate
+  },
+
+  async projectMemberBillingRole(
+    db: ReturnType<typeof createTestDb>['db'],
+    teamMemberId: string,
+    data?: Partial<typeof schema.projectMemberBillingRoles.$inferInsert>
+  ) {
+    const [assignment] = await db
+      .insert(schema.projectMemberBillingRoles)
+      .values(testFactories.projectMemberBillingRole(teamMemberId, data))
+      .returning()
+    return assignment
   },
 }

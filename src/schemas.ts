@@ -189,6 +189,9 @@ export const projectSchema = z
       .positive('Budget must be a positive number')
       .nullable()
       .optional(),
+    // Billing/pricing fields
+    fixedPrice: z.number().positive('Fixed price must be positive').nullable().optional(),
+    defaultHourlyRate: z.number().positive('Rate must be positive').nullable().optional(),
     // Timestamps
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
@@ -225,6 +228,8 @@ export const updateProjectSchema = z.object({
   description: z.string().optional(),
   category: projectCategorySchema.optional(),
   budgetHours: z.number().positive('Budget must be a positive number').nullable().optional(),
+  fixedPrice: z.number().positive('Fixed price must be positive').nullable().optional(),
+  defaultHourlyRate: z.number().positive('Rate must be positive').nullable().optional(),
 })
 
 // Entry status schema - for individual entry approval workflow
@@ -535,3 +540,93 @@ export const updateEntryStatusSchema = z.object({
   status: entryStatusSchema,
   message: z.string().optional(),
 })
+
+// ============================================================================
+// BILLING RATE SCHEMAS
+// ============================================================================
+
+// Rate type schema - defines the hierarchy level
+export const rateTypeSchema = z.enum(['default', 'billing_role', 'member'])
+export type RateType = z.infer<typeof rateTypeSchema>
+
+// Project Billing Role Schema - per-project role definitions
+export const projectBillingRoleSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  name: z.string().min(1, 'Role name is required').max(50, 'Role name too long'),
+  description: z.string().optional().default(''),
+  archived: z.boolean().default(false),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+})
+
+export const createProjectBillingRoleSchema = projectBillingRoleSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  archived: true,
+})
+
+export const updateProjectBillingRoleSchema = z.object({
+  name: z.string().min(1).max(50).optional(),
+  description: z.string().optional(),
+})
+
+export type ProjectBillingRole = z.infer<typeof projectBillingRoleSchema>
+export type CreateProjectBillingRole = z.infer<typeof createProjectBillingRoleSchema>
+export type UpdateProjectBillingRole = z.infer<typeof updateProjectBillingRoleSchema>
+
+// Project Rate Schema - time-based rate history
+export const projectRateSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  rateType: rateTypeSchema,
+  billingRoleId: z.string().nullable().optional(),
+  memberId: z.string().nullable().optional(),
+  rateAmountCents: z.number().int().positive('Rate must be positive'),
+  effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
+  effectiveTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format').nullable().optional(),
+  createdBy: z.string().nullable().optional(),
+  createdAt: z.string().datetime(),
+})
+
+export const createProjectRateSchema = z.object({
+  projectId: z.string(),
+  rateType: rateTypeSchema,
+  billingRoleId: z.string().optional(),
+  memberId: z.string().optional(),
+  rateAmountCents: z.number().int().positive('Rate must be positive'),
+  effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
+})
+
+export type ProjectRate = z.infer<typeof projectRateSchema>
+export type CreateProjectRate = z.infer<typeof createProjectRateSchema>
+
+// Project Member Billing Role Schema - assigns billing roles to team members
+export const projectMemberBillingRoleSchema = z.object({
+  id: z.string(),
+  teamMemberId: z.string(),
+  billingRoleId: z.string().nullable().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+})
+
+export type ProjectMemberBillingRole = z.infer<typeof projectMemberBillingRoleSchema>
+
+// Helper types for rate calculations
+export interface EffectiveRate {
+  rateAmountCents: number
+  source: 'member' | 'billing_role' | 'default'
+  sourceId: string | null
+  sourceName: string | null
+}
+
+export interface MemberBillingDetails {
+  userId: string
+  teamMemberId: string
+  userName: string | null
+  userEmail: string
+  billingRoleId: string | null
+  billingRoleName: string | null
+  effectiveRate: EffectiveRate | null
+}
